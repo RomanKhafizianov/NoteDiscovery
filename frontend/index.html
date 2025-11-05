@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteDiscovery</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/logo.svg">
+    
+    <!-- Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" id="highlight-theme" href="">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/http.min.js"></script>
+    
+    <!-- Theme styles will be loaded dynamically -->
+    <link rel="stylesheet" id="theme-stylesheet" href="">
+    
+    <!-- Custom styles -->
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* Theme-aware styles using CSS variables */
+        body {
+            background-color: var(--bg-primary, #ffffff);
+            color: var(--text-primary, #111827);
+        }
+        
+        .bg-themed {
+            background-color: var(--bg-primary);
+        }
+        
+        .bg-themed-secondary {
+            background-color: var(--bg-secondary);
+        }
+        
+        .text-themed {
+            color: var(--text-primary);
+        }
+        
+        .text-themed-secondary {
+            color: var(--text-secondary);
+        }
+        
+        .border-themed {
+            border-color: var(--border-primary);
+        }
+        
+        .bg-accent {
+            background-color: var(--accent-primary);
+        }
+        
+        .bg-accent:hover {
+            background-color: var(--accent-hover);
+        }
+        
+        .text-accent {
+            color: var(--accent-primary);
+        }
+        
+        /* Markdown preview styling */
+        .markdown-preview {
+            line-height: 1.8;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+        
+        /* Remove top margin from first element */
+        .markdown-preview > *:first-child {
+            margin-top: 0 !important;
+        }
+        
+        /* Headings */
+        .markdown-preview h1 { 
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-primary);
+            padding-bottom: 0.5rem;
+        }
+        .markdown-preview h2 { 
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-top: 1.75rem;
+            margin-bottom: 0.875rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-primary);
+            padding-bottom: 0.3rem;
+        }
+        .markdown-preview h3 { 
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        .markdown-preview h4 { 
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.625rem;
+            color: var(--text-primary);
+        }
+        .markdown-preview h5 { 
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        .markdown-preview h6 { 
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Paragraphs and text */
+        .markdown-preview p { 
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+        
+        .markdown-preview strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .markdown-preview em {
+            font-style: italic;
+        }
+        
+        /* Lists */
+        .markdown-preview ul, .markdown-preview ol { 
+            margin-bottom: 1rem;
+            margin-left: 1.5rem;
+            padding-left: 0.5rem;
+        }
+        .markdown-preview ul { list-style-type: disc; }
+        .markdown-preview ol { list-style-type: decimal; }
+        .markdown-preview li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        .markdown-preview li > ul,
+        .markdown-preview li > ol {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Inline code */
+        .markdown-preview code:not(pre code) { 
+            background-color: var(--bg-tertiary);
+            color: var(--accent-primary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-weight: 500;
+        }
+        
+        /* Code blocks */
+        .markdown-preview pre { 
+            background-color: var(--bg-tertiary);
+            margin-bottom: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid var(--border-primary);
+        }
+        .markdown-preview pre code {
+            background: transparent;
+            padding: 1rem;
+            display: block;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        /* Blockquotes */
+        .markdown-preview blockquote { 
+            border-left: 4px solid var(--accent-primary);
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+            background-color: var(--bg-tertiary);
+            padding: 1rem;
+            padding-left: 1rem;
+            border-radius: 0.25rem;
+        }
+        .markdown-preview blockquote p {
+            margin-bottom: 0;
+        }
+        
+        /* Links */
+        .markdown-preview a { 
+            color: var(--accent-primary);
+            text-decoration: underline;
+            text-decoration-color: transparent;
+            transition: text-decoration-color 0.2s;
+            cursor: pointer;
+        }
+        .markdown-preview a:hover {
+            text-decoration-color: var(--accent-primary);
+        }
+        
+        /* Internal links (not starting with http/https) get a special style */
+        .markdown-preview a:not([href^="http"]):not([href^="https"]):not([href^="//"]):not([href^="mailto:"]) {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+        .markdown-preview a:not([href^="http"]):not([href^="https"]):not([href^="//"]):not([href^="mailto:"]):before {
+            content: "→ ";
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        /* Tables */
+        .markdown-preview table { 
+            width: 100%;
+            margin-bottom: 1.5rem;
+            border-collapse: collapse;
+            border: 1px solid var(--border-primary);
+        }
+        .markdown-preview th, .markdown-preview td { 
+            border: 1px solid var(--border-primary);
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+        .markdown-preview th { 
+            background-color: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .markdown-preview tr:nth-child(even) {
+            background-color: var(--bg-secondary);
+        }
+        
+        /* Horizontal rule */
+        .markdown-preview hr {
+            border: none;
+            border-top: 2px solid var(--border-primary);
+            margin: 2rem 0;
+        }
+        
+        /* Images */
+        .markdown-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        /* Task lists */
+        .markdown-preview input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+        
+        /* Editor styling */
+        .editor-textarea {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            tab-size: 2;
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+        
+        /* Link drop zone cursor */
+        .editor-textarea.link-drop-target {
+            cursor: copy !important;
+        }
+        
+        /* Folder tree styling */
+        .folder-item {
+            user-select: none;
+        }
+        
+        .folder-item:hover {
+            background-color: var(--bg-hover);
+        }
+        
+        .folder-expanded {
+            font-weight: 600;
+        }
+        
+        .note-item {
+            padding-left: 1.5rem;
+        }
+        
+        .hover-buttons {
+            transition: opacity 0.2s;
+        }
+        
+        .folder-item:hover .hover-buttons {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        
+        /* Note delete button on hover */
+        .note-item:hover .note-delete-btn {
+            opacity: 1 !important;
+        }
+        
+        /* Folder hierarchy lines (Obsidian-style) */
+        .folder-contents {
+            position: relative;
+            padding-left: 1rem;
+            margin-left: 0.5rem;
+        }
+        
+        .folder-contents::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--border-primary);
+            opacity: 0.4;
+        }
+        
+        /* Scrollbar styling */
+        .custom-scrollbar::-webkit-scrollbar,
+        .editor-textarea::-webkit-scrollbar,
+        .markdown-preview::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track,
+        .editor-textarea::-webkit-scrollbar-track,
+        .markdown-preview::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb,
+        .editor-textarea::-webkit-scrollbar-thumb,
+        .markdown-preview::-webkit-scrollbar-thumb {
+            background: var(--border-secondary);
+            border-radius: 6px;
+            border: 2px solid var(--bg-tertiary);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+        .editor-textarea::-webkit-scrollbar-thumb:hover,
+        .markdown-preview::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+        
+        /* Firefox scrollbar */
+        .custom-scrollbar,
+        .editor-textarea,
+        .markdown-preview {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-secondary) var(--bg-tertiary);
+        }
+        
+        /* Resize handle */
+        .resize-handle {
+            position: relative;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        
+        .resize-handle:hover {
+            background-color: var(--accent-primary) !important;
+        }
+        
+        .resize-handle:active {
+            background-color: var(--accent-hover) !important;
+        }
+        
+        /* Enhanced Shell/Bash Syntax Highlighting */
+        .markdown-preview pre code.language-shell .hljs-meta,
+        .markdown-preview pre code.language-bash .hljs-meta,
+        .markdown-preview pre code.language-sh .hljs-meta {
+            color: #7c3aed !important; /* Purple for prompts like $ # */
+            font-weight: 600;
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-built_in,
+        .markdown-preview pre code.language-bash .hljs-built_in,
+        .markdown-preview pre code.language-sh .hljs-built_in {
+            color: #10b981 !important; /* Green for built-in commands */
+            font-weight: 500;
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-string,
+        .markdown-preview pre code.language-bash .hljs-string,
+        .markdown-preview pre code.language-sh .hljs-string {
+            color: #f59e0b !important; /* Orange for strings */
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-variable,
+        .markdown-preview pre code.language-bash .hljs-variable,
+        .markdown-preview pre code.language-sh .hljs-variable {
+            color: #06b6d4 !important; /* Cyan for variables */
+            font-weight: 500;
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-comment,
+        .markdown-preview pre code.language-bash .hljs-comment,
+        .markdown-preview pre code.language-sh .hljs-comment {
+            color: #6b7280 !important; /* Gray for comments */
+            font-style: italic;
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-keyword,
+        .markdown-preview pre code.language-bash .hljs-keyword,
+        .markdown-preview pre code.language-sh .hljs-keyword {
+            color: #ec4899 !important; /* Pink for keywords like if, then, else */
+            font-weight: 600;
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-number,
+        .markdown-preview pre code.language-bash .hljs-number,
+        .markdown-preview pre code.language-sh .hljs-number {
+            color: #8b5cf6 !important; /* Purple for numbers */
+        }
+        
+        .markdown-preview pre code.language-shell .hljs-literal,
+        .markdown-preview pre code.language-bash .hljs-literal,
+        .markdown-preview pre code.language-sh .hljs-literal {
+            color: #3b82f6 !important; /* Blue for literals like true, false */
+            font-weight: 500;
+        }
+        
+        /* Enhanced PowerShell Syntax Highlighting */
+        .markdown-preview pre code.language-powershell .hljs-built_in,
+        .markdown-preview pre code.language-ps1 .hljs-built_in,
+        .markdown-preview pre code.language-ps .hljs-built_in {
+            color: #10b981 !important; /* Green for cmdlets like Get-Process, Set-Location */
+            font-weight: 600;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-literal,
+        .markdown-preview pre code.language-ps1 .hljs-literal,
+        .markdown-preview pre code.language-ps .hljs-literal {
+            color: #3b82f6 !important; /* Blue for $true, $false, $null */
+            font-weight: 600;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-variable,
+        .markdown-preview pre code.language-ps1 .hljs-variable,
+        .markdown-preview pre code.language-ps .hljs-variable {
+            color: #06b6d4 !important; /* Cyan for $variables */
+            font-weight: 500;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-string,
+        .markdown-preview pre code.language-ps1 .hljs-string,
+        .markdown-preview pre code.language-ps .hljs-string {
+            color: #f59e0b !important; /* Orange for strings */
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-keyword,
+        .markdown-preview pre code.language-ps1 .hljs-keyword,
+        .markdown-preview pre code.language-ps .hljs-keyword {
+            color: #ec4899 !important; /* Pink for keywords like if, else, foreach */
+            font-weight: 600;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-params,
+        .markdown-preview pre code.language-ps1 .hljs-params,
+        .markdown-preview pre code.language-ps .hljs-params {
+            color: #8b5cf6 !important; /* Purple for -Parameters */
+            font-weight: 500;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-type,
+        .markdown-preview pre code.language-ps1 .hljs-type,
+        .markdown-preview pre code.language-ps .hljs-type {
+            color: #14b8a6 !important; /* Teal for [Types] */
+            font-weight: 500;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-comment,
+        .markdown-preview pre code.language-ps1 .hljs-comment,
+        .markdown-preview pre code.language-ps .hljs-comment {
+            color: #6b7280 !important; /* Gray for comments */
+            font-style: italic;
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-number,
+        .markdown-preview pre code.language-ps1 .hljs-number,
+        .markdown-preview pre code.language-ps .hljs-number {
+            color: #8b5cf6 !important; /* Purple for numbers */
+        }
+        
+        .markdown-preview pre code.language-powershell .hljs-operator,
+        .markdown-preview pre code.language-ps1 .hljs-operator,
+        .markdown-preview pre code.language-ps .hljs-operator {
+            color: #f472b6 !important; /* Pink for operators */
+        }
+    </style>
+</head>
+<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);">
+    
+    <!-- Main Container -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar -->
+        <div class="flex flex-col" :style="'width: ' + sidebarWidth + 'px; background-color: var(--bg-secondary); border-right: 1px solid var(--border-primary); min-width: 200px; max-width: 600px;'">
+            <!-- Header -->
+            <div class="p-4 border-b" style="border-color: var(--border-primary);">
+                <div class="flex items-center gap-2 mb-3">
+                    <img src="/static/logo.svg" alt="NoteDiscovery Logo" class="w-8 h-8">
+                    <h1 class="text-xl font-bold" style="color: var(--text-primary);" x-text="appName"></h1>
+                </div>
+                
+                <!-- Theme Selector -->
+                <div class="mb-3">
+                    <label class="text-xs mb-1 block" style="color: var(--text-tertiary);">Theme</label>
+                    <select 
+                        x-model="currentTheme"
+                        @change="setTheme(currentTheme)"
+                        class="w-full px-3 py-2 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                        style="background-color: var(--bg-primary); color: var(--text-primary); border-color: var(--border-primary); cursor: pointer;"
+                    >
+                        <template x-for="theme in availableThemes" :key="theme.id">
+                            <option :value="theme.id" x-text="theme.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <p class="text-xs" style="color: var(--text-secondary);" x-text="appTagline"></p>
+            </div>
+            
+            <!-- Search -->
+            <div class="p-3 border-b" style="border-color: var(--border-primary);">
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        x-model="searchQuery"
+                        @input="searchNotes()"
+                        placeholder="Search notes..."
+                        class="w-full px-3 py-2 pl-8 pr-8 text-sm rounded-lg focus:outline-none focus:ring-2"
+                        style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary);"
+                    >
+                    <!-- Search Icon -->
+                    <svg class="absolute left-2 top-2.5 w-4 h-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <!-- Clear Button -->
+                    <button
+                        x-show="searchQuery.length > 0"
+                        @click="searchQuery = ''; searchResults = []; currentSearchHighlight = ''; clearSearchHighlights();"
+                        class="absolute right-2 top-2.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        style="color: var(--text-tertiary);"
+                        title="Clear search"
+                    >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Match Navigation (shown when there are matches in current note) -->
+                <div 
+                    x-show="totalMatches > 0" 
+                    class="flex items-center justify-between mt-2 px-2 py-1 rounded text-xs"
+                    style="background-color: var(--bg-secondary); color: var(--text-secondary);"
+                >
+                    <span x-text="`Match ${currentMatchIndex + 1} of ${totalMatches}`"></span>
+                    <div class="flex gap-1">
+                        <button
+                            @click="previousMatch()"
+                            class="px-2 py-1 rounded hover:bg-opacity-80 transition-colors"
+                            style="background-color: var(--bg-primary); color: var(--text-primary);"
+                            title="Previous match (Shift+F3)"
+                        >
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <button
+                            @click="nextMatch()"
+                            class="px-2 py-1 rounded hover:bg-opacity-80 transition-colors"
+                            style="background-color: var(--bg-primary); color: var(--text-primary);"
+                            title="Next match (F3)"
+                        >
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New Note & Folder Buttons -->
+            <div class="p-3 border-b flex gap-2" style="border-color: var(--border-primary);">
+                <button 
+                    @click="createNewNote()"
+                    class="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2"
+                    style="background-color: var(--accent-primary);"
+                    onmouseover="this.style.backgroundColor='var(--accent-hover)'"
+                    onmouseout="this.style.backgroundColor='var(--accent-primary)'"
+                >
+                    + Note
+                </button>
+                <button 
+                    @click="createNewFolder()"
+                    class="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2"
+                    style="background-color: var(--bg-tertiary); color: var(--text-primary);"
+                    title="Create folder"
+                >
+                    📁
+                </button>
+            </div>
+            
+            <!-- Notes List -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                <template x-if="searchResults.length > 0">
+                    <div class="p-2">
+                        <div class="text-xs px-2 py-1" style="color: var(--text-tertiary);">Search Results</div>
+                        <template x-for="note in searchResults" :key="note.path">
+                            <div 
+                                @click="loadNote(note.path, true, searchQuery)"
+                                class="px-3 py-2 mb-1 text-sm rounded cursor-pointer"
+                                :style="currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
+                                onmouseover="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='transparent'"
+                            >
+                                <div class="font-medium truncate" x-text="note.name"></div>
+                                <div class="text-xs truncate" style="color: var(--text-tertiary);" x-text="note.folder || 'Root'"></div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                
+                <template x-if="searchResults.length === 0">
+                    <div class="p-2">
+                        <div class="text-xs px-2 py-1 mb-2" style="color: var(--text-tertiary);">
+                            <div class="flex items-center justify-between mb-1">
+                                <span>Folders & Notes</span>
+                                <div class="flex gap-1">
+                                    <button 
+                                        @click="expandAllFolders()"
+                                        class="text-xs px-2 py-0.5 rounded hover:bg-opacity-20"
+                                        style="color: var(--text-secondary);"
+                                        title="Expand all folders"
+                                    >⊞</button>
+                                    <button 
+                                        @click="collapseAllFolders()"
+                                        class="text-xs px-2 py-0.5 rounded hover:bg-opacity-20"
+                                        style="color: var(--text-secondary);"
+                                        title="Collapse all folders"
+                                    >⊟</button>
+                                </div>
+                            </div>
+                            <div class="text-xs" style="color: var(--text-tertiary); opacity: 0.8;">
+                                💡 Drag=Move | <kbd style="padding: 1px 4px; border-radius: 3px; background: var(--bg-tertiary); font-size: 10px;">Ctrl</kbd>+Drag=Link
+                            </div>
+                        </div>
+                        
+                        <!-- Root drop zone - only visible when dragging -->
+                        <div 
+                            x-show="draggedNote || draggedFolder"
+                            @dragover.prevent
+                            @drop="onFolderDrop('')"
+                            class="mb-3 px-3 py-2 rounded-lg border-2 border-dashed transition-all"
+                            style="border-color: var(--accent-primary); background-color: var(--accent-light);"
+                        >
+                            <div class="text-xs text-center font-medium" style="color: var(--accent-primary);">
+                                📂 Drop here to move to root folder
+                            </div>
+                        </div>
+                        
+                        <!-- Folders -->
+                        <template x-for="[folderKey, folder] in Object.entries(folderTree).filter(([k]) => k !== '__root__').sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()))" :key="folderKey">
+                            <div>
+                                <!-- Folder header with drop zone -->
+                                <div 
+                                    draggable="true"
+                                    @dragstart="onFolderDragStart(folder.path)"
+                                    @dragend="onFolderDragEnd()"
+                                    @dragover.prevent
+                                    @drop.stop="onFolderDrop(folder.path)"
+                                    class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
+                                    :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
+                                    :style="'color: var(--text-primary);' + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                    @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
+                                    @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
+                                    @click="toggleFolder(folder.path); $nextTick(() => buildFolderTree())"
+                                >
+                                    <div class="flex items-center gap-1">
+                                        <button 
+                                            class="flex-shrink-0 w-4 h-4 flex items-center justify-center"
+                                            style="color: var(--text-tertiary); cursor: pointer; transition: transform 0.2s; pointer-events: none;"
+                                            :style="isFolderExpanded(folder.path) ? 'transform: rotate(90deg);' : ''"
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                                                <path d="M6 4l4 4-4 4V4z"/>
+                                            </svg>
+                                        </button>
+                                        <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
+                                            <span x-text="folder.name"></span>
+                                            <span x-show="folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0)" class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>
+                                        </span>
+                                    </div>
+                                    <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
+                                        <button 
+                                            @click="renameFolder(folder.path, folder.name)"
+                                            class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                            style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                            title="Rename folder"
+                                        >✏️</button>
+                                        <button 
+                                            @click="createNoteInFolder(folder.path)"
+                                            class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                            style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                            title="New note in this folder"
+                                        >📄</button>
+                                        <button 
+                                            @click="createNewFolder(folder.path)"
+                                            class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                            style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                            title="New subfolder"
+                                        >📁</button>
+                                        <button 
+                                            @click="deleteFolder(folder.path, folder.name)"
+                                            class="px-1 py-0.5 text-xs rounded hover:brightness-110"
+                                            style="color: var(--error);"
+                                            title="Delete folder and all contents"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Folder contents (when expanded) -->
+                                <template x-if="isFolderExpanded(folder.path)">
+                                    <div class="folder-contents">
+                                        <!-- Subfolders (recursive) -->
+                                        <template x-if="folder.children && Object.keys(folder.children).length > 0">
+                                            <template x-for="[childKey, childFolder] in Object.entries(folder.children).sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()))" :key="childKey">
+                                                <div>
+                                                    <!-- Subfolder header -->
+                                                    <div 
+                                                        draggable="true"
+                                                        @dragstart="onFolderDragStart(childFolder.path)"
+                                                        @dragend="onFolderDragEnd()"
+                                                        @dragover.prevent
+                                                        @drop.stop="onFolderDrop(childFolder.path)"
+                                                        class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
+                                                        :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
+                                                        :style="'color: var(--text-primary);' + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                                        @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
+                                                        @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
+                                                        @click="toggleFolder(childFolder.path); $nextTick(() => buildFolderTree())"
+                                                    >
+                                                        <div class="flex items-center gap-1">
+                                                            <button 
+                                                                class="flex-shrink-0 w-4 h-4 flex items-center justify-center"
+                                                                style="color: var(--text-tertiary); cursor: pointer; transition: transform 0.2s; pointer-events: none;"
+                                                                :style="isFolderExpanded(childFolder.path) ? 'transform: rotate(90deg);' : ''"
+                                                            >
+                                                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                                                                    <path d="M6 4l4 4-4 4V4z"/>
+                                                                </svg>
+                                                            </button>
+                                                            <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
+                                                                <span x-text="childFolder.name"></span>
+                                                                <span x-show="childFolder.notes.length === 0 && (!childFolder.children || Object.keys(childFolder.children).length === 0)" class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>
+                                                            </span>
+                                                        </div>
+                                                        <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
+                                                            <button 
+                                                                @click="renameFolder(childFolder.path, childFolder.name)"
+                                                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                                                title="Rename folder"
+                                                            >✏️</button>
+                                                            <button 
+                                                                @click="createNoteInFolder(childFolder.path)"
+                                                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                                                title="New note in this folder"
+                                                            >📄</button>
+                                                            <button 
+                                                                @click="createNewFolder(childFolder.path)"
+                                                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                                                title="New subfolder"
+                                                            >📁</button>
+                                                            <button 
+                                                                @click="deleteFolder(childFolder.path, childFolder.name)"
+                                                                class="px-1 py-0.5 text-xs rounded hover:brightness-110"
+                                                                style="color: var(--error);"
+                                                                title="Delete folder and all contents"
+                                                            >
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Subfolder notes -->
+                                                    <template x-if="isFolderExpanded(childFolder.path) && childFolder.notes && childFolder.notes.length > 0">
+                                                        <div class="folder-contents">
+                                                            <template x-for="note in childFolder.notes" :key="note.path">
+                                                                <div 
+                                                                    draggable="true"
+                                                                    @dragstart="onNoteDragStart(note.path, $event)"
+                                                                    @dragend="onNoteDragEnd()"
+                                                                    @click="loadNote(note.path)"
+                                                                    class="note-item px-3 py-2 mb-1 text-sm rounded relative"
+                                                                    :style="(currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                                                    @mouseover="if(currentNote !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
+                                                                    @mouseout="if(currentNote !== note.path) $el.style.backgroundColor='transparent'"
+                                                                >
+                                                                    <span class="truncate" x-text="note.name"></span>
+                                                                    <button 
+                                                                        @click.stop="deleteNote(note.path, note.name)"
+                                                                        class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
+                                                                        style="opacity: 0; color: var(--error);"
+                                                                        title="Delete note"
+                                                                    >
+                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        
+                                        <!-- Notes in this folder -->
+                                        <template x-if="folder.notes && folder.notes.length > 0">
+                                            <template x-for="note in folder.notes" :key="note.path">
+                                                <div 
+                                                    draggable="true"
+                                                    @dragstart="onNoteDragStart(note.path, $event)"
+                                                    @dragend="onNoteDragEnd()"
+                                                    @click="loadNote(note.path)"
+                                                    class="note-item px-3 py-2 mb-1 text-sm rounded relative"
+                                                    :style="(currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                                    @mouseover="if(currentNote !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
+                                                    @mouseout="if(currentNote !== note.path) $el.style.backgroundColor='transparent'"
+                                                >
+                                                    <span class="truncate" x-text="note.name"></span>
+                                                    <button 
+                                                        @click.stop="deleteNote(note.path, note.name)"
+                                                        class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
+                                                        style="opacity: 0; color: var(--error);"
+                                                        title="Delete note"
+                                                    >
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        
+                        <!-- Root notes (no folder) - shown after folders -->
+                        <template x-for="note in (folderTree.__root__ && folderTree.__root__.notes ? folderTree.__root__.notes : [])" :key="note.path">
+                            <div 
+                                draggable="true"
+                                @dragstart="onNoteDragStart(note.path, $event)"
+                                @dragend="onNoteDragEnd()"
+                                @click="loadNote(note.path)"
+                                class="note-item px-3 py-2 mb-1 text-sm rounded relative"
+                                :style="(currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                @mouseover="if(currentNote !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
+                                @mouseout="if(currentNote !== note.path) $el.style.backgroundColor='transparent'"
+                            >
+                                <span class="truncate" x-text="note.name"></span>
+                                <button 
+                                    @click.stop="deleteNote(note.path, note.name)"
+                                    class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
+                                    style="opacity: 0; color: var(--error);"
+                                    title="Delete note"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+                        
+                        <!-- Empty state -->
+                        <template x-if="notes.length === 0 && allFolders.length === 0">
+                            <div class="px-3 py-4 text-sm text-center" style="color: var(--text-tertiary);">
+                                No notes or folders yet.<br>Create your first note or folder!
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-3 border-t" style="border-color: var(--border-primary);">
+                <div class="text-xs text-center" style="color: var(--text-tertiary);">
+                    <span x-text="notes.length"></span> notes
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resize Handle -->
+        <div 
+            @mousedown="startResize($event)"
+            class="resize-handle"
+            style="width: 4px; cursor: col-resize; background-color: transparent; transition: background-color 0.2s;"
+            @mouseover="$el.style.backgroundColor='var(--accent-primary)'"
+            @mouseout="if(!isResizing) $el.style.backgroundColor='transparent'"
+        ></div>
+        
+        <!-- Drag Mode Indicator (floating) -->
+        <div 
+            x-show="draggedNote || draggedNoteForLink"
+            class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg"
+            :style="'background-color: var(--accent-primary); color: white; font-weight: 600;'"
+            style="pointer-events: none;"
+        >
+            <span x-show="draggedNoteForLink">🔗 Link Mode - Drop in editor to create link</span>
+            <span x-show="draggedNote && !draggedNoteForLink">📦 Move Mode - Drop on folder to move</span>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            
+            <template x-if="!currentNote">
+                <!-- Welcome Screen -->
+                <div class="flex-1 flex items-center justify-center" style="background-color: var(--bg-primary);">
+                    <div class="text-center">
+                        <svg class="mx-auto h-16 w-16 mb-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);" x-text="appName"></h2>
+                        <p class="mb-6" style="color: var(--text-secondary);" x-text="appTagline"></p>
+                        <button 
+                            @click="createNewNote()"
+                            class="px-6 py-3 text-sm font-medium text-white rounded-lg"
+                            style="background-color: var(--accent-primary);"
+                            onmouseover="this.style.backgroundColor='var(--accent-hover)'"
+                            onmouseout="this.style.backgroundColor='var(--accent-primary)'"
+                        >
+                            Create Your First Note
+                        </button>
+                    </div>
+                </div>
+            </template>
+            
+            <template x-if="currentNote">
+                <!-- Editor Area -->
+                <div class="flex-1 flex flex-col overflow-hidden" style="background-color: var(--bg-primary);">
+                    <!-- Toolbar -->
+                    <div class="px-4 py-3 flex items-center justify-between" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
+                        <div class="flex items-center space-x-2">
+                            <input 
+                                type="text" 
+                                x-model="currentNoteName"
+                                @blur="renameNote()"
+                                class="text-xl font-semibold border-none focus:outline-none focus:ring-2 rounded px-3 py-1.5"
+                                style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary); min-width: 300px;"
+                            >
+                            <!-- Undo Button -->
+                            <button 
+                                @click="undo()"
+                                :disabled="undoHistory.length <= 1"
+                                class="p-2 rounded-lg"
+                                :style="undoHistory.length <= 1 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="this.style.backgroundColor='transparent'"
+                                title="Undo (Ctrl+Z)"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Redo Button -->
+                            <button 
+                                @click="redo()"
+                                :disabled="redoHistory.length === 0"
+                                class="p-2 rounded-lg"
+                                :style="redoHistory.length === 0 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="this.style.backgroundColor='transparent'"
+                                title="Redo (Ctrl+Y)"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Delete Button -->
+                            <button 
+                                @click="deleteCurrentNote()"
+                                class="p-2 rounded-lg"
+                                style="color: var(--error);"
+                                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="this.style.backgroundColor='transparent'"
+                                title="Delete note"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                            <span x-show="isSaving" class="text-xs" style="color: var(--text-secondary);">Saving...</span>
+                            <span x-show="!isSaving && lastSaved" class="text-xs" style="color: var(--success);">✓ Saved</span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <!-- View Toggle -->
+                            <div class="flex rounded-lg p-1" style="background-color: var(--bg-tertiary);">
+                                <button 
+                                    @click="viewMode = 'edit'"
+                                    class="px-3 py-1 text-sm rounded transition"
+                                    :style="viewMode === 'edit' ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
+                                >
+                                    Edit
+                                </button>
+                                <button 
+                                    @click="viewMode = 'split'"
+                                    class="px-3 py-1 text-sm rounded transition"
+                                    :style="viewMode === 'split' ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
+                                >
+                                    Split
+                                </button>
+                                <button 
+                                    @click="viewMode = 'preview'"
+                                    class="px-3 py-1 text-sm rounded transition"
+                                    :style="viewMode === 'preview' ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
+                                >
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Editor/Preview -->
+                    <div class="flex-1 flex" style="min-height: 0;">
+                        <!-- Editor -->
+                        <div 
+                            x-show="viewMode === 'edit' || viewMode === 'split'"
+                            :class="viewMode === 'split' ? 'w-1/2' : 'w-full'"
+                            class="flex flex-col"
+                            style="min-height: 0;"
+                            :style="'border-right: ' + (viewMode === 'split' ? '1px solid var(--border-primary)' : 'none')"
+                        >
+                            <textarea 
+                                x-model="noteContent"
+                                @input="autoSave()"
+                                @drop="onEditorDrop($event)"
+                                @dragover.prevent="onEditorDragOver($event)"
+                                @dragenter="onEditorDragEnter($event)"
+                                @dragleave="onEditorDragLeave($event)"
+                                :class="'flex-1 w-full p-6 resize-none focus:outline-none editor-textarea' + (draggedNoteForLink ? ' link-drop-target' : '')"
+                                :style="'background-color: var(--bg-primary); color: var(--text-primary);' + (draggedNoteForLink ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
+                                :placeholder="draggedNoteForLink ? '💡 Drop here to create link at cursor position...' : 'Start writing in markdown...'"
+                            ></textarea>
+                        </div>
+                        
+                        <!-- Preview -->
+                        <div 
+                            x-show="viewMode === 'preview' || viewMode === 'split'"
+                            :class="viewMode === 'split' ? 'w-1/2' : 'w-full'"
+                            class="overflow-y-auto overflow-x-hidden custom-scrollbar"
+                            style="background-color: var(--bg-primary); min-height: 0;"
+                        >
+                            <div 
+                                class="p-6 markdown-preview"
+                                x-html="renderedMarkdown"
+                                @click="handleInternalLink($event)"
+                            ></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Status Bar (only shows if plugin enabled) -->
+                    <div x-show="statsPluginEnabled && currentNote && noteStats" 
+                         class="border-t"
+                         style="background-color: var(--bg-secondary); border-color: var(--border-primary);">
+                        
+                        <!-- Collapsed State (default) -->
+                        <div x-show="!statsExpanded" 
+                             @click="statsExpanded = true"
+                             class="px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-opacity-80 transition-colors"
+                             onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                             onmouseout="this.style.backgroundColor='transparent'">
+                            <div class="flex items-center space-x-4 text-sm" style="color: var(--text-secondary);">
+                                <span class="font-medium">📊</span>
+                                <span x-text="noteStats ? noteStats.words.toLocaleString() + ' words' : ''"></span>
+                                <span>·</span>
+                                <span x-text="noteStats ? '~' + noteStats.reading_time_minutes + 'm read' : ''"></span>
+                                <template x-if="noteStats && noteStats.links > 0">
+                                    <span>
+                                        · <span x-text="noteStats.links + ' links'"></span>
+                                    </span>
+                                </template>
+                                <template x-if="noteStats && noteStats.tasks.total > 0">
+                                    <span>
+                                        · <span x-text="noteStats.tasks.completed + '/' + noteStats.tasks.total + ' tasks'"></span>
+                                    </span>
+                                </template>
+                            </div>
+                            <span class="text-xs" style="color: var(--text-tertiary);">▼ Click for details</span>
+                        </div>
+                        
+                        <!-- Expanded State -->
+                        <div x-show="statsExpanded" 
+                             class="px-4 py-3"
+                             style="background-color: var(--bg-tertiary);">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-semibold text-sm" style="color: var(--text-primary);">📊 Note Statistics</h3>
+                                <button 
+                                    @click="statsExpanded = false"
+                                    class="text-xs px-2 py-1 rounded hover:bg-opacity-80"
+                                    style="color: var(--text-secondary); background-color: var(--bg-hover);">
+                                    ▲ Collapse
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <!-- Basic Stats -->
+                                <div>
+                                    <div class="text-xs" style="color: var(--text-tertiary);">Words</div>
+                                    <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats ? noteStats.words.toLocaleString() : '0'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-xs" style="color: var(--text-tertiary);">Characters</div>
+                                    <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats ? noteStats.characters.toLocaleString() : '0'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-xs" style="color: var(--text-tertiary);">Reading Time</div>
+                                    <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats ? '~' + noteStats.reading_time_minutes + ' min' : '0 min'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-xs" style="color: var(--text-tertiary);">Lines</div>
+                                    <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats ? noteStats.lines.toLocaleString() : '0'"></div>
+                                </div>
+                                
+                                <!-- Links -->
+                                <template x-if="noteStats && noteStats.links > 0">
+                                    <div>
+                                        <div class="text-xs" style="color: var(--text-tertiary);">Links</div>
+                                        <div class="font-semibold" style="color: var(--text-primary);">
+                                            <span x-text="noteStats.links"></span>
+                                            <span class="text-xs font-normal" style="color: var(--text-tertiary);">
+                                                (<span x-text="noteStats.internal_links"></span> internal)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Headings -->
+                                <template x-if="noteStats && noteStats.headings.total > 0">
+                                    <div>
+                                        <div class="text-xs" style="color: var(--text-tertiary);">Headings</div>
+                                        <div class="font-semibold" style="color: var(--text-primary);">
+                                            <span x-text="noteStats.headings.total"></span>
+                                            <span class="text-xs font-normal" style="color: var(--text-tertiary);">
+                                                (H1: <span x-text="noteStats.headings.h1"></span>, H2: <span x-text="noteStats.headings.h2"></span>)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Code Blocks -->
+                                <template x-if="noteStats && noteStats.code_blocks > 0">
+                                    <div>
+                                        <div class="text-xs" style="color: var(--text-tertiary);">Code Blocks</div>
+                                        <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats.code_blocks"></div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Tasks -->
+                                <template x-if="noteStats && noteStats.tasks.total > 0">
+                                    <div>
+                                        <div class="text-xs" style="color: var(--text-tertiary);">Tasks</div>
+                                        <div class="font-semibold" style="color: var(--text-primary);">
+                                            <span x-text="noteStats.tasks.completed + '/' + noteStats.tasks.total"></span>
+                                            <span class="text-xs font-normal" style="color: var(--text-tertiary);">
+                                                (<span x-text="noteStats.tasks.completion_rate"></span>%)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Images -->
+                                <template x-if="noteStats && noteStats.images > 0">
+                                    <div>
+                                        <div class="text-xs" style="color: var(--text-tertiary);">Images</div>
+                                        <div class="font-semibold" style="color: var(--text-primary);" x-text="noteStats.images"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </template>
+            
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
