@@ -6,6 +6,8 @@
 
 NoteDiscovery is a **lightweight, self-hosted note-taking application** that puts you in complete control of your knowledge base. Write, organize, and discover your notes with a beautiful, modern interface—all running on your own server.
 
+![Note Discovery](screenshot.jpg)
+
 ## 🎯 Who is it for?
 
 - **Privacy-conscious users** who want complete control over their data
@@ -91,6 +93,20 @@ python run.py
 - Uvicorn - ASGI server
 - PyYAML - Configuration handling
 - aiofiles - Async file operations
+
+## 📚 Documentation
+
+Want to learn more? **The full documentation lives inside the app as interactive notes!**
+
+Once you've started NoteDiscovery, you'll find comprehensive guides on:
+- 🎨 **THEMES.md** - Theme customization and creating custom themes
+- ✨ **FEATURES.md** - Complete feature list and keyboard shortcuts
+- 🔌 **PLUGINS.md** - Plugin system and available plugins
+- 🌐 **API.md** - REST API documentation and examples
+
+**Can't wait to start the app?** Browse the documentation notes directly on GitHub in the [`data/notes/`](data/notes/) folder!
+
+💡 **Tip:** These documentation files are regular markdown notes—edit them, add your own notes, or use them as templates. It's your knowledge base!
 
 ## 🔒 Security Considerations
 
