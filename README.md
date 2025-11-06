@@ -41,7 +41,65 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 
 ## 🚀 Quick Start
 
-### Running with Docker (Recommended)
+### Running from GitHub Container Registry (Easiest & Recommended)
+
+Use the pre-built image directly from GHCR - no building required!
+
+**Option 1: Docker Compose (Recommended)**
+
+```bash
+# Download the docker-compose file
+curl -O https://raw.githubusercontent.com/gamosoft/notediscovery/main/docker-compose.ghcr.yml
+
+# Or if you cloned the repo, just use it directly
+docker-compose -f docker-compose.ghcr.yml up -d
+
+# Access at http://localhost:8000
+
+# View logs
+docker-compose -f docker-compose.ghcr.yml logs -f
+
+# Stop the application
+docker-compose -f docker-compose.ghcr.yml down
+```
+
+**Option 2: Docker Run (Alternative)**
+
+```bash
+# Linux/macOS
+docker run -d \
+  --name notediscovery \
+  -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/plugins:/app/plugins \
+  -v $(pwd)/themes:/app/themes \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  --restart unless-stopped \
+  ghcr.io/gamosoft/notediscovery:latest
+```
+
+```powershell
+# Windows PowerShell
+docker run -d `
+  --name notediscovery `
+  -p 8000:8000 `
+  -v ${PWD}/data:/app/data `
+  -v ${PWD}/plugins:/app/plugins `
+  -v ${PWD}/themes:/app/themes `
+  -v ${PWD}/config.yaml:/app/config.yaml `
+  --restart unless-stopped `
+  ghcr.io/gamosoft/notediscovery:latest
+```
+
+Access at http://localhost:8000
+
+**Why use the GHCR image?**
+- ✅ No build time - instant deployment
+- ✅ Always up-to-date with the latest release
+- ✅ Tested and verified builds
+- ✅ Smaller download with optimized layers
+
+### Running with Docker Compose (Recommended for Development)
 
 Docker ensures consistent environment and easy deployment:
 
