@@ -24,21 +24,9 @@ def get_available_themes(themes_dir: str) -> List[Dict[str, str]]:
         "vs-blue": "🔷"
     }
     
-    # Built-in themes
-    default_themes = [
-        {"id": "light", "name": f"{theme_icons.get('light', '')} Light", "builtin": True},
-        {"id": "dark", "name": f"{theme_icons.get('dark', '')} Dark", "builtin": True},
-    ]
-    
-    themes.extend(default_themes)
-    
-    # Custom themes
+    # Load all themes from themes folder
     if themes_path.exists():
         for theme_file in themes_path.glob("*.css"):
-            # Skip built-in themes
-            if theme_file.stem in ["light", "dark"]:
-                continue
-            
             theme_name = theme_file.stem.replace("-", " ").replace("_", " ").title()
             icon = theme_icons.get(theme_file.stem, "🎨")
             

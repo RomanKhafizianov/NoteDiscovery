@@ -45,6 +45,40 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 
 Use the pre-built image directly from GHCR - no building required!
 
+> **📁 Important - Volume Mapping**: The container needs local folders/files to work:
+> - **Required**: `data` folder (your notes will be stored here)
+> - **Required**: `themes` folder with theme `.css` files (at least light.css and dark.css)
+> - **Required**: `plugins` folder (can be empty for basic functionality)
+> - **Required**: `config.yaml` file (needed for the app to run)
+> 
+> **Setup Options:**
+> 
+> 1. **Minimal** (quick test - download just the essentials):
+>    ```bash
+>    # Linux/macOS
+>    mkdir -p data plugins themes
+>    curl -O https://raw.githubusercontent.com/gamosoft/notediscovery/main/config.yaml
+>    # Download at least light and dark themes
+>    curl -o themes/light.css https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/light.css
+>    curl -o themes/dark.css https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/dark.css
+>    ```
+>    
+>    ```powershell
+>    # Windows PowerShell
+>    mkdir data, plugins, themes -Force
+>    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/config.yaml -OutFile config.yaml
+>    # Download at least light and dark themes
+>    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/light.css -OutFile themes/light.css
+>    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/dark.css -OutFile themes/dark.css
+>    ```
+> 
+> 2. **Full Setup** (recommended - includes all themes, plugins, sample notes):
+>    ```bash
+>    git clone https://github.com/gamosoft/notediscovery.git
+>    cd notediscovery
+>    # Now you have everything - run docker-compose below
+>    ```
+
 **Option 1: Docker Compose (Recommended)**
 
 ```bash
