@@ -380,128 +380,127 @@ function noteApp() {
         },
         
         // Render folder recursively (helper for deep nesting)
-        renderFolderRecursive(folder, level = 0) {
+        renderFolderRecursive(folder, level = 0, isTopLevel = false) {
             if (!folder) return '';
             
             let html = '';
-            const baseIndent = level * 12;
+            const isExpanded = this.expandedFolders.has(folder.path);
             
-            // First, render child folders (if any)
-            if (folder.children && Object.keys(folder.children).length > 0) {
-                const children = Object.entries(folder.children).sort((a, b) => 
-                    a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase())
-                );
-                
-                children.forEach(([childKey, childFolder]) => {
-                    const isExpanded = this.expandedFolders.has(childFolder.path);
-                
-                // Folder header HTML (no margin - it's inside folder-contents which provides the indent)
-                html += `
-                    <div>
-                        <div 
-                            draggable="true"
-                            x-data="{}"
-                            @dragstart="onFolderDragStart('${childFolder.path.replace(/'/g, "\\'")}' )"
-                            @dragend="onFolderDragEnd()"
-                            @dragover.prevent
-                            @drop.stop="onFolderDrop('${childFolder.path.replace(/'/g, "\\'")}')"
-                            class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
-                            style="color: var(--text-primary); cursor: pointer;"
-                            :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
-                            @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
-                            @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
-                            @click="toggleFolder('${childFolder.path.replace(/'/g, "\\'")}')"
-                        >
-                            <div class="flex items-center gap-1">
-                                <button 
-                                    class="flex-shrink-0 w-4 h-4 flex items-center justify-center"
-                                    style="color: var(--text-tertiary); cursor: pointer; transition: transform 0.2s; pointer-events: none; ${isExpanded ? 'transform: rotate(90deg);' : ''}"
-                                >
-                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M6 4l4 4-4 4V4z"/>
-                                    </svg>
-                                </button>
-                                <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
-                                    <span>${childFolder.name}</span>
-                                    ${childFolder.notes.length === 0 && (!childFolder.children || Object.keys(childFolder.children).length === 0) ? '<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>' : ''}
-                                </span>
-                            </div>
-                            <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
-                                <button 
-                                    @click="createNoteInFolder('${childFolder.path.replace(/'/g, "\\'")}')"
-                                    class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                    style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                    title="New note in this folder"
-                                >📄</button>
-                                <button 
-                                    @click="createNewFolder('${childFolder.path.replace(/'/g, "\\'")}')"
-                                    class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                    style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                    title="New subfolder"
-                                >📁</button>
-                                <button 
-                                    @click="renameFolder('${childFolder.path.replace(/'/g, "\\'")}', '${childFolder.name.replace(/'/g, "\\'")}')"
-                                    class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                    style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                    title="Rename folder"
-                                >✏️</button>
-                                <button 
-                                    @click="deleteFolder('${childFolder.path.replace(/'/g, "\\'")}', '${childFolder.name.replace(/'/g, "\\'")}')"
-                                    class="px-1 py-0.5 text-xs rounded hover:brightness-110"
-                                    style="color: var(--error);"
-                                    title="Delete folder and all contents"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                `;
-                
-                // If expanded, recursively render this folder's contents (notes + subfolders)
-                if (isExpanded) {
-                    html += `<div class="folder-contents" style="padding-left: 12px;">`;
-                    html += this.renderFolderRecursive(childFolder, 0); // Reset level to 0 for relative positioning
-                    html += `</div>`;
-                }
-                
-                    html += `</div>`;
-                });
-            }
-            
-            // Then, render notes in this folder (after subfolders)
-            if (folder.notes && folder.notes.length > 0) {
-                folder.notes.forEach(note => {
-                    const isCurrentNote = this.currentNote === note.path;
-                    html += `
-                        <div 
-                            draggable="true"
-                            x-data="{}"
-                            @dragstart="onNoteDragStart('${note.path.replace(/'/g, "\\'")}', $event)"
-                            @dragend="onNoteDragEnd()"
-                            @click="loadNote('${note.path.replace(/'/g, "\\'")}')"
-                            class="note-item px-3 py-2 mb-1 text-sm rounded relative"
-                            style="${isCurrentNote ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} cursor: pointer;"
-                            @mouseover="if('${note.path}' !== currentNote) $el.style.backgroundColor='var(--bg-hover)'"
-                            @mouseout="if('${note.path}' !== currentNote) $el.style.backgroundColor='transparent'"
-                        >
-                            <span class="truncate">${note.name}</span>
+            // Render this folder's header
+            html += `
+                <div>
+                    <div 
+                        draggable="true"
+                        x-data="{}"
+                        @dragstart="onFolderDragStart('${folder.path.replace(/'/g, "\\'")}' )"
+                        @dragend="onFolderDragEnd()"
+                        @dragover.prevent
+                        @drop.stop="onFolderDrop('${folder.path.replace(/'/g, "\\'")}')"
+                        class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
+                        style="color: var(--text-primary); cursor: pointer;"
+                        :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
+                        @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
+                        @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
+                        @click="toggleFolder('${folder.path.replace(/'/g, "\\'")}')"
+                    >
+                        <div class="flex items-center gap-1">
                             <button 
-                                @click.stop="deleteNote('${note.path.replace(/'/g, "\\'")}', '${note.name.replace(/'/g, "\\'")}')"
-                                class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
-                                style="opacity: 0; color: var(--error);"
-                                title="Delete note"
+                                class="flex-shrink-0 w-4 h-4 flex items-center justify-center"
+                                style="color: var(--text-tertiary); cursor: pointer; transition: transform 0.2s; pointer-events: none; ${isExpanded ? 'transform: rotate(90deg);' : ''}"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M6 4l4 4-4 4V4z"/>
+                                </svg>
+                            </button>
+                            <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
+                                <span>${folder.name}</span>
+                                ${folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0) ? '<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>' : ''}
+                            </span>
+                        </div>
+                        <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
+                            <button 
+                                @click="createNoteInFolder('${folder.path.replace(/'/g, "\\'")}')"
+                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                title="New note in this folder"
+                            >📄</button>
+                            <button 
+                                @click="createNewFolder('${folder.path.replace(/'/g, "\\'")}')"
+                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                title="New subfolder"
+                            >📁</button>
+                            <button 
+                                @click="renameFolder('${folder.path.replace(/'/g, "\\'")}', '${folder.name.replace(/'/g, "\\'")}')"
+                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
+                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                title="Rename folder"
+                            >✏️</button>
+                            <button 
+                                @click="deleteFolder('${folder.path.replace(/'/g, "\\'")}', '${folder.name.replace(/'/g, "\\'")}')"
+                                class="px-1 py-0.5 text-xs rounded hover:brightness-110"
+                                style="color: var(--error);"
+                                title="Delete folder and all contents"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>
                         </div>
-                    `;
-                });
+                    </div>
+            `;
+            
+            // If expanded, render folder contents (child folders + notes)
+            if (isExpanded) {
+                html += `<div class="folder-contents" style="padding-left: 12px;">`;
+                
+                // First, render child folders (if any)
+                if (folder.children && Object.keys(folder.children).length > 0) {
+                    const children = Object.entries(folder.children).sort((a, b) => 
+                        a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase())
+                    );
+                    
+                    children.forEach(([childKey, childFolder]) => {
+                        html += this.renderFolderRecursive(childFolder, 0, false);
+                    });
+                }
+                
+                // Then, render notes in this folder (after subfolders)
+                if (folder.notes && folder.notes.length > 0) {
+                    folder.notes.forEach(note => {
+                        const isCurrentNote = this.currentNote === note.path;
+                        html += `
+                            <div 
+                                draggable="true"
+                                x-data="{}"
+                                @dragstart="onNoteDragStart('${note.path.replace(/'/g, "\\'")}', $event)"
+                                @dragend="onNoteDragEnd()"
+                                @click="loadNote('${note.path.replace(/'/g, "\\'")}')"
+                                class="note-item px-3 py-2 mb-1 text-sm rounded relative"
+                                style="${isCurrentNote ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} cursor: pointer;"
+                                @mouseover="if('${note.path}' !== currentNote) $el.style.backgroundColor='var(--bg-hover)'"
+                                @mouseout="if('${note.path}' !== currentNote) $el.style.backgroundColor='transparent'"
+                            >
+                                <span class="truncate">${note.name}</span>
+                                <button 
+                                    @click.stop="deleteNote('${note.path.replace(/'/g, "\\'")}', '${note.name.replace(/'/g, "\\'")}')"
+                                    class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
+                                    style="opacity: 0; color: var(--error);"
+                                    title="Delete note"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `</div>`; // Close folder-contents
             }
             
+            html += `</div>`; // Close folder wrapper
             return html;
         },
         

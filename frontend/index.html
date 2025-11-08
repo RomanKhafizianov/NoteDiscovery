@@ -689,76 +689,7 @@
                         
                         <!-- Folders (rendered recursively for unlimited nesting) -->
                         <template x-for="[folderKey, folder] in Object.entries(folderTree).filter(([k]) => k !== '__root__').sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()))" :key="folderKey">
-                            <div>
-                                <!-- Top-level folder -->
-                                <div 
-                                    draggable="true"
-                                    @dragstart="onFolderDragStart(folder.path)"
-                                    @dragend="onFolderDragEnd()"
-                                    @dragover.prevent
-                                    @drop.stop="onFolderDrop(folder.path)"
-                                    class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
-                                    :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
-                                    :style="'color: var(--text-primary);' + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
-                                    @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
-                                    @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
-                                    @click="toggleFolder(folder.path)"
-                                >
-                                    <div class="flex items-center gap-1">
-                                        <button 
-                                            class="flex-shrink-0 w-4 h-4 flex items-center justify-center"
-                                            style="color: var(--text-tertiary); cursor: pointer; transition: transform 0.2s; pointer-events: none;"
-                                            :style="isFolderExpanded(folder.path) ? 'transform: rotate(90deg);' : ''"
-                                        >
-                                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                                                <path d="M6 4l4 4-4 4V4z"/>
-                                            </svg>
-                                        </button>
-                                        <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
-                                            <span x-text="folder.name"></span>
-                                            <span x-show="folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0)" class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>
-                                        </span>
-                                    </div>
-                                <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
-                                    <button 
-                                        @click="createNoteInFolder(folder.path)"
-                                        class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                        style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                        title="New note in this folder"
-                                    >📄</button>
-                                    <button 
-                                        @click="createNewFolder(folder.path)"
-                                        class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                        style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                        title="New subfolder"
-                                    >📁</button>
-                                    <button 
-                                        @click="renameFolder(folder.path, folder.name)"
-                                        class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                        style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                        title="Rename folder"
-                                    >✏️</button>
-                                    <button 
-                                        @click="deleteFolder(folder.path, folder.name)"
-                                        class="px-1 py-0.5 text-xs rounded hover:brightness-110"
-                                        style="color: var(--error);"
-                                        title="Delete folder and all contents"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                </div>
-                                
-                                <!-- Folder contents (when expanded) - notes and recursive subfolders -->
-                                <template x-if="isFolderExpanded(folder.path)">
-                                    <div class="folder-contents" style="padding-left: 12px;">
-                                        <!-- Recursively render notes and subfolders (infinite depth) -->
-                                        <div x-html="renderFolderRecursive(folder, 0)"></div>
-                                    </div>
-                                </template>
-                            </div>
+                            <div x-html="renderFolderRecursive(folder, 0, true)"></div>
                         </template>
                         
                         <!-- Root notes (no folder) - shown after folders -->
