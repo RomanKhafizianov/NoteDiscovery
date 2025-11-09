@@ -267,6 +267,31 @@
             font-weight: 500;
         }
 
+        .support-button {
+            display: inline-block;
+            background: #0070ba;
+            color: white;
+            padding: 0.6rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 112, 186, 0.3);
+        }
+
+        .support-button:hover {
+            background: #005a92;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 186, 0.4);
+        }
+
+        .support-button::before {
+            content: "☕ ";
+            margin-right: 0.3rem;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -294,6 +319,11 @@
             .logo {
                 width: 80px;
                 height: 80px;
+            }
+
+            .support-button {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -430,8 +460,13 @@
             <p>Made with ❤️ for the self-hosting community</p>
             <p>
                 <a href="https://github.com/gamosoft/NoteDiscovery" class="github-link">Star on GitHub</a> • 
-                <a href="https://github.com/gamosoft/NoteDiscovery/issues" class="github-link">Report Issues</a> • 
-                <a href="https://paypal.me/gamosoft" class="github-link">Support Development</a>
+                <a href="https://github.com/gamosoft/NoteDiscovery/issues" class="github-link">Report Issues</a>
+            </p>
+            <a href="https://paypal.me/gamosoft" class="support-button" target="_blank" rel="noopener noreferrer">
+                Support Development
+            </a>
+            <p style="margin-top: 1.5rem; font-size: 0.9rem; opacity: 0.8;">
+                Your support helps keep this project free and growing
             </p>
         </footer>
     </div>
