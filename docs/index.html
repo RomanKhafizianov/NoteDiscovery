@@ -252,6 +252,81 @@
             margin-bottom: 0.25rem;
         }
 
+        .screenshot-section {
+            margin: 4rem 0 3rem 0;
+            text-align: center;
+        }
+
+        .screenshot-section h2 {
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .screenshot-section p {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .screenshot-container {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .screenshot-frame {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 0.5rem;
+            box-shadow: 0 20px 60px var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            overflow: hidden;
+        }
+
+        .screenshot-frame:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 80px var(--shadow);
+        }
+
+        .screenshot-window-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.8rem;
+            background: var(--card-secondary);
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .screenshot-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .screenshot-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .screenshot-dot:nth-child(1) { background: #ff5f56; }
+        .screenshot-dot:nth-child(2) { background: #ffbd2e; }
+        .screenshot-dot:nth-child(3) { background: #27c93f; }
+
+        .screenshot-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0 0 8px 8px;
+        }
+
         footer {
             text-align: center;
             padding: 3rem 0;
@@ -327,6 +402,32 @@
                 padding: 0.5rem 1.2rem;
                 font-size: 0.9rem;
             }
+
+            .screenshot-section {
+                margin: 3rem 0 2rem 0;
+            }
+
+            .screenshot-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .screenshot-section p {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
+
+            .screenshot-frame {
+                box-shadow: 0 10px 40px var(--shadow);
+            }
+
+            .screenshot-window-bar {
+                padding: 0.5rem 0.6rem;
+            }
+
+            .screenshot-dot {
+                width: 10px;
+                height: 10px;
+            }
         }
     </style>
 
@@ -356,6 +457,23 @@
                 <h2>Take Control of Your Notes</h2>
                 <p>A lightweight, privacy-focused note-taking application that puts you in complete control of your knowledge base. Write, organize, and discover your notes with a beautiful, modern interface—all running on your own server.</p>
                 <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button">Get Started on GitHub →</a>
+            </div>
+        </div>
+
+        <div class="screenshot-section">
+            <h2>See It in Action</h2>
+            <p>A clean, intuitive interface designed for productivity and focus</p>
+            <div class="screenshot-container">
+                <div class="screenshot-frame">
+                    <div class="screenshot-window-bar">
+                        <div class="screenshot-dots">
+                            <div class="screenshot-dot"></div>
+                            <div class="screenshot-dot"></div>
+                            <div class="screenshot-dot"></div>
+                        </div>
+                    </div>
+                    <img src="screenshot.jpg" alt="NoteDiscovery Interface Screenshot" loading="lazy">
+                </div>
             </div>
         </div>
 
