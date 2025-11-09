@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NoteDiscovery - Your Self-Hosted Knowledge Base. A lightweight, privacy-focused note-taking application that puts you in complete control.">
+    <title>NoteDiscovery - Your Self-Hosted Knowledge Base</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-header: #334155;
+            --card-bg: #ffffff;
+            --card-secondary: #f8fafc;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #1e293b;
+            --bg-gradient-end: #0f172a;
+            --text-primary: #e2e8f0;
+            --text-secondary: #cbd5e1;
+            --text-header: #f1f5f9;
+            --card-bg: #1e293b;
+            --card-secondary: #334155;
+            --shadow: rgba(0, 0, 0, 0.6);
+            --shadow-light: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .hero {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 20px 60px var(--shadow);
+            transition: background 0.3s ease;
+        }
+
+        .hero-content {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .hero-content h2 {
+            font-size: 2rem;
+            color: var(--text-header);
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-top: 1rem;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature {
+            background: var(--card-secondary);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.2s, background 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature h3 {
+            font-size: 1.3rem;
+            color: var(--text-header);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .benefits {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 30px var(--shadow-light);
+            transition: background 0.3s ease;
+        }
+
+        .benefits h2 {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--text-header);
+            margin-bottom: 2rem;
+        }
+
+        .benefit-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .benefit-item .emoji {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .benefit-item .text {
+            color: var(--text-secondary);
+        }
+
+        .benefit-item strong {
+            color: var(--text-header);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+
+        footer p {
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .github-link {
+            color: white;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .hero, .benefits {
+                padding: 2rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .theme-toggle {
+                top: 0.5rem;
+                right: 0.5rem;
+                padding: 0.4rem 0.8rem;
+                font-size: 1rem;
+            }
+
+            .logo {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                <span id="theme-icon">🌙</span>
+            </button>
+            <img src="logo.svg" alt="NoteDiscovery Logo" class="logo">
+            <h1>NoteDiscovery</h1>
+            <p class="tagline">Your Self-Hosted Knowledge Base</p>
+        </header>
+
+        <div class="hero">
+            <div class="hero-content">
+                <h2>Take Control of Your Notes</h2>
+                <p>A lightweight, privacy-focused note-taking application that puts you in complete control of your knowledge base. Write, organize, and discover your notes with a beautiful, modern interface—all running on your own server.</p>
+                <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button">Get Started on GitHub →</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>100% Private</h3>
+                <p>Your notes never leave your server. Complete data ownership and privacy.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">💰</div>
+                <h3>Completely Free</h3>
+                <p>No subscriptions, no hidden fees. Free and open source forever.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <h3>Lightning Fast</h3>
+                <p>Instant search and navigation. Works offline, always responsive.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📂</div>
+                <h3>Simple Storage</h3>
+                <p>Plain markdown files in folders. No vendor lock-in, easy backups.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <h3>Beautiful Themes</h3>
+                <p>Multiple built-in themes with full customization support.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">🔌</div>
+                <h3>Extensible</h3>
+                <p>Plugin system lets you add custom features and integrations.</p>
+            </div>
+        </div>
+
+        <div class="benefits">
+            <h2>Why Choose NoteDiscovery?</h2>
+            <div class="benefit-list">
+                <div class="benefit-item">
+                    <span class="emoji">✨</span>
+                    <div class="text">
+                        <strong>Easy Setup</strong>
+                        Run with Docker in seconds
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <span class="emoji">📱</span>
+                    <div class="text">
+                        <strong>Responsive Design</strong>
+                        Works on desktop, tablet, and mobile
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <span class="emoji">🔍</span>
+                    <div class="text">
+                        <strong>Powerful Search</strong>
+                        Find anything instantly
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <span class="emoji">📝</span>
+                    <div class="text">
+                        <strong>Markdown Editor</strong>
+                        Write with live preview
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <span class="emoji">🌙</span>
+                    <div class="text">
+                        <strong>Dark Mode</strong>
+                        Easy on the eyes
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <span class="emoji">💻</span>
+                    <div class="text">
+                        <strong>Self-Hosted</strong>
+                        You own your data
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero">
+            <div class="hero-content">
+                <h2>Ready to Get Started?</h2>
+                <p>Join the self-hosting community and take back control of your notes today.</p>
+                <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button">View on GitHub →</a>
+            </div>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ for the self-hosting community</p>
+            <p>
+                <a href="https://github.com/gamosoft/NoteDiscovery" class="github-link">Star on GitHub</a> • 
+                <a href="https://github.com/gamosoft/NoteDiscovery/issues" class="github-link">Report Issues</a> • 
+                <a href="https://paypal.me/gamosoft" class="github-link">Support Development</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Theme management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update icon
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = newTheme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Load saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update icon
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
+        })();
+    </script>
+</body>
+</html>
+
