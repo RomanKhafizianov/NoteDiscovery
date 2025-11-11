@@ -9,6 +9,7 @@
 - **Undo/Redo** - Ctrl+Z / Ctrl+Y support
 - **Syntax highlighting** for code blocks (50+ languages)
 - **Copy code blocks** - One-click copy button on hover
+- **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
@@ -81,6 +82,36 @@
 - **In-note highlighting** - Search terms highlighted in open notes
 - **Live highlighting** - Highlights update as you type or edit
 - **Fast indexing** - Instant search across notes
+
+## 🧮 Math & LaTeX Support
+
+### Mathematical Notation
+- **Inline math** - Use `$...$` or `\(...\)` for equations within text
+- **Display math** - Use `$$...$$` or `\[...\]` for centered equations
+- **Full LaTeX support** - Powered by MathJax 3
+- **Greek letters** - `\alpha`, `\beta`, `\Gamma`, etc.
+- **Matrices** - `\begin{bmatrix}...\end{bmatrix}`
+- **Calculus** - Integrals, derivatives, limits
+- **Symbols** - All standard mathematical symbols
+- **Theme-aware** - Math colors adapt to your theme
+
+### Example
+```markdown
+Einstein's equation: $E = mc^2$
+
+The quadratic formula:
+$$
+x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+$$
+```
+Einstein's equation: $E = mc^2$
+
+The quadratic formula:
+$$
+x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+$$
+
+📄 **See the [MATHJAX](MATHJAX.md) note for more examples and syntax reference.**
 
 ## ⚡ Keyboard Shortcuts
 
