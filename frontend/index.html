@@ -20,6 +20,27 @@
     <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
+    <!-- MathJax for LaTeX math rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
     <!-- Highlight.js for code syntax highlighting -->
     <link rel="stylesheet" id="highlight-theme" href="">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -280,6 +301,24 @@
         /* Task lists */
         .markdown-preview input[type="checkbox"] {
             margin-right: 0.5rem;
+        }
+        
+        /* Math/LaTeX styling */
+        .markdown-preview .MathJax {
+            color: var(--text-primary);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        /* Display math (block) */
+        .markdown-preview mjx-container[display="true"] {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+        
+        /* Inline math */
+        .markdown-preview mjx-container[display="false"] {
+            margin: 0 0.2rem;
         }
         
         /* Editor styling */

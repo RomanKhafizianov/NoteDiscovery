@@ -1593,6 +1593,21 @@ function noteApp() {
             }
         },
         
+        // Trigger MathJax typesetting after DOM update
+        typesetMath() {
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                // Use a small delay to ensure DOM is updated
+                setTimeout(() => {
+                    const previewContent = document.querySelector('.markdown-preview');
+                    if (previewContent) {
+                        MathJax.typesetPromise([previewContent]).catch((err) => {
+                            console.error('MathJax typesetting failed:', err);
+                        });
+                    }
+                }, 10);
+            }
+        },
+        
         // Computed property for rendered markdown
         get renderedMarkdown() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
@@ -1644,6 +1659,9 @@ function noteApp() {
             });
             
             html = tempDiv.innerHTML;
+            
+            // Trigger MathJax rendering after DOM updates
+            this.typesetMath();
             
             // Apply syntax highlighting and add copy buttons to code blocks
             setTimeout(() => {
