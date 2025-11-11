@@ -1,34 +1,24 @@
-# Build stage - compile dependencies
+# Stage 1: Install dependencies
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies (only in this stage)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    cargo \
-    rustc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
+# Install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+    pip install --no-cache-dir --prefix=/install -r requirements.txt && \
+    # Clean up unnecessary files to reduce image size
+    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -type f -name "*.pyc" -delete && \
+    find /install -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -type d -name "*.dist-info" -exec rm -rf {}/RECORD {} + 2>/dev/null || true
 
-# Final stage - minimal runtime image
+# Stage 2: Final minimal image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies (not build tools!)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy installed Python packages from builder
+# Copy only installed packages (no pip cache, no build artifacts)
 COPY --from=builder /install /usr/local
 
 # Copy application files
@@ -45,7 +35,7 @@ RUN mkdir -p data/notes data/search_index
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=3s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # Run the application
