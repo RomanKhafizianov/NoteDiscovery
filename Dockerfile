@@ -23,12 +23,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies (not build tools!)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy installed Python packages from builder
+# (python:3.11-slim already has all needed runtime libraries)
 COPY --from=builder /install /usr/local
 
 # Copy application files
