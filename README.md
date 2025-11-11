@@ -204,7 +204,7 @@ Once you've started NoteDiscovery, you'll find comprehensive guides on:
 
 ## 💖 Support Development
 
-If you find NoteDiscovery useful, consider [☕ buying me a coffee](https://paypal.me/gamosoft) to help keep the project going. Every bit helps with new features, bug fixes, and improvements. Thank you!
+If you find NoteDiscovery useful, consider [☕ buying me a coffee](https://ko-fi.com/gamosoft) to help keep the project going. Every bit helps with new features, bug fixes, and improvements. Thank you!
 
 ## 🔒 Security Considerations
 
