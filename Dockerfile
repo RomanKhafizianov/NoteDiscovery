@@ -1,31 +1,25 @@
-# Build stage - compile dependencies
+# Build stage - install dependencies
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies (only in this stage)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    cargo \
-    rustc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
+# Install Python dependencies to a virtual environment
+# (Most packages have pre-built wheels for amd64, no compilation needed!)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Final stage - minimal runtime image
+# Final stage - minimal runtime image (no build tools!)
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy installed Python packages from builder
-# (python:3.11-slim already has all needed runtime libraries)
-COPY --from=builder /install /usr/local
+# Copy only the virtual environment from builder (no bloat!)
+COPY --from=builder /opt/venv /opt/venv
+
+# Use the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application files
 COPY backend ./backend
