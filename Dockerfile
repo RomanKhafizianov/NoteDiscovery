@@ -1,25 +1,25 @@
-# Build stage - install dependencies
+# Stage 1: Install dependencies
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install Python dependencies to a virtual environment
-# (Most packages have pre-built wheels for amd64, no compilation needed!)
+# Install Python packages
 COPY requirements.txt .
-RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt && \
+    # Clean up unnecessary files to reduce image size
+    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -type f -name "*.pyc" -delete && \
+    find /install -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -type d -name "*.dist-info" -exec rm -rf {}/RECORD {} + 2>/dev/null || true
 
-# Final stage - minimal runtime image (no build tools!)
+# Stage 2: Final minimal image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy only the virtual environment from builder (no bloat!)
-COPY --from=builder /opt/venv /opt/venv
-
-# Use the virtual environment
-ENV PATH="/opt/venv/bin:$PATH"
+# Copy only installed packages (no pip cache, no build artifacts)
+COPY --from=builder /install /usr/local
 
 # Copy application files
 COPY backend ./backend
@@ -35,7 +35,7 @@ RUN mkdir -p data/notes data/search_index
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=3s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # Run the application
