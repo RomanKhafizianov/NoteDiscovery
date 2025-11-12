@@ -920,6 +920,17 @@
                                     Preview
                                 </button>
                             </div>
+                            
+                            <!-- Export HTML Button -->
+                            <button 
+                                x-show="currentNote"
+                                @click="exportToHTML()"
+                                class="px-3 py-1.5 text-sm rounded transition hover:opacity-80"
+                                style="background-color: var(--accent-secondary); color: var(--text-primary);"
+                                title="Export as HTML"
+                            >
+                                📄 Export HTML
+                            </button>
                         </div>
                     </div>
                     

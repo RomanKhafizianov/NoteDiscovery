@@ -10,6 +10,7 @@
 - **Syntax highlighting** for code blocks (50+ languages)
 - **Copy code blocks** - One-click copy button on hover
 - **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax
+- **HTML Export** - Export notes as standalone HTML files
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
