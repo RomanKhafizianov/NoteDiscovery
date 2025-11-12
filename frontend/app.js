@@ -2125,6 +2125,170 @@ function noteApp() {
             setTimeout(() => {
                 this.isScrolling = false;
             }, CONFIG.SCROLL_SYNC_DELAY);
+        },
+        
+        // Export current note as HTML
+        async exportToHTML() {
+            if (!this.currentNote || !this.noteContent) {
+                alert('No note content to export');
+                return;
+            }
+            
+            try {
+                // Get the note name without extension
+                const noteName = this.currentNoteName || 'note';
+                
+                // Get current rendered HTML (this already has markdown converted and will have LaTeX delimiters)
+                const renderedHTML = this.renderedMarkdown;
+                
+                // Get current theme CSS
+                const currentTheme = this.currentTheme || 'light';
+                const themeResponse = await fetch(`/api/themes/${currentTheme}`);
+                const themeText = await themeResponse.text();
+                
+                // Check if response is JSON or plain CSS
+                let themeCss;
+                try {
+                    const themeJson = JSON.parse(themeText);
+                    // If it's JSON, extract the css field
+                    themeCss = themeJson.css || themeText;
+                } catch (e) {
+                    // If it's not JSON, use it as-is
+                    themeCss = themeText;
+                }
+                
+                // Theme CSS uses :root[data-theme="..."] selector, but we need plain :root for export
+                // Strip the data-theme attribute selector so variables apply globally
+                themeCss = themeCss.replace(/:root\[data-theme="[^"]+"\]/g, ':root');
+                
+                // Get highlight.js theme URL from current page
+                const highlightLinkElement = document.getElementById('highlight-theme');
+                if (!highlightLinkElement || !highlightLinkElement.href) {
+                    console.warn('Could not detect highlight.js theme, export may not match preview exactly');
+                }
+                const highlightTheme = highlightLinkElement ? highlightLinkElement.href : '';
+                
+                // Extract all markdown preview styles from current page
+                let markdownStyles = '';
+                const styleSheets = Array.from(document.styleSheets);
+                
+                for (const sheet of styleSheets) {
+                    try {
+                        const rules = Array.from(sheet.cssRules || []);
+                        for (const rule of rules) {
+                            const cssText = rule.cssText;
+                            // Include rules that target markdown-preview or mjx-container
+                            if (cssText.includes('.markdown-preview') || 
+                                cssText.includes('mjx-container') ||
+                                cssText.includes('.MathJax')) {
+                                markdownStyles += cssText + '\n';
+                            }
+                        }
+                    } catch (e) {
+                        // Skip stylesheets that can't be accessed (CORS)
+                        console.warn('Could not access stylesheet:', sheet.href, e);
+                    }
+                }
+                
+                // Create standalone HTML document with MathJax
+                const htmlDocument = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${noteName}</title>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    ${highlightTheme ? `<link rel="stylesheet" href="${highlightTheme}">` : '<!-- No highlight.js theme detected -->'}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- MathJax for LaTeX math rendering (same config as preview) -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady().then(() => {
+                        // Highlight code blocks after MathJax is done
+                        document.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* Theme CSS */
+        ${themeCss}
+        
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        /* Markdown preview styles extracted from current page */
+        ${markdownStyles}
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+        }
+        
+        @media print {
+            body {
+                padding: 0.5in;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="markdown-preview">
+        ${renderedHTML}
+    </div>
+</body>
+</html>`;
+                
+                // Create blob and download
+                const blob = new Blob([htmlDocument], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${noteName}.html`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+            } catch (error) {
+                console.error('HTML export failed:', error);
+                alert(`Failed to export HTML: ${error.message}`);
+            }
         }
     }
 }
