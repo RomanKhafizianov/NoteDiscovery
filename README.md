@@ -84,6 +84,8 @@ Use the pre-built image directly from GHCR - no building required!
 
 **Option 1: Docker Compose (Recommended)**
 
+> 💡 **Multi-Architecture Support**: Docker images are available for both `x86_64` and `ARM64` (Raspberry Pi, Apple Silicon, etc.)
+
 ```bash
 # Download the docker-compose file
 curl -O https://raw.githubusercontent.com/gamosoft/notediscovery/main/docker-compose.ghcr.yml
@@ -196,6 +198,7 @@ Want to learn more? **The full documentation lives inside the app as interactive
 Once you've started NoteDiscovery, you'll find comprehensive guides on:
 - 🎨 **THEMES.md** - Theme customization and creating custom themes
 - ✨ **FEATURES.md** - Complete feature list and keyboard shortcuts
+- 🧮 **MATHJAX.md** - LaTeX/Math notation examples and syntax reference
 - 🔌 **PLUGINS.md** - Plugin system and available plugins
 - 🌐 **API.md** - REST API documentation and examples
 
