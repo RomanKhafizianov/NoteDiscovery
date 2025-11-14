@@ -32,6 +32,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 ### Key Benefits
 
 - 🔒 **Total Privacy** - Your notes never leave your server
+- 🔐 **Optional Authentication** - Simple password protection for self-hosted deployments
 - 💰 **Zero Cost** - No subscriptions, no hidden fees
 - 🚀 **Fast & Lightweight** - Instant search and navigation
 - 🎨 **Beautiful Themes** - Multiple themes, easy to customize
@@ -202,6 +203,7 @@ Once you've started NoteDiscovery, you'll find comprehensive guides on:
 - 🧮 **MATHJAX.md** - LaTeX/Math notation examples and syntax reference
 - 🔌 **PLUGINS.md** - Plugin system and available plugins
 - 🌐 **API.md** - REST API documentation and examples
+- 🔐 **AUTHENTICATION.md** - Enable password protection for your instance
 
 **Can't wait to start the app?** Browse the documentation notes directly on GitHub in the [`data/notes/`](data/notes/) folder!
 
@@ -217,15 +219,16 @@ NoteDiscovery is designed for **self-hosted, private use**. Please keep these se
 
 ### Network Security
 - ⚠️ **Do NOT expose directly to the internet** without additional security measures
-- Run behind a reverse proxy (nginx, Caddy) with HTTPS and authentication if needed
+- Run behind a reverse proxy (nginx, Caddy) with HTTPS for production use
 - Keep it on your local network or use a VPN for remote access
 - By default, the app listens on `0.0.0.0:8000` (all network interfaces)
 
-### No Built-in Authentication
-- The app has **no authentication by design** (single-user, self-hosted)
-- Anyone with network access can read and modify your notes
-- Use network-level security (firewall, VPN) for access control
-- Consider adding authentication via reverse proxy if needed
+### Authentication
+- **Optional password protection** is available (disabled by default)
+- See **[AUTHENTICATION.md](AUTHENTICATION.md)** for setup instructions
+- Simple to enable with Docker: `docker-compose exec notediscovery /app/generate_password_hash.sh`
+- Perfect for single-user or small team deployments
+- For multi-user setups, consider a reverse proxy with OAuth/SSO
 
 ### Data Privacy
 - Your notes are stored as **plain text markdown files** in `data/notes/`
@@ -239,7 +242,7 @@ NoteDiscovery is designed for **self-hosted, private use**. Please keep these se
 - Review and audit any plugins you install
 - Set appropriate file permissions on the `data/` directory
 
-**TL;DR**: Perfect for personal use on your local machine or home network. Add a reverse proxy with authentication if exposing to wider networks.
+**TL;DR**: Perfect for personal use on your local machine or home network. Enable built-in password protection if needed, or use a reverse proxy with authentication if exposing to wider networks.
 
 ## 📄 License
 

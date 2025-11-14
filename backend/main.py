@@ -3,10 +3,11 @@ NoteDiscovery - Self-Hosted Markdown Knowledge Base
 Main FastAPI application
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Form, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import os
 import yaml
 import json
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import List, Optional
 import aiofiles
 from datetime import datetime
+import bcrypt
 
 from .utils import (
     get_all_notes,
@@ -55,6 +57,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Session middleware for authentication
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=config.get('security', {}).get('secret_key', 'insecure_default_key_change_this'),
+    max_age=config.get('security', {}).get('session_max_age', 604800),  # 7 days default
+    same_site='lax',
+    https_only=False  # Set to True if using HTTPS
+)
+
 # Ensure required directories exist
 ensure_directories(config)
 
@@ -69,8 +80,131 @@ static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
+# ============================================================================
+# Custom Exception Handlers
+# ============================================================================
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Custom exception handler for HTTP exceptions.
+    Handles 401 errors specially:
+    - For API requests: return JSON error
+    - For page requests: redirect to login
+    """
+    # Only handle 401 errors specially
+    if exc.status_code == 401:
+        # Check if this is an API request
+        if request.url.path.startswith('/api/'):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": exc.detail}
+            )
+        
+        # For page requests, redirect to login
+        return RedirectResponse(url='/login', status_code=303)
+    
+    # For all other HTTP exceptions, return default JSON response
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+
+# ============================================================================
+# Authentication Helpers
+# ============================================================================
+
+def auth_enabled() -> bool:
+    """Check if authentication is enabled in config"""
+    return config.get('security', {}).get('enabled', False)
+
+
+async def require_auth(request: Request):
+    """Dependency to require authentication on protected routes"""
+    if not auth_enabled():
+        return  # Auth disabled, allow all
+    
+    if not request.session.get('authenticated'):
+        # Always raise exception - route handlers will catch and redirect as needed
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+def verify_password(password: str) -> bool:
+    """Verify password against stored hash"""
+    password_hash = config.get('security', {}).get('password_hash', '')
+    if not password_hash:
+        return False
+    
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+    except Exception as e:
+        print(f"Password verification error: {e}")
+        return False
+
+
+# ============================================================================
+# Authentication Routes
+# ============================================================================
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str = None):
+    """Serve the login page"""
+    if not auth_enabled():
+        return RedirectResponse(url="/", status_code=303)
+    
+    # If already authenticated, redirect to home
+    if request.session.get('authenticated'):
+        return RedirectResponse(url="/", status_code=303)
+    
+    # Serve login page
+    login_path = static_path / "login.html"
+    async with aiofiles.open(login_path, 'r', encoding='utf-8') as f:
+        content = await f.read()
+    
+    # Inject error message if present
+    if error:
+        content = content.replace('<!-- ERROR_PLACEHOLDER -->', 
+                                 f'<div class="error-message">❌ {error}</div>')
+    
+    return content
+
+
+@app.post("/login")
+async def login(request: Request, password: str = Form(...)):
+    """Handle login form submission"""
+    if not auth_enabled():
+        return RedirectResponse(url="/", status_code=303)
+    
+    # Verify password
+    if verify_password(password):
+        # Set session
+        request.session['authenticated'] = True
+        return RedirectResponse(url="/", status_code=303)
+    else:
+        # Redirect back to login with error message
+        return RedirectResponse(url="/login?error=Invalid+password.+Please+try+again.", status_code=303)
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    """Log out the current user"""
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=303)
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon (redirect to SVG)"""
+    return RedirectResponse(url="/static/favicon.svg", status_code=301)
+
+
+# ============================================================================
+# Application Routes
+# ============================================================================
+
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(request: Request, _auth: None = Depends(require_auth)):
     """Serve the main application page"""
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
@@ -237,7 +371,10 @@ async def get_config():
         "name": config['app']['name'],
         "tagline": config['app']['tagline'],
         "version": config['app']['version'],
-        "searchEnabled": config['search']['enabled']
+        "searchEnabled": config['search']['enabled'],
+        "security": {
+            "enabled": config.get('security', {}).get('enabled', False)
+        }
     }
 
 
@@ -262,7 +399,7 @@ async def get_theme(theme_id: str):
 
 
 @app.post("/api/folders")
-async def create_new_folder(data: dict):
+async def create_new_folder(data: dict, _auth: None = Depends(require_auth)):
     """Create a new folder"""
     try:
         folder_path = data.get('path', '')
@@ -284,7 +421,7 @@ async def create_new_folder(data: dict):
 
 
 @app.post("/api/notes/move")
-async def move_note_endpoint(data: dict):
+async def move_note_endpoint(data: dict, _auth: None = Depends(require_auth)):
     """Move a note to a different folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -312,7 +449,7 @@ async def move_note_endpoint(data: dict):
 
 
 @app.post("/api/folders/move")
-async def move_folder_endpoint(data: dict):
+async def move_folder_endpoint(data: dict, _auth: None = Depends(require_auth)):
     """Move a folder to a different location"""
     try:
         old_path = data.get('oldPath', '')
@@ -337,7 +474,7 @@ async def move_folder_endpoint(data: dict):
 
 
 @app.post("/api/folders/rename")
-async def rename_folder_endpoint(data: dict):
+async def rename_folder_endpoint(data: dict, _auth: None = Depends(require_auth)):
     """Rename a folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -362,7 +499,7 @@ async def rename_folder_endpoint(data: dict):
 
 
 @app.delete("/api/folders/{folder_path:path}")
-async def delete_folder_endpoint(folder_path: str):
+async def delete_folder_endpoint(folder_path: str, _auth: None = Depends(require_auth)):
     """Delete a folder and all its contents"""
     try:
         if not folder_path:
@@ -383,7 +520,7 @@ async def delete_folder_endpoint(folder_path: str):
 
 
 @app.get("/api/notes")
-async def list_notes():
+async def list_notes(_auth: None = Depends(require_auth)):
     """List all notes with metadata"""
     try:
         notes = get_all_notes(config['storage']['notes_dir'])
@@ -394,7 +531,7 @@ async def list_notes():
 
 
 @app.get("/api/notes/{note_path:path}")
-async def get_note(note_path: str):
+async def get_note(note_path: str, _auth: None = Depends(require_auth)):
     """Get a specific note's content"""
     try:
         content = get_note_content(config['storage']['notes_dir'], note_path)
@@ -422,7 +559,7 @@ async def get_note(note_path: str):
 
 
 @app.post("/api/notes/{note_path:path}")
-async def create_or_update_note(note_path: str, content: dict):
+async def create_or_update_note(note_path: str, content: dict, _auth: None = Depends(require_auth)):
     """Create or update a note"""
     try:
         note_content = content.get('content', '')
@@ -460,7 +597,7 @@ async def create_or_update_note(note_path: str, content: dict):
 
 
 @app.delete("/api/notes/{note_path:path}")
-async def remove_note(note_path: str):
+async def remove_note(note_path: str, _auth: None = Depends(require_auth)):
     """Delete a note"""
     try:
         success = delete_note(config['storage']['notes_dir'], note_path)
@@ -480,7 +617,7 @@ async def remove_note(note_path: str):
 
 
 @app.get("/api/search")
-async def search(q: str):
+async def search(q: str, _auth: None = Depends(require_auth)):
     """Search notes by content"""
     try:
         if not config['search']['enabled']:
@@ -499,7 +636,7 @@ async def search(q: str):
 
 
 @app.get("/api/graph")
-async def get_graph():
+async def get_graph(_auth: None = Depends(require_auth)):
     """Get graph data for visualization"""
     try:
         notes = get_all_notes(config['storage']['notes_dir'])
@@ -529,13 +666,13 @@ async def get_graph():
 
 
 @app.get("/api/plugins")
-async def list_plugins():
+async def list_plugins(_auth: None = Depends(require_auth)):
     """List all available plugins"""
     return {"plugins": plugin_manager.list_plugins()}
 
 
 @app.get("/api/plugins/note_stats/calculate")
-async def calculate_note_stats(content: str):
+async def calculate_note_stats(content: str, _auth: None = Depends(require_auth)):
     """Calculate statistics for note content (if plugin enabled)"""
     try:
         plugin = plugin_manager.plugins.get('note_stats')
@@ -549,7 +686,7 @@ async def calculate_note_stats(content: str):
 
 
 @app.post("/api/plugins/{plugin_name}/toggle")
-async def toggle_plugin(plugin_name: str, enabled: dict):
+async def toggle_plugin(plugin_name: str, enabled: dict, _auth: None = Depends(require_auth)):
     """Enable or disable a plugin"""
     try:
         is_enabled = enabled.get('enabled', False)
@@ -580,7 +717,7 @@ async def health_check():
 # Catch-all route for SPA (Single Page Application) routing
 # This allows URLs like /folder/note to work for direct navigation
 @app.get("/{full_path:path}", response_class=HTMLResponse)
-async def catch_all(full_path: str):
+async def catch_all(full_path: str, request: Request, _auth: None = Depends(require_auth)):
     """
     Serve index.html for all non-API routes.
     This enables client-side routing (e.g., /folder/note)
