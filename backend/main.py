@@ -395,7 +395,7 @@ async def list_themes():
     return {"themes": themes}
 
 
-@app.get("/api/themes/{theme_id}")
+@app.get("/api/themes/{theme_id}") # Don't use the router here, as we want this route unsecured
 async def get_theme(theme_id: str):
     """Get CSS for a specific theme"""
     themes_dir = Path(__file__).parent.parent / "themes"
@@ -529,7 +529,7 @@ async def delete_folder_endpoint(folder_path: str):
 
 
 @api_router.get("/notes")
-async def list_notes(_auth: None = Depends(require_auth)):
+async def list_notes():
     """List all notes with metadata"""
     try:
         notes = get_all_notes(config['storage']['notes_dir'])
@@ -645,7 +645,7 @@ async def search(q: str):
 
 
 @api_router.get("/graph")
-async def get_graph(_auth: None = Depends(require_auth)):
+async def get_graph():
     """Get graph data for visualization"""
     try:
         notes = get_all_notes(config['storage']['notes_dir'])
@@ -675,12 +675,12 @@ async def get_graph(_auth: None = Depends(require_auth)):
 
 
 @api_router.get("/plugins")
-async def list_plugins(_auth: None = Depends(require_auth)):
+async def list_plugins():
     """List all available plugins"""
     return {"plugins": plugin_manager.list_plugins()}
 
 
-@app.get("/api/plugins/note_stats/calculate")
+@api_router.get("/plugins/note_stats/calculate")
 async def calculate_note_stats(content: str):
     """Calculate statistics for note content (if plugin enabled)"""
     try:
