@@ -3,7 +3,7 @@ NoteDiscovery - Self-Hosted Markdown Knowledge Base
 Main FastAPI application
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Form, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Form, Depends, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -200,11 +200,27 @@ async def favicon():
 
 
 # ============================================================================
-# Application Routes
+# Routers with Authentication
 # ============================================================================
 
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request, _auth: None = Depends(require_auth)):
+# Create API router with authentication dependency applied globally
+api_router = APIRouter(
+    prefix="/api",
+    dependencies=[Depends(require_auth)]  # Apply auth to ALL routes in this router
+)
+
+# Create pages router with authentication dependency applied globally
+pages_router = APIRouter(
+    dependencies=[Depends(require_auth)]  # Apply auth to ALL routes in this router
+)
+
+
+# ============================================================================
+# Application Routes (with auth via router dependencies)
+# ============================================================================
+
+@pages_router.get("/", response_class=HTMLResponse)
+async def root(request: Request):
     """Serve the main application page"""
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
@@ -212,7 +228,7 @@ async def root(request: Request, _auth: None = Depends(require_auth)):
     return content
 
 
-@app.get("/api")
+@api_router.get("")
 async def api_documentation():
     """API Documentation - List all available endpoints"""
     return {
@@ -364,7 +380,7 @@ async def api_documentation():
     }
 
 
-@app.get("/api/config")
+@api_router.get("/config")
 async def get_config():
     """Get app configuration for frontend"""
     return {
@@ -378,7 +394,7 @@ async def get_config():
     }
 
 
-@app.get("/api/themes")
+@api_router.get("/themes")
 async def list_themes():
     """Get all available themes"""
     themes_dir = Path(__file__).parent.parent / "themes"
@@ -398,8 +414,8 @@ async def get_theme(theme_id: str):
     return {"css": css, "theme_id": theme_id}
 
 
-@app.post("/api/folders")
-async def create_new_folder(data: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/folders")
+async def create_new_folder(data: dict):
     """Create a new folder"""
     try:
         folder_path = data.get('path', '')
@@ -420,8 +436,8 @@ async def create_new_folder(data: dict, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/notes/move")
-async def move_note_endpoint(data: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/notes/move")
+async def move_note_endpoint(data: dict):
     """Move a note to a different folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -448,8 +464,8 @@ async def move_note_endpoint(data: dict, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/folders/move")
-async def move_folder_endpoint(data: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/folders/move")
+async def move_folder_endpoint(data: dict):
     """Move a folder to a different location"""
     try:
         old_path = data.get('oldPath', '')
@@ -473,8 +489,8 @@ async def move_folder_endpoint(data: dict, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/folders/rename")
-async def rename_folder_endpoint(data: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/folders/rename")
+async def rename_folder_endpoint(data: dict):
     """Rename a folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -498,8 +514,8 @@ async def rename_folder_endpoint(data: dict, _auth: None = Depends(require_auth)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/folders/{folder_path:path}")
-async def delete_folder_endpoint(folder_path: str, _auth: None = Depends(require_auth)):
+@api_router.delete("/folders/{folder_path:path}")
+async def delete_folder_endpoint(folder_path: str):
     """Delete a folder and all its contents"""
     try:
         if not folder_path:
@@ -519,7 +535,7 @@ async def delete_folder_endpoint(folder_path: str, _auth: None = Depends(require
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/notes")
+@api_router.get("/notes")
 async def list_notes(_auth: None = Depends(require_auth)):
     """List all notes with metadata"""
     try:
@@ -530,8 +546,8 @@ async def list_notes(_auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/notes/{note_path:path}")
-async def get_note(note_path: str, _auth: None = Depends(require_auth)):
+@api_router.get("/notes/{note_path:path}")
+async def get_note(note_path: str):
     """Get a specific note's content"""
     try:
         content = get_note_content(config['storage']['notes_dir'], note_path)
@@ -558,8 +574,8 @@ async def get_note(note_path: str, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/notes/{note_path:path}")
-async def create_or_update_note(note_path: str, content: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/notes/{note_path:path}")
+async def create_or_update_note(note_path: str, content: dict):
     """Create or update a note"""
     try:
         note_content = content.get('content', '')
@@ -596,8 +612,8 @@ async def create_or_update_note(note_path: str, content: dict, _auth: None = Dep
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/notes/{note_path:path}")
-async def remove_note(note_path: str, _auth: None = Depends(require_auth)):
+@api_router.delete("/notes/{note_path:path}")
+async def remove_note(note_path: str):
     """Delete a note"""
     try:
         success = delete_note(config['storage']['notes_dir'], note_path)
@@ -616,8 +632,8 @@ async def remove_note(note_path: str, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/search")
-async def search(q: str, _auth: None = Depends(require_auth)):
+@api_router.get("/search")
+async def search(q: str):
     """Search notes by content"""
     try:
         if not config['search']['enabled']:
@@ -635,7 +651,7 @@ async def search(q: str, _auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/graph")
+@api_router.get("/graph")
 async def get_graph(_auth: None = Depends(require_auth)):
     """Get graph data for visualization"""
     try:
@@ -665,14 +681,14 @@ async def get_graph(_auth: None = Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/plugins")
+@api_router.get("/plugins")
 async def list_plugins(_auth: None = Depends(require_auth)):
     """List all available plugins"""
     return {"plugins": plugin_manager.list_plugins()}
 
 
 @app.get("/api/plugins/note_stats/calculate")
-async def calculate_note_stats(content: str, _auth: None = Depends(require_auth)):
+async def calculate_note_stats(content: str):
     """Calculate statistics for note content (if plugin enabled)"""
     try:
         plugin = plugin_manager.plugins.get('note_stats')
@@ -685,8 +701,8 @@ async def calculate_note_stats(content: str, _auth: None = Depends(require_auth)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/plugins/{plugin_name}/toggle")
-async def toggle_plugin(plugin_name: str, enabled: dict, _auth: None = Depends(require_auth)):
+@api_router.post("/plugins/{plugin_name}/toggle")
+async def toggle_plugin(plugin_name: str, enabled: dict):
     """Enable or disable a plugin"""
     try:
         is_enabled = enabled.get('enabled', False)
@@ -716,8 +732,8 @@ async def health_check():
 
 # Catch-all route for SPA (Single Page Application) routing
 # This allows URLs like /folder/note to work for direct navigation
-@app.get("/{full_path:path}", response_class=HTMLResponse)
-async def catch_all(full_path: str, request: Request, _auth: None = Depends(require_auth)):
+@pages_router.get("/{full_path:path}", response_class=HTMLResponse)
+async def catch_all(full_path: str, request: Request):
     """
     Serve index.html for all non-API routes.
     This enables client-side routing (e.g., /folder/note)
@@ -731,6 +747,16 @@ async def catch_all(full_path: str, request: Request, _auth: None = Depends(requ
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
     return content
+
+
+# ============================================================================
+# Register Routers
+# ============================================================================
+
+# Register routers with the main app
+# Authentication is applied via router dependencies
+app.include_router(api_router)
+app.include_router(pages_router)
 
 
 if __name__ == "__main__":
