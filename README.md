@@ -230,7 +230,7 @@ NoteDiscovery is designed for **self-hosted, private use**. Please keep these se
 - ⚠️ **CHANGE THE DEFAULT PASSWORD IMMEDIATELY** if exposing to a network!
 - See **[AUTHENTICATION.md](data/notes/AUTHENTICATION.md)** for complete setup instructions
 - To disable auth, set `security.enabled: false` in `config.yaml`
-- Change password with Docker: `docker-compose exec notediscovery /app/generate_password_hash.sh`
+- Change password with Docker: `docker-compose exec notediscovery python generate_password.py`
 - Perfect for single-user or small team deployments
 - For multi-user setups, consider a reverse proxy with OAuth/SSO
 

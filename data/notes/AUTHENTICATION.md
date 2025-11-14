@@ -53,25 +53,19 @@ For any deployment exposed to a network, follow these steps:
 
 ### Step 1: Generate a Password Hash
 
-Choose one of these methods:
+Choose your environment:
 
-**Option A: Using Docker (Recommended - No local Python needed)**
-
-If you're running NoteDiscovery in Docker:
+**Docker Users:**
 
 ```bash
 # Docker Compose
-docker-compose exec notediscovery /app/generate_password_hash.sh
+docker-compose exec notediscovery python generate_password.py
 
 # Or with docker run
-docker exec -it notediscovery /app/generate_password_hash.sh
+docker exec -it notediscovery python generate_password.py
 ```
 
-The script will prompt you for your password and output the hash.
-
-**Option B: Using Local Python**
-
-If you're running NoteDiscovery locally:
+**Local Users:**
 
 ```bash
 # Install bcrypt if not already installed
@@ -81,15 +75,19 @@ pip install bcrypt
 python generate_password.py
 ```
 
-Enter your desired password when prompted. The script will output a bcrypt hash.
+The script will:
+1. Prompt you for your password (input is hidden)
+2. Ask you to confirm it
+3. Generate a bcrypt hash
+4. Display the hash with instructions
 
-**Copy the hash** - you'll need it for the next step.
+**Copy the hash** - you'll need it for Step 3.
 
 ### Step 2: Generate a Secret Key
 
 Generate a random secret key for session encryption:
 
-**Using Docker:**
+**Docker Users:**
 ```bash
 docker-compose exec notediscovery python -c "import secrets; print(secrets.token_hex(32))"
 
@@ -97,12 +95,12 @@ docker-compose exec notediscovery python -c "import secrets; print(secrets.token
 docker exec -it notediscovery python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-**Using Local Python:**
+**Local Users:**
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-**Copy the key** - you'll need it for the next step.
+**Copy the key** - you'll need it for Step 3.
 
 ### Step 3: Update `config.yaml`
 
@@ -113,10 +111,10 @@ security:
   # Enable authentication
   enabled: true
   
-  # Session secret key (paste the output from Step 3)
+  # Session secret key (paste the output from Step 2)
   secret_key: "your_generated_secret_key_here"
   
-  # Password hash (paste the output from Step 2)
+  # Password hash (paste the output from Step 1)
   password_hash: "$2b$12$..."
   
   # Session expiry in seconds (7 days by default)
@@ -178,7 +176,7 @@ Visit `http://localhost:8000/logout` in your browser.
 ### Changing Password
 
 1. Generate a new password hash:
-   - **Docker**: `docker-compose exec notediscovery /app/generate_password_hash.sh`
+   - **Docker**: `docker-compose exec notediscovery python generate_password.py`
    - **Local**: `python generate_password.py`
 2. Update `password_hash` in `config.yaml` with the new hash
 3. Restart the application:

@@ -27,11 +27,10 @@ COPY frontend ./frontend
 COPY config.yaml .
 COPY plugins ./plugins
 COPY themes ./themes
-COPY generate_password_hash.sh .
+COPY generate_password.py .
 
-# Create data directories and make password script executable
-RUN mkdir -p data/notes data/search_index && \
-    chmod +x generate_password_hash.sh
+# Create data directories
+RUN mkdir -p data/notes data/search_index
 
 # Expose port
 EXPOSE 8000
