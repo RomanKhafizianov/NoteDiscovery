@@ -51,17 +51,18 @@ Use the pre-built image directly from GHCR - no building required!
 > **💡 Tip**: Always use `ghcr.io/gamosoft/notediscovery:latest` to get the newest features and fixes. Images are automatically built when PRs are merged to main.
 
 > **📁 Important - Volume Mapping**: The container needs local folders/files to work:
-> - **Required**: `data` folder (your notes will be stored here)
+> - **Required**: `data` folder - **Your personal notes** will be stored here (create an empty folder)
 > - **Required**: `themes` folder with theme `.css` files (at least light.css and dark.css)
 > - **Required**: `plugins` folder (can be empty for basic functionality)
 > - **Required**: `config.yaml` file (needed for the app to run)
+> - **Optional**: `documentation` folder - If you cloned the repo, mount this to view app docs inside NoteDiscovery
 > 
 > **Setup Options:**
 > 
 > 1. **Minimal** (quick test - download just the essentials):
 >    ```bash
 >    # Linux/macOS
->    mkdir -p data plugins themes
+>    mkdir -p data plugins themes  # data/ is for YOUR notes
 >    curl -O https://raw.githubusercontent.com/gamosoft/notediscovery/main/config.yaml
 >    # Download at least light and dark themes
 >    curl -o themes/light.css https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/light.css
@@ -70,21 +71,22 @@ Use the pre-built image directly from GHCR - no building required!
 >    
 >    ```powershell
 >    # Windows PowerShell
->    mkdir data, plugins, themes -Force
+>    mkdir data, plugins, themes -Force  # data\ is for YOUR notes
 >    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/config.yaml -OutFile config.yaml
 >    # Download at least light and dark themes
 >    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/light.css -OutFile themes/light.css
 >    Invoke-WebRequest -Uri https://raw.githubusercontent.com/gamosoft/notediscovery/main/themes/dark.css -OutFile themes/dark.css
 >    ```
 > 
-> 2. **Full Setup** (recommended - includes all themes, plugins, sample notes):
+> 2. **Full Setup** (recommended - includes all themes, plugins, and documentation):
 >    ```bash
 >    git clone https://github.com/gamosoft/notediscovery.git
 >    cd notediscovery
->    # Now you have everything - run docker-compose below
+>    # The data/ folder is empty - for your personal notes
+>    # The documentation/ folder has app docs you can optionally mount
 >    ```
 
-> **🔐 Security Note**: Authentication is **enabled by default** with password `admin`. For testing/local use, this is fine. If exposing to a network, **change the password immediately** - see [AUTHENTICATION.md](data/AUTHENTICATION.md) for instructions.
+> **🔐 Security Note**: Authentication is **enabled by default** with password `admin`. For testing/local use, this is fine. If exposing to a network, **change the password immediately** - see [AUTHENTICATION.md](documentation/AUTHENTICATION.md) for instructions.
 
 **Option 1: Docker Compose (Recommended)**
 
@@ -201,16 +203,25 @@ python run.py
 Want to learn more? **The full documentation lives inside the app as interactive notes!**
 
 Once you've started NoteDiscovery, you'll find comprehensive guides on:
-- 🎨 **THEMES.md** - Theme customization and creating custom themes
-- ✨ **FEATURES.md** - Complete feature list and keyboard shortcuts
-- 🧮 **MATHJAX.md** - LaTeX/Math notation examples and syntax reference
-- 🔌 **PLUGINS.md** - Plugin system and available plugins
-- 🌐 **API.md** - REST API documentation and examples
-- 🔐 **AUTHENTICATION.md** - Enable password protection for your instance
+- 🎨 **[THEMES.md](documentation/THEMES.md)** - Theme customization and creating custom themes
+- ✨ **[FEATURES.md](documentation/FEATURES.md)** - Complete feature list and keyboard shortcuts
+- 🧮 **[MATHJAX.md](documentation/MATHJAX.md)** - LaTeX/Math notation examples and syntax reference
+- 🔌 **[PLUGINS.md](documentation/PLUGINS.md)** - Plugin system and available plugins
+- 🌐 **[API.md](documentation/API.md)** - REST API documentation and examples
+- 🔐 **[AUTHENTICATION.md](documentation/AUTHENTICATION.md)** - Enable password protection for your instance
 
-**Can't wait to start the app?** Browse the documentation notes directly on GitHub in the [`data/`](data/) folder!
+**Can't wait to start the app?** Browse the documentation notes directly on GitHub in the [`documentation/`](documentation/) folder!
 
-💡 **Tip:** These documentation files are regular markdown notes—edit them, add your own notes, or use them as templates. It's your knowledge base!
+💡 **Pro Tip:** If you clone this repository, you can mount the `documentation/` folder to view these docs inside the app:
+
+```yaml
+# In your docker-compose.yml
+volumes:
+  - ./data:/app/data              # Your personal notes
+  - ./documentation:/app/docs:ro  # Mount docs (read-only)
+```
+
+Then access them at `http://localhost:8000` - the docs will appear as a `docs/` folder in the file browser!
 
 ## 💖 Support Development
 
@@ -229,14 +240,14 @@ NoteDiscovery is designed for **self-hosted, private use**. Please keep these se
 ### Authentication
 - **Password protection is ENABLED by default** with password: `admin`
 - ⚠️ **CHANGE THE DEFAULT PASSWORD IMMEDIATELY** if exposing to a network!
-- See **[AUTHENTICATION.md](data/AUTHENTICATION.md)** for complete setup instructions
+- See **[AUTHENTICATION.md](documentation/AUTHENTICATION.md)** for complete setup instructions
 - To disable auth, set `security.enabled: false` in `config.yaml`
 - Change password with Docker: `docker-compose exec notediscovery python generate_password.py`
 - Perfect for single-user or small team deployments
 - For multi-user setups, consider a reverse proxy with OAuth/SSO
 
 ### Data Privacy
-- Your notes are stored as **plain text markdown files** in `data/`
+- Your notes are stored as **plain text markdown files** in the `data/` folder
 - No data is sent to external services
 - Regular backups are recommended
 
