@@ -48,11 +48,11 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 
 Use the pre-built image directly from GHCR - no building required!
 
-> **💡 Tip**: Always use `ghcr.io/gamosoft/notediscovery:latest` to get the newest features and fixes. Images are automatically built when PRs are merged to main.
+> **💡 Tip**: Always use `ghcr.io/gamosoft/notediscovery:latest` to get the newest features and fixes.
 
 > **📁 Important - Volume Mapping**: The container needs local folders/files to work:
 > - **Required**: `data` folder - **Your personal notes** will be stored here (create an empty folder)
-> - **Required**: `themes` folder with theme `.css` files (at least light.css and dark.css)
+> - **Required**: `themes` folder with theme `.css` files (at least a single theme must exist)
 > - **Required**: `plugins` folder (can be empty for basic functionality)
 > - **Required**: `config.yaml` file (needed for the app to run)
 > - **Optional**: `documentation` folder - If you cloned the repo, mount this to view app docs inside NoteDiscovery
@@ -86,7 +86,7 @@ Use the pre-built image directly from GHCR - no building required!
 >    # The documentation/ folder has app docs you can optionally mount
 >    ```
 
-> **🔐 Security Note**: Authentication is **enabled by default** with password `admin`. For testing/local use, this is fine. If exposing to a network, **change the password immediately** - see [AUTHENTICATION.md](documentation/AUTHENTICATION.md) for instructions.
+> **🔐 Security Note**: Authentication is **disabled by default** with password `admin`. For testing/local use, this is fine. If exposing to a network, **change the password immediately** - see [AUTHENTICATION.md](documentation/AUTHENTICATION.md) for instructions on how to enable it.
 
 **Option 1: Docker Compose (Recommended)**
 
@@ -218,7 +218,7 @@ Once you've started NoteDiscovery, you'll find comprehensive guides on:
 # In your docker-compose.yml
 volumes:
   - ./data:/app/data              # Your personal notes
-  - ./documentation:/app/docs:ro  # Mount docs (read-only)
+  - ./documentation:/app/data/docs:ro  # Mount docs subfolder inside the data folder (read-only)
 ```
 
 Then access them at `http://localhost:8000` - the docs will appear as a `docs/` folder in the file browser!

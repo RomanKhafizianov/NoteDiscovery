@@ -2,9 +2,9 @@
 
 ## ⚠️ **IMPORTANT: Default Password Warning**
 
-> **The default `config.yaml` includes authentication enabled with password: `admin`**
+> **The default `config.yaml` includes authentication disabled by default, with password: `admin`**
 >
-> 🔴 **CHANGE THIS IMMEDIATELY if you're exposing NoteDiscovery to a network!**
+> 🔴 **CHANGE THIS if you're exposing NoteDiscovery to a network!**
 >
 > The default configuration is provided for **quick testing only**. Follow the setup guide below to set your own secure password and secret key.
 
@@ -19,8 +19,6 @@ NoteDiscovery includes a simple, secure authentication system for single-user de
 - ✅ **Single User** - Perfect for personal/self-hosted use
 - ✅ **Secure** - Passwords hashed with bcrypt
 - ✅ **Session-based** - Stay logged in for 7 days (configurable)
-- ✅ **Theme-aware** - Login page matches your selected theme
-- ✅ **Simple Setup** - Just 3 steps to enable
 
 ---
 
@@ -31,7 +29,7 @@ NoteDiscovery includes a simple, secure authentication system for single-user de
 - Default password is `admin`
 - Default secret key is insecure
 
-**⚠️ IMPORTANT:** For production or network-exposed deployments, **change both the password and secret key immediately**. Follow these steps:
+**⚠️ IMPORTANT:** For production or network-exposed deployments, **change both the password and secret key immediately**.
 
 ---
 
@@ -142,56 +140,6 @@ Enter the password you chose in Step 2.
 
 ---
 
-## 🔐 Usage
-
-### Logging In
-
-1. Navigate to `http://localhost:8000`
-2. You'll be **automatically redirected** to the login page if not authenticated
-3. Enter your password (the one you generated in setup)
-4. Click "🔓 Unlock"
-5. You'll be redirected back to the main app
-
-**Note:** The login page **automatically inherits the theme** you selected in the main app. It uses the same theme loading system as the main app (fetches CSS from `/api/themes` and stores preference in localStorage as `noteDiscoveryTheme`).
-
-**What happens if I'm not logged in?**
-- 🌐 **Page requests** (like `/`, `/MATHJAX`, etc.) → **Automatically redirected to login page**
-- 🔌 **API requests** (like `/api/notes`) → **Return JSON error** `{"detail": "Not authenticated"}`
-
-This smart routing ensures:
-- ✅ Users always see the login page (never a JSON error)
-- ✅ API calls get proper JSON errors (for programmatic access)
-- ✅ No broken page loads or error messages
-
-### Logging Out
-
-**Option 1: Use the built-in logout button**
-
-A logout button (🔒 Logout) automatically appears in the sidebar header when authentication is enabled. Simply click it to log out.
-
-**Option 2: Navigate directly**
-
-Visit `http://localhost:8000/logout` in your browser.
-
-### Changing Password
-
-1. Generate a new password hash:
-   - **Docker**: `docker-compose exec notediscovery python generate_password.py`
-   - **Local**: `python generate_password.py`
-2. Update `password_hash` in `config.yaml` with the new hash
-3. Restart the application:
-   - **Docker**: `docker-compose restart`
-   - **Local**: Restart uvicorn
-4. All existing sessions will remain valid until they expire
-
-### Session Expiry
-
-- **Default**: 7 days (604800 seconds)
-- **Custom**: Change `session_max_age` in `config.yaml`
-- Sessions are cleared when you log out
-
----
-
 ## 🔒 Security Considerations
 
 ### ✅ What This Protects
@@ -211,7 +159,7 @@ This is a **simple authentication system** designed for **self-hosted, single-us
 
 ### 🛡️ Best Practices
 
-1. **Use HTTPS** - Always run behind a reverse proxy (nginx, Caddy) with SSL/TLS
+1. **Use HTTPS** - Always run behind a reverse proxy (Traefik, nginx, Caddy) with SSL/TLS
 2. **Strong Password** - Use at least 12 characters with mixed case, numbers, and symbols
 3. **Unique Secret Key** - Never reuse secret keys across applications
 4. **Keep Config Secure** - Don't commit `config.yaml` with real credentials to version control
@@ -229,114 +177,3 @@ security:
 ```
 
 Restart the application, and authentication will be bypassed.
-
----
-
-## 🐛 Troubleshooting
-
-### "Invalid Password" Error
-
-- **Check password hash**: Ensure the hash in `config.yaml` matches your password
-- **Regenerate hash**: Run `python generate_password.py` again
-- **Check encoding**: Password must be UTF-8 encoded
-
-### "Not authenticated" Error
-
-- **Check session**: Your session may have expired (default: 7 days)
-- **Clear cookies**: Clear your browser cookies and log in again
-- **Check config**: Ensure `enabled: true` in `config.yaml`
-
-### Login Page Not Showing
-
-- **Check config**: Verify `enabled: true` in `config.yaml`
-- **Check routes**: Visit `/login` directly
-- **Check logs**: Look for errors in the console
-
-### Can't Access `/logout`
-
-- You must be logged in to access `/logout`
-- Clear your browser cookies manually if needed
-
----
-
-## 🎨 Customizing Login Page
-
-The login page (`frontend/login.html`) can be customized:
-
-- **Theme**: Automatically inherits the theme you selected in the main app (from localStorage)
-- **Logo**: Uses `/static/logo.svg`
-- **Styling**: Edit the CSS in the `<style>` section
-- **Content**: Modify the HTML directly
-- **Error Messages**: Displayed inline in red when login fails (no separate error page)
-
-**Note:** The theme selector is intentionally hidden on the login page to keep it clean. Users will see the theme they selected in the main app.
-
----
-
-## 📦 Docker Deployment
-
-When using Docker, mount your `config.yaml` with credentials:
-
-```yaml
-services:
-  notediscovery:
-    image: ghcr.io/yourusername/notediscovery:latest
-    volumes:
-      - ./config.yaml:/app/config.yaml
-      - ./data:/app/data
-    ports:
-      - "8000:8000"
-```
-
-**Security Note**: Don't build credentials into the Docker image. Always mount them as a volume.
-
----
-
-## 🤝 Multi-User Support
-
-This authentication system is designed for **single-user** deployments. If you need multi-user support:
-
-1. Run separate instances (one per user)
-2. Use Docker containers with different ports
-3. Use a reverse proxy for routing
-
-For enterprise/multi-user needs, consider:
-- OAuth 2.0 / OpenID Connect
-- Database-backed user management
-- Role-based access control (RBAC)
-
----
-
-## 📝 Technical Details
-
-### Password Hashing
-
-- **Algorithm**: bcrypt
-- **Rounds**: 12 (default)
-- **Salt**: Automatically generated per password
-
-### Session Management
-
-- **Storage**: Server-side session cookies
-- **Signing**: HMAC with secret key
-- **Security**: HttpOnly, SameSite=Lax
-- **Expiry**: Configurable (default 7 days)
-
-### Dependencies
-
-- `bcrypt` - Password hashing
-- `itsdangerous` - Session signing
-- `starlette` - Session middleware
-
----
-
-## 📚 Additional Resources
-
-- [bcrypt Documentation](https://github.com/pyca/bcrypt/)
-- [FastAPI Security](https://fastapi.tiangolo.com/tutorial/security/)
-- [OWASP Authentication Cheatsheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-
----
-
-**Need Help?** Open an issue on [GitHub](https://github.com/yourusername/notediscovery/issues) or consult the [README.md](README.md).
-
