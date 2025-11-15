@@ -164,8 +164,12 @@ async def login_page(request: Request, error: str = None):
     
     # Inject error message if present
     if error:
-        content = content.replace('<!-- ERROR_PLACEHOLDER -->', 
-                                 f'<div class="error-message">❌ {error}</div>')
+        content = content.replace('<!-- ERROR_CLASS_PLACEHOLDER -->', 'class="error"')
+        content = content.replace('<!-- ERROR_MESSAGE_PLACEHOLDER -->', 
+                                 f'<div class="error-message">{error}</div>')
+    else:
+        content = content.replace('<!-- ERROR_CLASS_PLACEHOLDER -->', '')
+        content = content.replace('<!-- ERROR_MESSAGE_PLACEHOLDER -->', '')
     
     return content
 
@@ -183,7 +187,7 @@ async def login(request: Request, password: str = Form(...)):
         return RedirectResponse(url="/", status_code=303)
     else:
         # Redirect back to login with error message
-        return RedirectResponse(url="/login?error=Invalid+password.+Please+try+again.", status_code=303)
+        return RedirectResponse(url="/login?error=Incorrect+password.+Please+try+again.", status_code=303)
 
 
 @app.get("/logout")
