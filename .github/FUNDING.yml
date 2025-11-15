@@ -1,6 +1,7 @@
 # GitHub Sponsors configuration
 # This adds a "Sponsor" button to your repository
 
-# Ko-fi - 0% platform fee, accepts credit cards via Stripe
 ko_fi: gamosoft
+custom:
+  - 'https://paypal.me/gamosoft'
 
