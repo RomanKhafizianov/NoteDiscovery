@@ -132,6 +132,11 @@ def delete_folder(notes_dir: str, folder_path: str) -> bool:
     try:
         full_path = Path(notes_dir) / folder_path
         
+        # Security check: ensure the path is within notes_dir
+        if not validate_path_security(notes_dir, full_path):
+            print(f"Security: Path is outside notes directory: {full_path}")
+            return False
+        
         if not full_path.exists():
             print(f"Folder does not exist: {full_path}")
             return False
