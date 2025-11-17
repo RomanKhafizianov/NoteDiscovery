@@ -176,6 +176,12 @@ function noteApp() {
                         this.createNote();
                     }
                     
+                    // Ctrl/Cmd + Alt + F for new folder
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'f') {
+                        e.preventDefault();
+                        this.createFolder();
+                    }
+                    
                     // Ctrl/Cmd + Z for undo
                     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
                         e.preventDefault();

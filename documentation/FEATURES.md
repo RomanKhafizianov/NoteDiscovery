@@ -112,6 +112,7 @@ $$
 |---------------|-----|--------|
 | `Ctrl+S` | `Cmd+S` | Save note |
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
+| `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
 | `Ctrl+Z` | `Cmd+Z` | Undo |
 | `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
 | `F3` | `F3` | Next search match |
