@@ -779,25 +779,57 @@
                 </div>
             </div>
             
-            <!-- New Note & Folder Buttons -->
-            <div class="p-3 border-b flex gap-2" style="border-color: var(--border-primary);">
+            <!-- New Item Dropdown -->
+            <div class="p-3 border-b relative" style="border-color: var(--border-primary);">
                 <button 
-                    @click="createNewNote()"
-                    class="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2"
+                    @click="toggleNewDropdown()"
+                    class="w-full px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 flex items-center justify-center gap-2"
                     style="background-color: var(--accent-primary);"
                     onmouseover="this.style.backgroundColor='var(--accent-hover)'"
                     onmouseout="this.style.backgroundColor='var(--accent-primary)'"
                 >
-                    + Note
+                    <span>+ New</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
                 </button>
-                <button 
-                    @click="createNewFolder()"
-                    class="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2"
-                    style="background-color: var(--bg-tertiary); color: var(--text-primary);"
-                    title="Create folder"
+                
+                <!-- Dropdown Menu -->
+                <div 
+                    x-show="showNewDropdown"
+                    @click.outside="closeDropdown()"
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="transform opacity-100 scale-100"
+                    x-transition:leave-end="transform opacity-0 scale-95"
+                    class="absolute left-3 right-3 mt-2 rounded-lg shadow-lg z-50"
+                    style="background-color: var(--bg-secondary); border: 1px solid var(--border-primary);"
                 >
-                    📁
-                </button>
+                    <div class="py-1">
+                        <button 
+                            @click="createNote()"
+                            class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                            style="color: var(--text-primary);"
+                            onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                            onmouseout="this.style.backgroundColor='transparent'"
+                        >
+                            <span class="text-lg">📝</span>
+                            <span>New Note</span>
+                        </button>
+                        <button 
+                            @click="createFolder()"
+                            class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                            style="color: var(--text-primary);"
+                            onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                            onmouseout="this.style.backgroundColor='transparent'"
+                        >
+                            <span class="text-lg">📁</span>
+                            <span>New Folder</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <!-- Notes List -->

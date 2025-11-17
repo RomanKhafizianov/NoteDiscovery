@@ -88,6 +88,9 @@ function noteApp() {
         editorWidth: 50, // percentage
         isResizingSplit: false,
         
+        // Dropdown state
+        showNewDropdown: false,
+        
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
             editor: null,
@@ -430,13 +433,13 @@ function noteApp() {
                         </div>
                         <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
                             <button 
-                                @click="createNoteInFolder('${folder.path.replace(/'/g, "\\'")}')"
+                                @click="createNote('${folder.path.replace(/'/g, "\\'")}')"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="New note in this folder"
+                                title="New note here"
                             >📄</button>
                             <button 
-                                @click="createNewFolder('${folder.path.replace(/'/g, "\\'")}')"
+                                @click="createFolder('${folder.path.replace(/'/g, "\\'")}')"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="New subfolder"
@@ -451,7 +454,7 @@ function noteApp() {
                                 @click="deleteFolder('${folder.path.replace(/'/g, "\\'")}', '${folder.name.replace(/'/g, "\\'")}')"
                                 class="px-1 py-0.5 text-xs rounded hover:brightness-110"
                                 style="color: var(--error);"
-                                title="Delete folder and all contents"
+                                title="Delete folder"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1164,9 +1167,30 @@ function noteApp() {
             this.currentMatchIndex = -1;
         },
         
-        // Create a new note
-        async createNewNote() {
-            const noteName = prompt('Enter note name (you can use folder/name):');
+        // =====================================================
+        // DROPDOWN MENU SYSTEM
+        // =====================================================
+        
+        toggleNewDropdown() {
+            this.showNewDropdown = !this.showNewDropdown;
+        },
+        
+        closeDropdown() {
+            this.showNewDropdown = false;
+        },
+        
+        // =====================================================
+        // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
+        // =====================================================
+        
+        async createNote(folderPath = '') {
+            this.closeDropdown();
+            
+            const promptText = folderPath 
+                ? `Create note in "${folderPath}".\nEnter note name:`
+                : 'Enter note name (you can use folder/name):';
+            
+            const noteName = prompt(promptText);
             if (!noteName) return;
             
             const sanitizedName = noteName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
@@ -1175,8 +1199,19 @@ function noteApp() {
                 return;
             }
             
-            // Add .md extension if not present
-            const notePath = sanitizedName.endsWith('.md') ? sanitizedName : `${sanitizedName}.md`;
+            let notePath;
+            if (folderPath) {
+                notePath = `${folderPath}/${sanitizedName}.md`;
+            } else {
+                notePath = sanitizedName.endsWith('.md') ? sanitizedName : `${sanitizedName}.md`;
+            }
+            
+            // CRITICAL: Check if note already exists
+            const existingNote = this.notes.find(note => note.path === notePath);
+            if (existingNote) {
+                alert(`A note named "${sanitizedName}" already exists in this location.\nPlease choose a different name.`);
+                return;
+            }
             
             try {
                 const response = await fetch(`/api/notes/${notePath}`, {
@@ -1186,6 +1221,9 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
+                    if (folderPath) {
+                        this.expandedFolders.add(folderPath);
+                    }
                     await this.loadNotes();
                     await this.loadNote(notePath);
                 } else {
@@ -1196,13 +1234,14 @@ function noteApp() {
             }
         },
         
-        // Create a new folder with context
-        async createNewFolder(parentPath = '') {
-            const prompt_text = parentPath 
+        async createFolder(parentPath = '') {
+            this.closeDropdown();
+            
+            const promptText = parentPath 
                 ? `Create subfolder in "${parentPath}".\nEnter folder name:`
                 : 'Create new folder.\nEnter folder path (e.g., "Projects" or "Work/2025"):';
             
-            const folderName = prompt(prompt_text);
+            const folderName = prompt(promptText);
             if (!folderName) return;
             
             const sanitizedName = folderName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
@@ -1211,8 +1250,14 @@ function noteApp() {
                 return;
             }
             
-            // Construct full path
             const folderPath = parentPath ? `${parentPath}/${sanitizedName}` : sanitizedName;
+            
+            // Check if folder already exists
+            const existingFolder = this.allFolders.find(folder => folder === folderPath);
+            if (existingFolder) {
+                alert(`A folder named "${sanitizedName}" already exists in this location.\nPlease choose a different name.`);
+                return;
+            }
             
             try {
                 const response = await fetch('/api/folders', {
@@ -1222,10 +1267,10 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    // Automatically expand parent folder
                     if (parentPath) {
                         this.expandedFolders.add(parentPath);
                     }
+                    this.expandedFolders.add(folderPath);
                     await this.loadNotes();
                 } else {
                     ErrorHandler.handle('create folder', new Error('Server returned error'));
@@ -1233,6 +1278,20 @@ function noteApp() {
             } catch (error) {
                 ErrorHandler.handle('create folder', error);
             }
+        },
+        
+        // =====================================================
+        // LEGACY WRAPPER FUNCTIONS (for backward compatibility)
+        // =====================================================
+        
+        // Create a new note (calls unified function)
+        async createNewNote() {
+            await this.createNote('');
+        },
+        
+        // Create a new folder (calls unified function)
+        async createNewFolder(parentPath = '') {
+            await this.createFolder(parentPath);
         },
         
         // Rename a folder
@@ -1320,37 +1379,9 @@ function noteApp() {
             }
         },
         
-        // Create note in specific folder
+        // Create note in specific folder (calls unified function)
         async createNoteInFolder(folderPath) {
-            const noteName = prompt(`Create note in "${folderPath}".\nEnter note name:`);
-            if (!noteName) return;
-            
-            const sanitizedName = noteName.trim().replace(/[^a-zA-Z0-9-_\s]/g, '');
-            if (!sanitizedName) {
-                alert('Invalid note name.');
-                return;
-            }
-            
-            const notePath = `${folderPath}/${sanitizedName}.md`;
-            
-            try {
-                const response = await fetch(`/api/notes/${notePath}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: '' })
-                });
-                
-                if (response.ok) {
-                    this.expandedFolders.add(folderPath);
-                    await this.loadNotes();
-                    await this.loadNote(notePath);
-                } else {
-                    alert('Failed to create note.');
-                }
-            } catch (error) {
-                console.error('Failed to create note:', error);
-                alert('Failed to create note.');
-            }
+            await this.createNote(folderPath);
         },
         
         // Auto-save with debounce
