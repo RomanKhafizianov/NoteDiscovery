@@ -60,13 +60,7 @@
     <!-- Mermaid.js for diagram rendering -->
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        // Initialize with default dark theme (will be updated based on app theme)
-        mermaid.initialize({ 
-            startOnLoad: false,
-            theme: 'dark',
-            securityLevel: 'loose',
-            fontFamily: 'inherit'
-        });
+        // Note: Mermaid is initialized dynamically by app.js renderMermaid() based on current theme
         window.mermaid = mermaid;
     </script>
     
