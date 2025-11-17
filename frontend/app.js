@@ -173,7 +173,7 @@ function noteApp() {
                     // Ctrl/Cmd + Alt + N for new note
                     if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'n') {
                         e.preventDefault();
-                        this.createNewNote();
+                        this.createNote();
                     }
                     
                     // Ctrl/Cmd + Z for undo
@@ -1280,20 +1280,6 @@ function noteApp() {
             }
         },
         
-        // =====================================================
-        // LEGACY WRAPPER FUNCTIONS (for backward compatibility)
-        // =====================================================
-        
-        // Create a new note (calls unified function)
-        async createNewNote() {
-            await this.createNote('');
-        },
-        
-        // Create a new folder (calls unified function)
-        async createNewFolder(parentPath = '') {
-            await this.createFolder(parentPath);
-        },
-        
         // Rename a folder
         async renameFolder(folderPath, currentName) {
             const newName = prompt(`Rename folder "${currentName}" to:`, currentName);
@@ -1377,11 +1363,6 @@ function noteApp() {
             } catch (error) {
                 ErrorHandler.handle('delete folder', error);
             }
-        },
-        
-        // Create note in specific folder (calls unified function)
-        async createNoteInFolder(folderPath) {
-            await this.createNote(folderPath);
         },
         
         // Auto-save with debounce
