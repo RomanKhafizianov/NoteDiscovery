@@ -57,6 +57,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/http.min.js"></script>
     
+    <!-- Mermaid.js for diagram rendering -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        // Initialize with default dark theme (will be updated based on app theme)
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'loose',
+            fontFamily: 'inherit'
+        });
+        window.mermaid = mermaid;
+    </script>
+    
     <!-- Theme styles will be loaded dynamically -->
     <link rel="stylesheet" id="theme-stylesheet" href="">
     
@@ -319,6 +332,12 @@
         /* Inline math */
         .markdown-preview mjx-container[display="false"] {
             margin: 0 0.2rem;
+        }
+        
+        /* Mermaid diagram styling - minimal, let Mermaid handle its own rendering */
+        .markdown-preview .mermaid-rendered svg {
+            max-width: 100%;
+            height: auto;
         }
         
         /* Editor styling */

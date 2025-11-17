@@ -91,6 +91,9 @@ function noteApp() {
         // Dropdown state
         showNewDropdown: false,
         
+        // Mermaid state cache
+        lastMermaidTheme: null,
+        
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
             editor: null,
@@ -293,6 +296,32 @@ function noteApp() {
                         // Use dark theme for dark/custom themes
                         highlightTheme.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
                     }
+                }
+                
+                // Re-render Mermaid diagrams with new theme if there's a current note
+                if (this.currentNote) {
+                    // Small delay to allow theme CSS to load
+                    setTimeout(() => {
+                        // Clear existing Mermaid renders
+                        const previewContent = document.querySelector('.markdown-preview');
+                        if (previewContent) {
+                            const mermaidContainers = previewContent.querySelectorAll('.mermaid-rendered');
+                            mermaidContainers.forEach(container => {
+                                // Replace with the original code block for re-rendering
+                                const parent = container.parentElement;
+                                if (parent && container.dataset.originalCode) {
+                                    const pre = document.createElement('pre');
+                                    const code = document.createElement('code');
+                                    code.className = 'language-mermaid';
+                                    code.textContent = container.dataset.originalCode;
+                                    pre.appendChild(code);
+                                    parent.replaceChild(pre, container);
+                                }
+                            });
+                        }
+                        // Re-render with new theme
+                        this.renderMermaid();
+                    }, 100);
                 }
             } catch (error) {
                 console.error('Failed to load theme:', error);
@@ -1635,6 +1664,102 @@ function noteApp() {
             }
         },
         
+        // Render Mermaid diagrams
+        async renderMermaid() {
+            if (typeof window.mermaid === 'undefined') {
+                console.warn('Mermaid not loaded yet');
+                return;
+            }
+            
+            // Use requestAnimationFrame for better performance than setTimeout
+            requestAnimationFrame(async () => {
+                const previewContent = document.querySelector('.markdown-preview');
+                if (!previewContent) return;
+                
+                // Get the appropriate theme based on current app theme
+                const themeType = this.getThemeType();
+                const mermaidTheme = themeType === 'light' ? 'default' : 'dark';
+                
+                // Only reinitialize if theme changed (performance optimization)
+                if (this.lastMermaidTheme !== mermaidTheme) {
+                    window.mermaid.initialize({ 
+                        startOnLoad: false,
+                        theme: mermaidTheme,
+                        securityLevel: 'strict', // Use strict for better security
+                        fontFamily: 'inherit'
+                    });
+                    this.lastMermaidTheme = mermaidTheme;
+                }
+                
+                // Find all code blocks with language 'mermaid'
+                const mermaidBlocks = previewContent.querySelectorAll('pre code.language-mermaid');
+                
+                // Early return if no diagrams to render
+                if (mermaidBlocks.length === 0) return;
+                
+                for (let i = 0; i < mermaidBlocks.length; i++) {
+                    const block = mermaidBlocks[i];
+                    const pre = block.parentElement;
+                    
+                    // Skip if already rendered (performance optimization)
+                    if (pre.querySelector('.mermaid-rendered')) continue;
+                    
+                    try {
+                        const code = block.textContent;
+                        const id = `mermaid-diagram-${Date.now()}-${i}`;
+                        
+                        // Render the diagram
+                        const { svg } = await window.mermaid.render(id, code);
+                        
+                        // Create a container for the rendered diagram
+                        const container = document.createElement('div');
+                        container.className = 'mermaid-rendered';
+                        container.style.cssText = 'background-color: transparent; padding: 20px; text-align: center; overflow-x: auto;';
+                        container.innerHTML = svg;
+                        // Store original code for theme re-rendering
+                        container.dataset.originalCode = code;
+                        
+                        // Replace the code block with the rendered diagram
+                        pre.parentElement.replaceChild(container, pre);
+                    } catch (error) {
+                        console.error('Mermaid rendering error:', error);
+                        // Add error indicator to the code block
+                        const errorMsg = document.createElement('div');
+                        errorMsg.style.cssText = 'color: var(--error); padding: 10px; border-left: 3px solid var(--error); margin-top: 10px;';
+                        errorMsg.textContent = `⚠️ Mermaid diagram error: ${error.message}`;
+                        pre.parentElement.insertBefore(errorMsg, pre.nextSibling);
+                    }
+                }
+            });
+        },
+        
+        // Get current theme type (light or dark)
+        // Returns: 'light' or 'dark'
+        // Used by features that need to adapt to theme brightness (e.g., Mermaid diagrams, Chart.js)
+        getThemeType() {
+            // Handle system theme
+            if (this.currentTheme === 'system') {
+                const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                return isDark ? 'dark' : 'light';
+            }
+            
+            // Try to get theme type from loaded theme metadata
+            const currentThemeData = this.availableThemes.find(t => t.id === this.currentTheme);
+            if (currentThemeData && currentThemeData.type) {
+                // Use metadata from theme file (light or dark)
+                return currentThemeData.type; // Already 'light' or 'dark'
+            }
+            
+            // Backward compatibility: fallback to hardcoded map if metadata not available
+            const fallbackMap = {
+                'light': 'light',
+                'vs-blue': 'light'
+            };
+            
+            return fallbackMap[this.currentTheme] || 'dark';
+        },
+        
+        
         // Computed property for rendered markdown
         get renderedMarkdown() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
@@ -1690,12 +1815,17 @@ function noteApp() {
             // Trigger MathJax rendering after DOM updates
             this.typesetMath();
             
+            // Render Mermaid diagrams
+            this.renderMermaid();
+            
             // Apply syntax highlighting and add copy buttons to code blocks
             setTimeout(() => {
                 // Use cached reference if available, otherwise query
                 const previewEl = this._domCache.previewContent || document.querySelector('.markdown-preview');
                 if (previewEl) {
-                    previewEl.querySelectorAll('pre code').forEach((block) => {
+                    // Exclude code blocks that are rendered by other tools (e.g., Mermaid diagrams)
+                    // Note: MathJax uses $$...$$ delimiters (not code blocks) so no exclusion needed
+                    previewEl.querySelectorAll('pre code:not(.language-mermaid)').forEach((block) => {
                         // Apply syntax highlighting
                         if (!block.classList.contains('hljs')) {
                             hljs.highlightElement(block);
@@ -2231,10 +2361,11 @@ function noteApp() {
                         const rules = Array.from(sheet.cssRules || []);
                         for (const rule of rules) {
                             const cssText = rule.cssText;
-                            // Include rules that target markdown-preview or mjx-container
+                            // Include rules that target markdown-preview, mjx-container, or mermaid-rendered
                             if (cssText.includes('.markdown-preview') || 
                                 cssText.includes('mjx-container') ||
-                                cssText.includes('.MathJax')) {
+                                cssText.includes('.MathJax') ||
+                                cssText.includes('.mermaid-rendered')) {
                                 markdownStyles += cssText + '\n';
                             }
                         }
@@ -2271,8 +2402,8 @@ function noteApp() {
             startup: {
                 pageReady: () => {
                     return MathJax.startup.defaultPageReady().then(() => {
-                        // Highlight code blocks after MathJax is done
-                        document.querySelectorAll('pre code').forEach((block) => {
+                        // Highlight code blocks after MathJax is done (exclude diagram renderers)
+                        document.querySelectorAll('pre code:not(.language-mermaid)').forEach((block) => {
                             hljs.highlightElement(block);
                         });
                     });
@@ -2281,6 +2412,39 @@ function noteApp() {
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Mermaid.js for diagrams (if used in note) -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        const isDark = ${this.getThemeType() === 'dark'};
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: isDark ? 'dark' : 'default',
+            securityLevel: 'strict',
+            fontFamily: 'inherit'
+        });
+        
+        // Render any Mermaid code blocks
+        document.addEventListener('DOMContentLoaded', async () => {
+            const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid');
+            for (let i = 0; i < mermaidBlocks.length; i++) {
+                const block = mermaidBlocks[i];
+                const pre = block.parentElement;
+                try {
+                    const code = block.textContent;
+                    const id = 'mermaid-diagram-' + i;
+                    const { svg } = await mermaid.render(id, code);
+                    const container = document.createElement('div');
+                    container.className = 'mermaid-rendered';
+                    container.style.cssText = 'background-color: transparent; padding: 20px; text-align: center; overflow-x: auto;';
+                    container.innerHTML = svg;
+                    pre.parentElement.replaceChild(container, pre);
+                } catch (error) {
+                    console.error('Mermaid rendering error:', error);
+                }
+            }
+        });
+    </script>
     
     <style>
         /* Theme CSS */
