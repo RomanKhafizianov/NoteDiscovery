@@ -2358,6 +2358,17 @@ function noteApp() {
                 
                 for (const sheet of styleSheets) {
                     try {
+                        // Skip external stylesheets (CDN resources) to avoid CORS errors
+                        // We link them directly in the exported HTML anyway
+                        if (sheet.href && (sheet.href.startsWith('http://') || sheet.href.startsWith('https://'))) {
+                            const currentOrigin = window.location.origin;
+                            const sheetURL = new URL(sheet.href);
+                            if (sheetURL.origin !== currentOrigin) {
+                                // Skip cross-origin stylesheets (they're linked directly in export)
+                                continue;
+                            }
+                        }
+                        
                         const rules = Array.from(sheet.cssRules || []);
                         for (const rule of rules) {
                             const cssText = rule.cssText;
@@ -2370,8 +2381,9 @@ function noteApp() {
                             }
                         }
                     } catch (e) {
-                        // Skip stylesheets that can't be accessed (CORS)
-                        console.warn('Could not access stylesheet:', sheet.href, e);
+                        // Gracefully skip stylesheets that can't be accessed
+                        // (This should rarely happen now that we skip external stylesheets)
+                        console.debug('Skipping stylesheet:', sheet.href);
                     }
                 }
                 
