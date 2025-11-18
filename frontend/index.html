@@ -350,6 +350,7 @@
         /* Folder tree styling */
         .folder-item {
             user-select: none;
+            transition: all 0.2s ease;
         }
         
         .folder-item:hover {
@@ -362,6 +363,29 @@
         
         .note-item {
             padding-left: 1.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        /* Drag and drop improvements */
+        .note-item[draggable="true"],
+        .folder-item[draggable="true"] {
+            cursor: grab;
+        }
+        
+        .note-item[draggable="true"]:active,
+        .folder-item[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        
+        /* Smooth transitions for drag states */
+        .folder-item,
+        .note-item {
+            transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        }
+        
+        /* Better drop zone visibility */
+        .folder-item:has(+ .folder-contents) {
+            position: relative;
         }
         
         .hover-buttons {
@@ -893,13 +917,19 @@
                         <!-- Root drop zone - only visible when dragging -->
                         <div 
                             x-show="draggedNote || draggedFolder"
-                            @dragover.prevent
+                            x-transition
+                            @dragover.prevent="dragOverFolder = '';"
+                            @dragenter.prevent="dragOverFolder = '';"
+                            @dragleave="dragOverFolder = null;"
                             @drop="onFolderDrop('')"
-                            class="mb-3 px-3 py-2 rounded-lg border-2 border-dashed transition-all"
-                            style="border-color: var(--accent-primary); background-color: var(--accent-light);"
+                            class="mb-3 px-4 py-3 rounded-lg border-2 border-dashed transition-all"
+                            :class="dragOverFolder === '' ? 'bg-accent-light' : ''"
+                            :style="dragOverFolder === '' ? 'border-color: var(--accent-primary); transform: scale(1.02);' : 'border-color: var(--border-primary);'"
                         >
-                            <div class="text-xs text-center font-medium" style="color: var(--accent-primary);">
-                                📂 Drop here to move to root folder
+                            <div class="text-sm text-center font-medium flex items-center justify-center gap-2" 
+                                 :style="dragOverFolder === '' ? 'color: var(--accent-primary);' : 'color: var(--text-secondary);'">
+                                <span>📂</span>
+                                <span>Drop here to move to root folder</span>
                             </div>
                         </div>
                         

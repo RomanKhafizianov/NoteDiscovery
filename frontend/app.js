@@ -59,6 +59,7 @@ function noteApp() {
         expandedFolders: new Set(),
         draggedNote: null,
         draggedFolder: null,
+        dragOverFolder: null,  // Track which folder is being hovered during drag
         
         // Scroll sync state
         isScrolling: false,
@@ -441,15 +442,25 @@ function noteApp() {
                     <div 
                         draggable="true"
                         x-data="{}"
-                        @dragstart="onFolderDragStart('${folder.path.replace(/'/g, "\\'")}' )"
+                        @dragstart="onFolderDragStart('${folder.path.replace(/'/g, "\\'")}', $event)"
                         @dragend="onFolderDragEnd()"
-                        @dragover.prevent
-                        @drop.stop="onFolderDrop('${folder.path.replace(/'/g, "\\'")}')"
-                        class="folder-item px-2 py-2 mb-1 text-sm rounded transition-all relative"
+                        @dragover.prevent="dragOverFolder = '${folder.path.replace(/'/g, "\\'")}'"
+                        @dragenter.prevent="dragOverFolder = '${folder.path.replace(/'/g, "\\'")}'"
+                        @dragleave="dragOverFolder = null"
+                        @drop.stop="onFolderDrop('${folder.path.replace(/'/g, "\\'")}' )"
+                        class="folder-item px-3 py-3 mb-1 text-sm rounded transition-all relative"
                         style="color: var(--text-primary); cursor: pointer;"
-                        :class="draggedNote || draggedFolder ? 'border-2 border-dashed border-accent-primary bg-accent-light' : 'border-2 border-transparent'"
+                        :class="{
+                            'border-2 border-dashed bg-accent-light': (draggedNote || draggedFolder) && dragOverFolder === '${folder.path.replace(/'/g, "\\'")}',
+                            'border-2 border-dashed': (draggedNote || draggedFolder) && dragOverFolder !== '${folder.path.replace(/'/g, "\\'")}',
+                            'border-2 border-transparent': !draggedNote && !draggedFolder
+                        }"
+                        :style="{
+                            'border-color': (draggedNote || draggedFolder) && dragOverFolder === '${folder.path.replace(/'/g, "\\'")}'  ? 'var(--accent-primary)' : 'var(--border-secondary)',
+                            'background-color': dragOverFolder === '${folder.path.replace(/'/g, "\\'")}'  ? 'var(--accent-light)' : ''
+                        }"
                         @mouseover="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='var(--bg-hover)'"
-                        @mouseout="if(!draggedNote && !draggedFolder) $el.style.backgroundColor='transparent'"
+                        @mouseout="if(!draggedNote && !draggedFolder && dragOverFolder !== '${folder.path.replace(/'/g, "\\'")}'  ) $el.style.backgroundColor='transparent'"
                         @click="toggleFolder('${folder.path.replace(/'/g, "\\'")}')"
                     >
                         <div class="flex items-center gap-1">
@@ -665,12 +676,21 @@ function noteApp() {
                 // Move mode: drag to move note
                 this.draggedNote = notePath;
                 event.dataTransfer.effectAllowed = 'move';
+                // Make drag image semi-transparent
+                if (event.target) {
+                    event.target.style.opacity = '0.5';
+                }
             }
         },
         
         onNoteDragEnd() {
             this.draggedNote = null;
             this.draggedNoteForLink = null;
+            this.dragOverFolder = null;
+            // Reset opacity of all note items
+            document.querySelectorAll('.note-item').forEach(el => {
+                el.style.opacity = '1';
+            });
         },
         
         // Handle dragover on editor to show cursor position
@@ -776,12 +796,21 @@ function noteApp() {
         },
         
         // Folder drag handlers
-        onFolderDragStart(folderPath) {
+        onFolderDragStart(folderPath, event) {
             this.draggedFolder = folderPath;
+            // Make drag image semi-transparent
+            if (event && event.target) {
+                event.target.style.opacity = '0.5';
+            }
         },
         
         onFolderDragEnd() {
             this.draggedFolder = null;
+            this.dragOverFolder = null;
+            // Reset opacity of all folder items
+            document.querySelectorAll('.folder-item').forEach(el => {
+                el.style.opacity = '1';
+            });
         },
         
         async onFolderDrop(targetFolderPath) {
