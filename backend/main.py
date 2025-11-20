@@ -33,6 +33,7 @@ from .utils import (
     rename_folder,
     delete_folder,
     save_uploaded_image,
+    validate_path_security,
 )
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
