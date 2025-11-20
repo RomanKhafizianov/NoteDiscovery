@@ -92,6 +92,108 @@ function noteApp() {
         // Dropdown state
         showNewDropdown: false,
         
+        // Homepage folder navigation
+        selectedHomepageFolder: '',
+        
+        // Computed properties for homepage (using getters for Alpine reactivity)
+        get homepageNotes() {
+            // Safety check - ensure notes is an array
+            if (!Array.isArray(this.notes)) {
+                return [];
+            }
+            
+            // Filter notes based on selected folder
+            if (!this.selectedHomepageFolder) {
+                // Root level - show notes without folder
+                return this.notes.filter(note => !note.folder);
+            } else {
+                // Show notes in selected folder (exact match)
+                return this.notes.filter(note => note.folder === this.selectedHomepageFolder);
+            }
+        },
+        
+        get homepageFolders() {
+            // Safety check - ensure allFolders is an array
+            if (!Array.isArray(this.allFolders)) {
+                return [];
+            }
+            
+            // Safety check - ensure notes is an array for counting
+            const notesArray = Array.isArray(this.notes) ? this.notes : [];
+            
+            // Get folders for current view
+            if (!this.selectedHomepageFolder) {
+                // Root level - show top-level folders
+                return this.allFolders
+                    .filter(folder => !folder.includes('/')) 
+                    .map(folder => {
+                        // Count notes in this folder and all subfolders
+                        const noteCount = notesArray.filter(note => 
+                            note.folder === folder || (note.folder && note.folder.startsWith(folder + '/'))
+                        ).length;
+                        
+                        return {
+                            name: folder,
+                            path: folder,
+                            noteCount: noteCount
+                        };
+                    });
+            } else {
+                // Get subfolders of current folder
+                const prefix = this.selectedHomepageFolder + '/';
+                const subfolders = this.allFolders
+                    .filter(folder => folder.startsWith(prefix) && folder !== this.selectedHomepageFolder)
+                    .map(folder => {
+                        // Extract subfolder name (next level after current folder)
+                        const relativePath = folder.substring(this.selectedHomepageFolder.length + 1);
+                        const subfolderName = relativePath.split('/')[0];
+                        const subfolderPath = this.selectedHomepageFolder + '/' + subfolderName;
+                        
+                        // Count notes in this subfolder and all nested subfolders
+                        const noteCount = notesArray.filter(note => 
+                            note.folder === subfolderPath || (note.folder && note.folder.startsWith(subfolderPath + '/'))
+                        ).length;
+                        
+                        return {
+                            name: subfolderName,
+                            path: subfolderPath,
+                            noteCount: noteCount
+                        };
+                    })
+                    .filter((folder, index, self) => 
+                        // Remove duplicates (same subfolder name)
+                        index === self.findIndex(f => f.path === folder.path)
+                    );
+                
+                return subfolders;
+            }
+        },
+        
+        get homepageBreadcrumb() {
+            // Always return at least Home breadcrumb
+            // Safety check - ensure we always return an array
+            try {
+                const breadcrumb = [{ name: 'Home', path: '' }];
+                
+                if (!this.selectedHomepageFolder) {
+                    return breadcrumb;
+                }
+                
+                const parts = (this.selectedHomepageFolder || '').split('/').filter(part => part.trim() !== '');
+                
+                let currentPath = '';
+                parts.forEach(part => {
+                    currentPath = currentPath ? currentPath + '/' + part : part;
+                    breadcrumb.push({ name: part, path: currentPath });
+                });
+                
+                return breadcrumb;
+            } catch (error) {
+                // Fallback to just Home if anything goes wrong
+                return [{ name: 'Home', path: '' }];
+            }
+        }, 
+        
         // Mermaid state cache
         lastMermaidTheme: null,
         
@@ -116,9 +218,15 @@ function noteApp() {
             // Parse URL and load specific note if provided
             this.loadNoteFromURL();
             
+            // Set initial homepage state if no note is loaded
+            if (!this.currentNote) {
+                window.history.replaceState({ homepageFolder: '' }, '', '/');
+            }
+            
             // Listen for browser back/forward navigation
             window.addEventListener('popstate', (e) => {
                 if (e.state && e.state.notePath) {
+                    // Navigating to a note
                     const searchQuery = e.state.searchQuery || '';
                     this.loadNote(e.state.notePath, false, searchQuery); // false = don't update history
                     
@@ -131,6 +239,24 @@ function noteApp() {
                         this.searchResults = [];
                         this.clearSearchHighlights();
                     }
+                } else {
+                    // Navigating back to homepage
+                    this.currentNote = '';
+                    this.noteContent = '';
+                    this.currentNoteName = '';
+                    
+                    // Restore homepage folder state if it was saved
+                    if (e.state && e.state.homepageFolder !== undefined) {
+                        this.selectedHomepageFolder = e.state.homepageFolder || '';
+                    } else {
+                        // No folder state in history, go to root
+                        this.selectedHomepageFolder = '';
+                    }
+                    
+                    // Clear search
+                    this.searchQuery = '';
+                    this.searchResults = [];
+                    this.clearSearchHighlights();
                 }
             });
             
@@ -916,7 +1042,7 @@ function noteApp() {
                 if (!response.ok) {
                     if (response.status === 404) {
                         // Note not found - silently redirect to home
-                        window.history.replaceState({}, '', '/');
+                        window.history.replaceState({ homepageFolder: this.selectedHomepageFolder || '' }, '', '/');
                         this.currentNote = '';
                         this.noteContent = '';
                         return;
@@ -947,7 +1073,11 @@ function noteApp() {
                         url += `?search=${encodeURIComponent(searchQuery)}`;
                     }
                     window.history.pushState(
-                        { notePath: notePath, searchQuery: searchQuery },
+                        { 
+                            notePath: notePath, 
+                            searchQuery: searchQuery,
+                            homepageFolder: this.selectedHomepageFolder || '' // Save current folder state
+                        },
                         '',
                         url
                     );
@@ -2550,6 +2680,16 @@ function noteApp() {
                 console.error('HTML export failed:', error);
                 alert(`Failed to export HTML: ${error.message}`);
             }
+        },
+        
+        // Homepage folder navigation methods
+        goToHomepageFolder(folderPath) {
+            // Navigate to folder (empty string = root)
+            this.selectedHomepageFolder = folderPath || '';
+            
+            // Update browser history
+            const state = { homepageFolder: folderPath || '' };
+            window.history.pushState(state, '', '/');
         }
     }
 }
