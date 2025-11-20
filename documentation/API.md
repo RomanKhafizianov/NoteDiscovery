@@ -81,6 +81,67 @@ Content-Type: application/json
 }
 ```
 
+## 🖼️ Images
+
+### Get Image
+```http
+GET /api/images/{image_path}
+```
+Retrieve an image file with authentication protection.
+
+**Example:**
+```bash
+curl http://localhost:8000/api/images/folder/_attachments/image-20240417093343.png
+```
+
+**Security Note:** This endpoint requires authentication and validates that:
+- The image path is within the notes directory (prevents directory traversal)
+- The file exists and is a valid image format
+- The requesting user is authenticated (if auth is enabled)
+
+### Upload Image
+```http
+POST /api/upload-image
+Content-Type: multipart/form-data
+
+file: <image file>
+note_path: <path of note to attach to>
+```
+
+Upload an image file to the `_attachments` directory. Images are automatically organized per-folder and named with timestamps to prevent conflicts.
+
+**Supported formats:** JPG, JPEG, PNG, GIF, WEBP  
+**Maximum size:** 10MB
+
+**Response:**
+```json
+{
+  "success": true,
+  "path": "folder/_attachments/image-20240417093343.png",
+  "filename": "image-20240417093343.png",
+  "message": "Image uploaded successfully"
+}
+```
+
+**Example (using curl):**
+```bash
+curl -X POST http://localhost:8000/api/upload-image \
+  -F "file=@/path/to/image.png" \
+  -F "note_path=folder/mynote.md"
+```
+
+**Windows PowerShell:**
+```powershell
+curl.exe -X POST http://localhost:8000/api/upload-image -F "file=@C:\path\to\image.png" -F "note_path=folder/mynote.md"
+```
+
+**Notes:**
+- Images are stored in `_attachments` folders relative to the note's location
+- Filenames are automatically timestamped (e.g., `image-20240417093343.png`)
+- Images appear in the sidebar navigation and can be viewed/deleted directly
+- Drag & drop images into the editor automatically uploads and inserts markdown
+- All image access requires authentication when security is enabled
+
 ## 📁 Folders
 
 ### Create Folder
@@ -91,6 +152,17 @@ Content-Type: application/json
 {
   "path": "Projects/2025"
 }
+```
+
+### Delete Folder
+```http
+DELETE /api/folders/{folder_path}
+```
+Deletes a folder and all its contents.
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:8000/api/folders/Projects/Archive
 ```
 
 ### Move Folder
