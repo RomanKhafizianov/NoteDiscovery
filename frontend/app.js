@@ -787,7 +787,7 @@ function noteApp() {
                 const filename = notePath.split('/').pop().replace(/\.[^/.]+$/, ''); // Remove extension
                 // URL-encode the path to handle spaces and special characters
                 const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-                link = `![${filename}](/data/${encodedPath})`;
+                link = `![${filename}](/api/images/${encodedPath})`;
             } else {
                 // For notes, insert note link
                 const noteName = notePath.split('/').pop().replace('.md', '');
@@ -879,7 +879,7 @@ function noteApp() {
             const filename = altText.replace(/\.[^/.]+$/, ''); // Remove extension
             // URL-encode the path to handle spaces and special characters
             const encodedPath = imagePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-            const markdown = `![${filename}](/data/${encodedPath})`;
+            const markdown = `![${filename}](/api/images/${encodedPath})`;
             
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
@@ -1242,7 +1242,7 @@ function noteApp() {
             const path = window.location.pathname;
             
             // Skip if root path or static assets
-            if (path === '/' || path.startsWith('/static/') || path.startsWith('/api/') || path.startsWith('/data/')) {
+            if (path === '/' || path.startsWith('/static/') || path.startsWith('/api/')) {
                 return;
             }
             
@@ -1855,24 +1855,8 @@ function noteApp() {
         async deleteCurrentNote() {
             if (!this.currentNote) return;
             
-            if (!confirm(`Delete "${this.currentNoteName}"?`)) return;
-            
-            try {
-                const response = await fetch(`/api/notes/${this.currentNote}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    this.currentNote = '';
-                    this.noteContent = '';
-                    this.currentNoteName = '';
-                    await this.loadNotes();
-                } else {
-                    ErrorHandler.handle('delete note', new Error('Server returned error'));
-                }
-            } catch (error) {
-                ErrorHandler.handle('delete note', error);
-            }
+            // Just call deleteNote with current note details
+            await this.deleteNote(this.currentNote, this.currentNoteName);
         },
         
         // Delete any note from sidebar

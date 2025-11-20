@@ -80,10 +80,6 @@ plugin_manager.run_hook('on_app_startup')
 static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-# Mount data directory for serving images
-data_path = Path(config['storage']['notes_dir'])
-app.mount("/data", StaticFiles(directory=data_path), name="data")
-
 
 # ============================================================================
 # Custom Exception Handlers
@@ -434,6 +430,36 @@ async def create_new_folder(data: dict):
             "path": folder_path,
             "message": "Folder created successfully"
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/images/{image_path:path}")
+async def get_image(image_path: str):
+    """
+    Serve an image file with authentication protection.
+    """
+    try:
+        notes_dir = config['storage']['notes_dir']
+        full_path = Path(notes_dir) / image_path
+        
+        # Security: Validate path is within notes directory
+        if not validate_path_security(notes_dir, full_path):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Check file exists and is an image
+        if not full_path.exists() or not full_path.is_file():
+            raise HTTPException(status_code=404, detail="Image not found")
+        
+        # Validate it's an image file
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        if full_path.suffix.lower() not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="Not an image file")
+        
+        # Return the file
+        return FileResponse(full_path)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
