@@ -730,7 +730,7 @@
             <div class="p-4 border-b" style="border-color: var(--border-primary);">
                 <button 
                     class="flex items-center gap-2 mb-3 hover:opacity-80 transition"
-                    @click="goToHomepageFolder(''); currentNote = ''; currentNoteName = ''; noteContent = ''; mobileSidebarOpen = false"
+                    @click="goToHomepageFolder(''); currentNote = ''; currentImage = ''; currentNoteName = ''; noteContent = ''; mobileSidebarOpen = false"
                     aria-label="Go to homepage"
                     style="background: none; border: none; outline: none; cursor: pointer;"
                 >
@@ -1011,7 +1011,7 @@
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
             
-            <template x-if="!currentNote">
+            <template x-if="!currentNote && !currentImage">
                 <!-- Notes Homepage -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar" style="background-color: var(--bg-primary);">
                     <!-- Welcome Hero - Show when app is empty -->
@@ -1142,7 +1142,7 @@
                                     <!-- Notes -->
                                     <template x-for="note in homepageNotes().slice(0, 50)" :key="note.path">
                                         <div 
-                                            @click="loadNote(note.path)"
+                                            @click="note.path.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? (currentImage = note.path, currentNote = '') : loadNote(note.path)"
                                             class="p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
                                             style="background-color: var(--bg-secondary); border-color: var(--border-primary); min-height: 140px; display: flex; flex-direction: column;"
                                             onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.transform='translateY(-2px)'"
@@ -1235,12 +1235,12 @@
                             
                             <!-- Delete Button -->
                             <button 
-                                @click="deleteCurrentNote()"
+                                @click="currentImage ? deleteImage(currentImage) : deleteCurrentNote()"
                                 class="p-2 rounded-lg"
                                 style="color: var(--error);"
                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
-                                title="Delete note"
+                                :title="currentImage ? 'Delete image' : 'Delete note'"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
