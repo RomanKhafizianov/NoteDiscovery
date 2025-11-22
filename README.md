@@ -225,6 +225,14 @@ Then access them at `http://localhost:8000` - the docs will appear as a `docs/` 
 
 If you find NoteDiscovery useful, consider [☕ buying me a coffee](https://ko-fi.com/gamosoft) to help keep the project going. Every bit helps with new features, bug fixes, and improvements. Thank you!
 
+## 🤝 Contributing
+
+**Before submitting a pull request**, especially for major changes, please:
+- Read our **[Contributing Guidelines](CONTRIBUTING.md)**
+- Open an issue first to discuss major features or significant changes
+- Ensure your code follows the project's style and philosophy
+
+
 ## 🔒 Security Considerations
 
 NoteDiscovery is designed for **self-hosted, private use**. Please keep these security considerations in mind:
