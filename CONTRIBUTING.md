@@ -199,6 +199,14 @@ When suggesting features:
 - Check existing issues and documentation first
 - Be patient and respectful in discussions
 
+## 📜 Legal Notes
+
+### Licensing Contributions
+
+By submitting a pull request, you agree that your contributions will be licensed under the [MIT License](LICENSE), the same license that covers the entire project. You retain copyright to your contributions, but grant permission for them to be used, modified, and distributed under the MIT License.
+
+No additional license sections or attribution files are required - the project's MIT License covers all contributions.
+
 ## 🙏 Thank You!
 
 Your contributions, whether code, documentation, bug reports, or feature suggestions, are greatly appreciated. Even if a specific PR isn't merged, your ideas and feedback help make NoteDiscovery better.
