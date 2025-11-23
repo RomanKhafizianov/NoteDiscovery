@@ -1069,16 +1069,9 @@ function noteApp() {
                             const textarea = event.target;
                             const cursorPos = textarea.selectionStart || 0;
                             
-                            // Create a filename based on timestamp (format: YYYYMMDDHHMMSS)
-                            const now = new Date();
-                            const timestamp = now.getFullYear() +
-                                String(now.getMonth() + 1).padStart(2, '0') +
-                                String(now.getDate()).padStart(2, '0') +
-                                String(now.getHours()).padStart(2, '0') +
-                                String(now.getMinutes()).padStart(2, '0') +
-                                String(now.getSeconds()).padStart(2, '0');
+                            // Create a simple filename - backend will add timestamp to prevent collisions
                             const ext = item.type.split('/')[1] || 'png';
-                            const filename = `pasted-image-${timestamp}.${ext}`;
+                            const filename = `pasted-image.${ext}`;
                             
                             // Create a File from the blob
                             const file = new File([blob], filename, { type: item.type });
@@ -2217,7 +2210,7 @@ function noteApp() {
             // Parse markdown
             let html = marked.parse(content);
             
-            // Post-process: Add target="_blank" to external links
+            // Post-process: Add target="_blank" to external links and title attributes to images
             // Parse as DOM to safely manipulate
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
@@ -2236,6 +2229,16 @@ function noteApp() {
                         link.setAttribute('target', '_blank');
                         link.setAttribute('rel', 'noopener noreferrer');
                     }
+                }
+            });
+            
+            // Find all images and add title attribute from alt text for hover tooltips
+            const images = tempDiv.querySelectorAll('img');
+            images.forEach(img => {
+                const altText = img.getAttribute('alt');
+                if (altText) {
+                    // Set title attribute to show alt text on hover
+                    img.setAttribute('title', altText);
                 }
             });
             
