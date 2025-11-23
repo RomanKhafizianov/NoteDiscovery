@@ -35,6 +35,7 @@ function noteApp() {
         // App state
         appName: 'NoteDiscovery',
         appTagline: 'Your Self-Hosted Knowledge Base',
+        appVersion: '0.0.0',
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -394,6 +395,7 @@ function noteApp() {
                 const config = await response.json();
                 this.appName = config.name;
                 this.appTagline = config.tagline;
+                this.appVersion = config.version || '0.0.0';
             } catch (error) {
                 console.error('Failed to load config:', error);
             }

@@ -25,6 +25,7 @@ COPY --from=builder /install /usr/local
 COPY backend ./backend
 COPY frontend ./frontend
 COPY config.yaml .
+COPY VERSION .
 COPY plugins ./plugins
 COPY themes ./themes
 COPY generate_password.py .

@@ -4,7 +4,6 @@
 app:
   name: "NoteDiscovery"
   tagline: "Your Self-Hosted Knowledge Base"
-  version: "1.0.0"
   
 server:
   host: "0.0.0.0"
