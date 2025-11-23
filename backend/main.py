@@ -43,6 +43,14 @@ config_path = Path(__file__).parent.parent / "config.yaml"
 with open(config_path, 'r', encoding='utf-8') as f:
     config = yaml.safe_load(f)
 
+# Load version from VERSION file (single source of truth)
+version_path = Path(__file__).parent.parent / "VERSION"
+if not version_path.exists():
+    raise FileNotFoundError("VERSION file not found. Please create it with the current version number.")
+with open(version_path, 'r', encoding='utf-8') as f:
+    version = f.read().strip()
+    config['app']['version'] = version
+
 # Initialize app
 app = FastAPI(
     title=config['app']['name'],
