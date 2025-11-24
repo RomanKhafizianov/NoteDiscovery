@@ -236,13 +236,6 @@ def delete_note(notes_dir: str, note_path: str) -> bool:
     return True
 
 
-def parse_wiki_links(content: str) -> List[str]:
-    """Extract wiki-style links [[link]] from markdown content"""
-    pattern = r'\[\[([^\]]+)\]\]'
-    matches = re.findall(pattern, content)
-    return matches
-
-
 def search_notes(notes_dir: str, query: str) -> List[Dict]:
     """Simple full-text search through all notes"""
     results = []

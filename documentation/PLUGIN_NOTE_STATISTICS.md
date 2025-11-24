@@ -55,7 +55,7 @@ curl -X POST http://localhost:8000/api/plugins/note_stats/toggle \
 
 ### 🔗 Links & References
 - **Total Links** - All `[text](url)` links
-- **Internal Links** - `[[WikiLinks]]` to other notes
+- **Internal Links** - Links to other notes (`.md` files)
 - **External Links** - HTTP/HTTPS URLs
 - **Images** - `![alt](image.png)` count
 
@@ -191,7 +191,7 @@ Find orphaned notes or track reference density.
 
 **Words:** Split on whitespace, excluding code blocks  
 **Reading Time:** `words / 200 minutes`  
-**Links:** Regex match `[text](url)` and `[[WikiLink]]`  
+**Links:** Regex match `[text](url)` markdown links  
 **Tasks:** Match `- [ ]` and `- [x]`  
 **Code Blocks:** Match ` ```language ` ` fences  
 **Headings:** Match `#`, `##`, `###` at line start  

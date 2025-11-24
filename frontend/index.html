@@ -730,7 +730,7 @@
             <div class="p-4 border-b" style="border-color: var(--border-primary);">
                 <button 
                     class="flex items-center gap-2 mb-3 hover:opacity-80 transition"
-                    @click="goToHomepageFolder(''); currentNote = ''; currentImage = ''; currentNoteName = ''; noteContent = ''; mobileSidebarOpen = false"
+                    @click="goHome()"
                     aria-label="Go to homepage"
                     style="background: none; border: none; outline: none; cursor: pointer;"
                 >
@@ -858,7 +858,7 @@
                     style="background-color: var(--bg-secondary); border: 1px solid var(--border-primary);"
                 >
                     <div class="py-1">
-                        <button 
+                <button 
                             @click="createNote()"
                             class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
                             style="color: var(--text-primary);"
@@ -877,7 +877,7 @@
                         >
                             <span class="text-lg">📁</span>
                             <span>New Folder</span>
-                        </button>
+                </button>
                     </div>
                 </div>
             </div>
@@ -997,6 +997,17 @@
                     <span x-text="notes.length"></span> notes
                     <span class="mx-1">·</span>
                     <span x-text="'v' + appVersion"></span>
+                    <span class="mx-1">·</span>
+                    <a 
+                        href="https://www.notediscovery.com" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="hover:underline"
+                        style="color: var(--accent-primary);"
+                        title="Visit NoteDiscovery website"
+                    >
+                        Website
+                    </a>                    
                 </div>
             </div>
         </div>
@@ -1019,21 +1030,21 @@
                     <!-- Welcome Hero - Show when app is empty -->
                     <template x-if="isAppEmpty">
                         <div class="flex flex-col items-center justify-center h-full py-16 text-center">
-                            <svg class="mx-auto h-16 w-16 mb-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
+                        <svg class="mx-auto h-16 w-16 mb-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
                             <h1 class="text-4xl font-bold mb-4" style="color: var(--text-primary);" x-text="appName"></h1>
                             <p class="text-xl mb-8" style="color: var(--text-secondary);" x-text="appTagline"></p>
-                            <button 
+                        <button 
                                 @click="createNote()"
                                 class="px-8 py-4 text-base font-medium text-white rounded-lg transition-colors"
-                                style="background-color: var(--accent-primary);"
-                                onmouseover="this.style.backgroundColor='var(--accent-hover)'"
-                                onmouseout="this.style.backgroundColor='var(--accent-primary)'"
-                            >
-                                Create Your First Note
-                            </button>
-                        </div>
+                            style="background-color: var(--accent-primary);"
+                            onmouseover="this.style.backgroundColor='var(--accent-hover)'"
+                            onmouseout="this.style.backgroundColor='var(--accent-primary)'"
+                        >
+                            Create Your First Note
+                        </button>
+                    </div>
                     </template>
                     
                     <!-- Grid View - Show when app has content -->
@@ -1061,8 +1072,8 @@
                                                 :style="crumb.path === selectedHomepageFolder ? 'color: var(--accent-primary); font-weight: 600;' : 'color: var(--text-secondary);'"
                                                 x-text="crumb.name"
                                             ></span>
-                                        </div>
-                                    </template>
+                </div>
+            </template>
                                 </template>
                             </div>
                             
@@ -1142,7 +1153,7 @@
                                     </template>
                                     
                                     <!-- Notes -->
-                                    <template x-for="note in homepageNotes().slice(0, 50)" :key="note.path">
+                                    <template x-for="note in homepageNotes().slice(0, HOMEPAGE_MAX_NOTES)" :key="note.path">
                                         <div 
                                             @click="note.path.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? (currentImage = note.path, currentNote = '') : loadNote(note.path)"
                                             class="p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
@@ -1164,12 +1175,9 @@
                             </template>
                             
                             <!-- Show More Indicator -->
-                            <div x-show="homepageNotes().length > 50" class="mt-6 text-center">
+                            <div x-show="homepageNotes().length > HOMEPAGE_MAX_NOTES" class="mt-6 text-center">
                                 <p class="text-sm" style="color: var(--text-secondary);">
-                                    Showing 50 of <span x-text="homepageNotes().length"></span> notes. 
-                                    <span class="cursor-pointer underline" style="color: var(--accent-primary);" @click="goToHomepageFolder('')">
-                                        View all in sidebar
-                                    </span>
+                                    Showing <span x-text="HOMEPAGE_MAX_NOTES"></span> of <span x-text="homepageNotes().length"></span> notes in this folder.
                                 </p>
                             </div>
                         </div>
@@ -1301,6 +1309,7 @@
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
                         >
                             <textarea 
+                                id="note-editor"
                                 x-model="noteContent"
                                 @input="autoSave()"
                                 @drop="onEditorDrop($event)"
