@@ -385,6 +385,28 @@ function noteApp() {
                         e.preventDefault();
                         this.previousMatch();
                     }
+                    
+                    // Only apply markdown shortcuts when editor is focused and a note is open
+                    const isEditorFocused = document.activeElement?.id === 'note-editor';
+                    if (isEditorFocused && this.currentNote) {
+                        // Ctrl/Cmd + B for bold
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                            e.preventDefault();
+                            this.wrapSelection('**', '**', 'bold text');
+                        }
+                        
+                        // Ctrl/Cmd + I for italic
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                            e.preventDefault();
+                            this.wrapSelection('*', '*', 'italic text');
+                        }
+                        
+                        // Ctrl/Cmd + K for link
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                            e.preventDefault();
+                            this.insertLink();
+                        }
+                    }
                 });
             }
             
@@ -1965,6 +1987,68 @@ function noteApp() {
                 this.saveNote();
                 this.isUndoRedo = false;
             });
+        },
+        
+        // Markdown formatting helpers
+        wrapSelection(before, after, placeholder) {
+            const editor = document.getElementById('note-editor');
+            if (!editor) return;
+            
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = this.noteContent.substring(start, end);
+            const textToWrap = selectedText || placeholder;
+            
+            // Build the new text
+            const newText = before + textToWrap + after;
+            
+            // Update content
+            this.noteContent = this.noteContent.substring(0, start) + newText + this.noteContent.substring(end);
+            
+            // Set cursor position (select the wrapped text or placeholder)
+            this.$nextTick(() => {
+                if (selectedText) {
+                    // If text was selected, keep it selected (inside the wrapper)
+                    editor.setSelectionRange(start + before.length, start + before.length + selectedText.length);
+                } else {
+                    // If no text selected, select the placeholder
+                    editor.setSelectionRange(start + before.length, start + before.length + placeholder.length);
+                }
+                editor.focus();
+            });
+            
+            // Trigger autosave
+            this.autoSave();
+        },
+        
+        insertLink() {
+            const editor = document.getElementById('note-editor');
+            if (!editor) return;
+            
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = this.noteContent.substring(start, end);
+            
+            // If text is selected, use it as link text; otherwise use placeholder
+            const linkText = selectedText || 'link text';
+            const linkUrl = 'url';
+            
+            // Build the markdown link
+            const newText = `[${linkText}](${linkUrl})`;
+            
+            // Update content
+            this.noteContent = this.noteContent.substring(0, start) + newText + this.noteContent.substring(end);
+            
+            // Set cursor position to select the URL part for easy editing
+            this.$nextTick(() => {
+                const urlStart = start + linkText.length + 3; // After "[linkText]("
+                const urlEnd = urlStart + linkUrl.length;
+                editor.setSelectionRange(urlStart, urlEnd);
+                editor.focus();
+            });
+            
+            // Trigger autosave
+            this.autoSave();
         },
         
         // Save current note

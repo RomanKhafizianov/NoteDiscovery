@@ -1298,6 +1298,7 @@
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
                         >
                             <textarea 
+                                id="note-editor"
                                 x-model="noteContent"
                                 @input="autoSave()"
                                 @drop="onEditorDrop($event)"

@@ -139,6 +139,8 @@ graph TD
 
 ## ⚡ Keyboard Shortcuts
 
+### General
+
 | Windows/Linux | Mac | Action |
 |---------------|-----|--------|
 | `Ctrl+S` | `Cmd+S` | Save note |
@@ -148,6 +150,14 @@ graph TD
 | `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
 | `F3` | `F3` | Next search match |
 | `Shift+F3` | `Shift+F3` | Previous search match |
+
+### Markdown Formatting
+
+| Windows/Linux | Mac | Action | Result |
+|---------------|-----|--------|--------|
+| `Ctrl+B` | `Cmd+B` | Bold | `**text**` |
+| `Ctrl+I` | `Cmd+I` | Italic | `*text*` |
+| `Ctrl+K` | `Cmd+K` | Insert link | `[text](url)` |
 
 ## 🚀 Performance
 
