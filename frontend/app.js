@@ -62,6 +62,12 @@ function noteApp() {
         draggedFolder: null,
         dragOverFolder: null,  // Track which folder is being hovered during drag
         
+        // Tags state
+        allTags: {},
+        selectedTags: [],
+        tagsExpanded: false,
+        tagReloadTimeout: null, // For debouncing tag reloads
+        
         // Scroll sync state
         isScrolling: false,
         
@@ -256,6 +262,7 @@ function noteApp() {
             this.loadSidebarWidth();
             this.loadEditorWidth();
             this.loadViewMode();
+            this.loadTagsExpanded();
             
             // Parse URL and load specific note if provided
             this.loadNoteFromURL();
@@ -338,6 +345,11 @@ function noteApp() {
                         }, 50);
                     });
                 }
+            });
+            
+            // Watch tags panel expanded state and save to localStorage
+            this.$watch('tagsExpanded', () => {
+                this.saveTagsExpanded();
             });
             
             // Setup keyboard shortcuts (only once to prevent double triggers)
@@ -536,8 +548,193 @@ function noteApp() {
                 this.notes = data.notes;
                 this.allFolders = data.folders || [];
                 this.buildFolderTree();
+                await this.loadTags(); // Load tags after notes are loaded
             } catch (error) {
                 ErrorHandler.handle('load notes', error);
+            }
+        },
+        
+        // Load all tags
+        async loadTags() {
+            try {
+                const response = await fetch('/api/tags');
+                const data = await response.json();
+                this.allTags = data.tags || {};
+            } catch (error) {
+                ErrorHandler.handle('load tags', error, false); // Don't show alert, tags are optional
+            }
+        },
+        
+        // Debounced tag reload (prevents excessive API calls during typing)
+        loadTagsDebounced() {
+            // Clear existing timeout
+            if (this.tagReloadTimeout) {
+                clearTimeout(this.tagReloadTimeout);
+            }
+            
+            // Set new timeout - reload tags 2 seconds after last save
+            this.tagReloadTimeout = setTimeout(() => {
+                this.loadTags();
+            }, 2000);
+        },
+        
+        // Toggle tag selection for filtering
+        toggleTag(tag) {
+            const index = this.selectedTags.indexOf(tag);
+            if (index > -1) {
+                this.selectedTags.splice(index, 1);
+            } else {
+                this.selectedTags.push(tag);
+            }
+            
+            // Apply unified filtering
+            this.applyFilters();
+        },
+        
+        // Clear all tag filters
+        clearTagFilters() {
+            this.selectedTags = [];
+            
+            // Apply unified filtering
+            this.applyFilters();
+        },
+        
+        // Unified filtering logic combining tags and text search
+        async applyFilters() {
+            const hasTextSearch = this.searchQuery.trim().length > 0;
+            const hasTagFilter = this.selectedTags.length > 0;
+            
+            // Case 1: No filters at all → show full folder tree
+            if (!hasTextSearch && !hasTagFilter) {
+                this.searchResults = [];
+                this.currentSearchHighlight = '';
+                this.clearSearchHighlights();
+                this.buildFolderTree();
+                return;
+            }
+            
+            // Case 2: Only tag filter → convert to flat list of matching notes
+            if (hasTagFilter && !hasTextSearch) {
+                this.searchResults = this.notes.filter(note => 
+                    note.type === 'note' && this.noteMatchesTags(note)
+                );
+                this.currentSearchHighlight = '';
+                this.clearSearchHighlights();
+                return;
+            }
+            
+            // Case 3: Text search (with or without tag filter)
+            if (hasTextSearch) {
+                try {
+                    const response = await fetch(`/api/search?q=${encodeURIComponent(this.searchQuery)}`);
+                    const data = await response.json();
+                    
+                    // Apply tag filtering to search results if tags are selected
+                    let results = data.results;
+                    if (hasTagFilter) {
+                        results = results.filter(result => {
+                            const note = this.notes.find(n => n.path === result.path);
+                            return note ? this.noteMatchesTags(note) : false;
+                        });
+                    }
+                    
+                    this.searchResults = results;
+                    
+                    // Highlight search term in current note if open
+                    if (this.currentNote && this.noteContent) {
+                        this.currentSearchHighlight = this.searchQuery;
+                        this.$nextTick(() => {
+                            this.highlightSearchTerm(this.searchQuery, false);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Search failed:', error);
+                }
+            }
+        },
+        
+        // Check if a note matches selected tags (AND logic)
+        noteMatchesTags(note) {
+            if (this.selectedTags.length === 0) {
+                return true; // No filter active
+            }
+            if (!note.tags || note.tags.length === 0) {
+                return false; // Note has no tags but filter is active
+            }
+            // Check if note has ALL selected tags (AND logic)
+            return this.selectedTags.every(tag => note.tags.includes(tag));
+        },
+        
+        // Get all tags sorted by name
+        get sortedTags() {
+            return Object.entries(this.allTags).sort((a, b) => a[0].localeCompare(b[0]));
+        },
+        
+        // Get tags for current note
+        get currentNoteTags() {
+            if (!this.currentNote) return [];
+            const note = this.notes.find(n => n.path === this.currentNote);
+            return note && note.tags ? note.tags : [];
+        },
+        
+        // Parse tags from markdown content (matches backend logic)
+        parseTagsFromContent(content) {
+            if (!content || !content.trim().startsWith('---')) {
+                return [];
+            }
+            
+            try {
+                const lines = content.split('\n');
+                if (lines[0].trim() !== '---') return [];
+                
+                // Find closing ---
+                let endIdx = -1;
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '---') {
+                        endIdx = i;
+                        break;
+                    }
+                }
+                
+                if (endIdx === -1) return [];
+                
+                const frontmatterLines = lines.slice(1, endIdx);
+                const tags = [];
+                let inTagsList = false;
+                
+                for (const line of frontmatterLines) {
+                    const stripped = line.trim();
+                    
+                    // Check for inline array: tags: [tag1, tag2]
+                    if (stripped.startsWith('tags:')) {
+                        const rest = stripped.substring(5).trim();
+                        if (rest.startsWith('[') && rest.endsWith(']')) {
+                            const tagsStr = rest.substring(1, rest.length - 1);
+                            const rawTags = tagsStr.split(',').map(t => t.trim());
+                            tags.push(...rawTags.filter(t => t).map(t => t.toLowerCase()));
+                            break;
+                        } else if (rest) {
+                            tags.push(rest.toLowerCase());
+                            break;
+                        } else {
+                            inTagsList = true;
+                        }
+                    } else if (inTagsList) {
+                        if (stripped.startsWith('-')) {
+                            const tag = stripped.substring(1).trim();
+                            if (tag && !tag.startsWith('#')) {
+                                tags.push(tag.toLowerCase());
+                            }
+                        } else if (stripped && !stripped.startsWith('#')) {
+                            break;
+                        }
+                    }
+                }
+                
+                return [...new Set(tags)].sort();
+            } catch (e) {
+                console.error('Error parsing tags:', e);
+                return [];
             }
         },
         
@@ -565,7 +762,7 @@ function noteApp() {
                 });
             });
             
-            // Add notes to their folders
+            // Add ALL notes to their folders (no filtering - tree only shown when no filters active)
             this.notes.forEach(note => {
                 if (!note.folder) {
                     // Root level note
@@ -2072,6 +2269,17 @@ function noteApp() {
                     if (note) {
                         note.modified = new Date().toISOString();
                         note.size = new Blob([this.noteContent]).size;
+                        
+                        // Parse tags from content
+                        note.tags = this.parseTagsFromContent(this.noteContent);
+                    }
+                    
+                    // Reload tags to update sidebar counts (debounced to prevent spam)
+                    this.loadTagsDebounced();
+                    
+                    // Rebuild folder tree if tag filters are active
+                    if (this.selectedTags.length > 0) {
+                        this.buildFolderTree();
                     }
                     
                     // Hide "saved" indicator
@@ -2164,30 +2372,9 @@ function noteApp() {
         },
         
         // Search notes
+        // Search notes by text (calls unified filter logic)
         async searchNotes() {
-            if (!this.searchQuery.trim()) {
-                this.searchResults = [];
-                this.currentSearchHighlight = '';
-                this.clearSearchHighlights();
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/search?q=${encodeURIComponent(this.searchQuery)}`);
-                const data = await response.json();
-                this.searchResults = data.results;
-                
-                // If a note is currently open, highlight the search term in real-time
-                if (this.currentNote && this.noteContent) {
-                    this.currentSearchHighlight = this.searchQuery;
-                    this.$nextTick(() => {
-                        // Don't focus editor during real-time search (false)
-                        this.highlightSearchTerm(this.searchQuery, false);
-                    });
-                }
-            } catch (error) {
-                console.error('Search failed:', error);
-            }
+            await this.applyFilters();
         },
         
         // Trigger MathJax typesetting after DOM update
@@ -2305,6 +2492,26 @@ function noteApp() {
         get renderedMarkdown() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
             
+            // Strip YAML frontmatter from content before rendering
+            let contentToRender = this.noteContent;
+            if (contentToRender.trim().startsWith('---')) {
+                const lines = contentToRender.split('\n');
+                if (lines[0].trim() === '---') {
+                    // Find closing ---
+                    let endIdx = -1;
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim() === '---') {
+                            endIdx = i;
+                            break;
+                        }
+                    }
+                    if (endIdx !== -1) {
+                        // Remove frontmatter (including the closing ---) and any empty lines after it
+                        contentToRender = lines.slice(endIdx + 1).join('\n').trim();
+                    }
+                }
+            }
+            
             // Configure marked with syntax highlighting
             marked.setOptions({
                 breaks: true,
@@ -2322,7 +2529,7 @@ function noteApp() {
             });
             
             // Parse markdown
-            let html = marked.parse(this.noteContent);
+            let html = marked.parse(contentToRender);
             
             // Post-process: Add target="_blank" to external links and title attributes to images
             // Parse as DOM to safely manipulate
@@ -2718,6 +2925,25 @@ function noteApp() {
                 localStorage.setItem('viewMode', this.viewMode);
             } catch (error) {
                 console.error('Error saving view mode:', error);
+            }
+        },
+        
+        loadTagsExpanded() {
+            try {
+                const saved = localStorage.getItem('tagsExpanded');
+                if (saved !== null) {
+                    this.tagsExpanded = saved === 'true';
+                }
+            } catch (error) {
+                console.error('Error loading tags expanded state:', error);
+            }
+        },
+        
+        saveTagsExpanded() {
+            try {
+                localStorage.setItem('tagsExpanded', this.tagsExpanded.toString());
+            } catch (error) {
+                console.error('Error saving tags expanded state:', error);
             }
         },
         

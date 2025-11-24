@@ -73,14 +73,39 @@
 - **Event hooks** - React to note saves, deletes, searches
 - **API access** - Full access to backend functionality
 
-## 🔍 Search
+## 🏷️ Tags
 
-- **Full-text search** - Find notes by content
+Organize notes with tags defined in YAML frontmatter. See **[TAGS.md](TAGS.md)** for complete guide.
+
+### Quick Start
+```markdown
+---
+tags: [python, tutorial, backend]
+---
+
+# Your Note Content
+```
+
+### Features
+- **Click to filter** - Select tags to show matching notes
+- **Multiple tags** - Combine tags (AND logic - all must match)
+- **Tag counts** - See how many notes use each tag
+- **Collapsible panel** - Saves state across sessions
+- **Auto-sync** - Updates after saving notes
+
+## 🔍 Search & Filtering
+
+### Text Search
+- **Content-only** - Searches note contents (not file/folder names)
 - **Real-time results** - As you type
 - **Highlight matches** - See context in results
 - **In-note highlighting** - Search terms highlighted in open notes
 - **Live highlighting** - Highlights update as you type or edit
-- **Fast indexing** - Instant search across notes
+
+### Combined Filtering
+- **Tags + Search** - Combine text search with tag filters
+- **Smart display** - Shows flat list when filtering, tree view when browsing
+- **Empty states** - Clear "no matches" message with quick actions
 
 ## 🧮 Math & LaTeX Support
 

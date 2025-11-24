@@ -33,6 +33,8 @@ from .utils import (
     delete_folder,
     save_uploaded_image,
     validate_path_security,
+    get_all_tags,
+    get_notes_by_tag,
 )
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
@@ -324,6 +326,19 @@ async def api_documentation():
                 "description": "Rename a folder",
                 "body": {"oldPath": "Current folder path", "newPath": "New folder path"},
                 "response": "{ success, oldPath, newPath }"
+            },
+            {
+                "method": "GET",
+                "path": "/api/tags",
+                "description": "Get all tags used across all notes with their counts",
+                "response": "{ tags: { tag_name: count, ... } }"
+            },
+            {
+                "method": "GET",
+                "path": "/api/tags/{tag_name}",
+                "description": "Get all notes that have a specific tag",
+                "parameters": {"tag_name": "Tag to filter by (case-insensitive)"},
+                "response": "{ tag, count, notes: [{ path, name, folder, tags }] }"
             },
             {
                 "method": "GET",
@@ -625,6 +640,47 @@ async def delete_folder_endpoint(folder_path: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- Tags Endpoints ---
+
+@api_router.get("/tags")
+async def list_tags():
+    """
+    Get all tags used across all notes with their counts.
+    
+    Returns:
+        Dictionary mapping tag names to note counts
+    """
+    try:
+        tags = get_all_tags(config['storage']['notes_dir'])
+        return {"tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/tags/{tag_name}")
+async def get_notes_by_tag_endpoint(tag_name: str):
+    """
+    Get all notes that have a specific tag.
+    
+    Args:
+        tag_name: The tag to filter by (case-insensitive)
+        
+    Returns:
+        List of notes matching the tag
+    """
+    try:
+        notes = get_notes_by_tag(config['storage']['notes_dir'], tag_name)
+        return {
+            "tag": tag_name,
+            "count": len(notes),
+            "notes": notes
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Notes Endpoints ---
 
 @api_router.get("/notes")
 async def list_notes():

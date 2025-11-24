@@ -753,7 +753,6 @@
                     </select>
                 </div>
                 <p class="text-xs mb-3" style="color: var(--text-secondary);" x-text="appTagline"></p>
-                
                 <!-- Logout Button (only show if auth is enabled) -->
                 <div x-data="{ authEnabled: false }" x-init="fetch('/api/config').then(r => r.json()).then(d => authEnabled = d.security?.enabled || false)">
                     <a x-show="authEnabled" 
@@ -829,6 +828,74 @@
                 </div>
             </div>
             
+            <!-- Tags Panel -->
+            <div class="border-b" style="border-color: var(--border-primary);">
+                <!-- Tags Header -->
+                <div 
+                    @click="tagsExpanded = !tagsExpanded"
+                    class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-opacity-10 transition-colors"
+                    style="background-color: var(--bg-secondary);"
+                >
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" style="color: var(--text-tertiary);" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">Tags</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded" style="background-color: var(--bg-tertiary); color: var(--text-tertiary);" x-text="Object.keys(allTags).length"></span>
+                    </div>
+                    <svg 
+                        class="w-4 h-4 transform transition-transform"
+                        :class="{'rotate-180': tagsExpanded}"
+                        style="color: var(--text-tertiary);" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                
+                <!-- Tags List -->
+                <div x-show="tagsExpanded" class="px-3 py-2 max-h-48 overflow-y-auto custom-scrollbar">
+                    <!-- Clear Filter Button -->
+                    <div x-show="selectedTags.length > 0" class="mb-2">
+                        <button 
+                            @click="clearTagFilters()"
+                            class="w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1"
+                            style="background-color: var(--accent-primary); color: white;"
+                            title="Clear tag filters"
+                        >
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear Filters (<span x-text="selectedTags.length"></span>)
+                        </button>
+                    </div>
+                    
+                    <!-- Tag Chips -->
+                    <div class="flex flex-wrap gap-1.5">
+                        <template x-for="[tag, count] in sortedTags" :key="tag">
+                            <button 
+                                @click="toggleTag(tag)"
+                                class="px-2 py-1 text-xs rounded-full transition-all hover:brightness-110"
+                                :style="selectedTags.includes(tag) 
+                                    ? 'background-color: var(--accent-primary); color: white; font-weight: 600;'
+                                    : 'background-color: var(--bg-tertiary); color: var(--text-primary);'"
+                                :title="`Filter by ${tag} (${count} notes)`"
+                            >
+                                <span x-text="tag"></span>
+                                <span class="opacity-75" x-text="` (${count})`"></span>
+                            </button>
+                        </template>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div x-show="Object.keys(allTags).length === 0" class="text-xs text-center py-2" style="color: var(--text-tertiary);">
+                        No tags found. Add tags to notes using YAML frontmatter:
+                    </div>
+                </div>
+            </div>
+            
             <!-- New Item Dropdown -->
             <div class="p-3 border-b relative" style="border-color: var(--border-primary);">
                 <button 
@@ -886,7 +953,10 @@
             <div class="flex-1 overflow-y-auto custom-scrollbar">
                 <template x-if="searchResults.length > 0">
                     <div class="p-2">
-                        <div class="text-xs px-2 py-1" style="color: var(--text-tertiary);">Search Results</div>
+                        <div class="text-xs px-2 py-1 flex items-center justify-between" style="color: var(--text-tertiary);">
+                            <span x-text="searchQuery.trim() ? 'Search Results' : 'Filtered Notes'"></span>
+                            <span x-text="`${searchResults.length} note${searchResults.length === 1 ? '' : 's'}`"></span>
+                        </div>
                         <template x-for="note in searchResults" :key="note.path">
                             <div 
                                 @click="loadNote(note.path, true, searchQuery)"
@@ -902,7 +972,51 @@
                     </div>
                 </template>
                 
-                <template x-if="searchResults.length === 0">
+                <!-- No Results Message (when filters active but no matches) -->
+                <template x-if="searchResults.length === 0 && (selectedTags.length > 0 || searchQuery.trim())">
+                    <div class="p-6 text-center">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-medium mb-2" style="color: var(--text-primary);">No matches found</h3>
+                        <p class="text-sm mb-4" style="color: var(--text-secondary);">
+                            <template x-if="searchQuery.trim() && selectedTags.length > 0">
+                                <span>No notes match both your search and selected tags</span>
+                            </template>
+                            <template x-if="searchQuery.trim() && selectedTags.length === 0">
+                                <span>No notes contain "<span x-text="searchQuery"></span>"</span>
+                            </template>
+                            <template x-if="!searchQuery.trim() && selectedTags.length > 0">
+                                <span>No notes have the selected tag<span x-text="selectedTags.length > 1 ? 's' : ''"></span></span>
+                            </template>
+                        </p>
+                        <div class="flex gap-2 justify-center">
+                            <button 
+                                x-show="searchQuery.trim()"
+                                @click="searchQuery = ''; searchNotes();"
+                                class="px-3 py-1.5 text-sm rounded transition-colors"
+                                style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-primary);"
+                                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
+                            >
+                                Clear search
+                            </button>
+                            <button 
+                                x-show="selectedTags.length > 0"
+                                @click="clearTagFilters()"
+                                class="px-3 py-1.5 text-sm rounded transition-colors"
+                                style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-primary);"
+                                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                                onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
+                            >
+                                Clear tags
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Folder Tree (when no filters active) -->
+                <template x-if="searchResults.length === 0 && selectedTags.length === 0 && !searchQuery.trim()">
                     <div class="p-2">
                         <div class="text-xs px-2 py-1 mb-2" style="color: var(--text-tertiary);">
                             <div class="flex items-center justify-between mb-1">

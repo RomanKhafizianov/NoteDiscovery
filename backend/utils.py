@@ -6,8 +6,13 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+
+
+# In-memory cache for parsed tags
+# Format: {file_path: (mtime, tags)}
+_tag_cache: Dict[str, Tuple[float, List[str]]] = {}
 
 
 def validate_path_security(notes_dir: str, path: Path) -> bool:
@@ -81,6 +86,11 @@ def move_note(notes_dir: str, old_path: str, new_path: str) -> bool:
     if not old_full_path.exists():
         return False
     
+    # Invalidate cache for old path
+    old_key = str(old_full_path)
+    if old_key in _tag_cache:
+        del _tag_cache[old_key]
+    
     # Create parent directory if needed
     new_full_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -110,6 +120,13 @@ def move_folder(notes_dir: str, old_path: str, new_path: str) -> bool:
     # Check if target already exists
     if new_full_path.exists():
         return False
+    
+    # Invalidate cache for all notes in this folder
+    global _tag_cache
+    old_path_str = str(old_full_path)
+    keys_to_delete = [key for key in _tag_cache.keys() if key.startswith(old_path_str)]
+    for key in keys_to_delete:
+        del _tag_cache[key]
     
     # Create parent directory if needed
     new_full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -145,6 +162,13 @@ def delete_folder(notes_dir: str, folder_path: str) -> bool:
             print(f"Path is not a directory: {full_path}")
             return False
         
+        # Invalidate cache for all notes in this folder
+        global _tag_cache
+        folder_path_str = str(full_path)
+        keys_to_delete = [key for key in _tag_cache.keys() if key.startswith(folder_path_str)]
+        for key in keys_to_delete:
+            del _tag_cache[key]
+        
         # Delete the folder and all its contents
         shutil.rmtree(full_path)
         print(f"Successfully deleted folder: {full_path}")
@@ -166,13 +190,17 @@ def get_all_notes(notes_dir: str) -> List[Dict]:
         relative_path = md_file.relative_to(notes_path)
         stat = md_file.stat()
         
+        # Get tags for this note (cached)
+        tags = get_tags_cached(md_file)
+        
         items.append({
             "name": md_file.stem,
             "path": str(relative_path.as_posix()),
             "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
             "size": stat.st_size,
-            "type": "note"
+            "type": "note",
+            "tags": tags
         })
     
     # Get all images
@@ -229,6 +257,11 @@ def delete_note(notes_dir: str, note_path: str) -> bool:
     if not validate_path_security(notes_dir, full_path):
         return False
     
+    # Invalidate cache for this note
+    file_key = str(full_path)
+    if file_key in _tag_cache:
+        del _tag_cache[file_key]
+    
     full_path.unlink()
     
     # Note: We don't automatically delete empty folders to preserve user's folder structure
@@ -237,7 +270,10 @@ def delete_note(notes_dir: str, note_path: str) -> bool:
 
 
 def search_notes(notes_dir: str, query: str) -> List[Dict]:
-    """Simple full-text search through all notes"""
+    """
+    Full-text search through note contents only.
+    Does NOT search in file names, folder names, or paths - only note content.
+    """
     results = []
     query_lower = query.lower()
     notes_path = Path(notes_dir)
@@ -246,7 +282,8 @@ def search_notes(notes_dir: str, query: str) -> List[Dict]:
         try:
             with open(md_file, 'r', encoding='utf-8') as f:
                 content = f.read()
-                
+            
+            # Only search in note content (not file name, folder name, or path)
             if query_lower in content.lower():
                 # Find context around match
                 lines = content.split('\n')
@@ -267,6 +304,7 @@ def search_notes(notes_dir: str, query: str) -> List[Dict]:
                 results.append({
                     "name": md_file.stem,
                     "path": str(relative_path.as_posix()),
+                    "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
                     "matches": matched_lines[:3]  # Limit to 3 matches per file
                 })
         except Exception:
@@ -418,4 +456,194 @@ def get_all_images(notes_dir: str) -> List[Dict]:
                 })
     
     return images
+
+
+def parse_tags(content: str) -> List[str]:
+    """
+    Extract tags from YAML frontmatter in markdown content.
+    
+    Supported formats:
+    ---
+    tags: [python, tutorial, backend]
+    ---
+    
+    or
+    
+    ---
+    tags:
+      - python
+      - tutorial
+      - backend
+    ---
+    
+    Args:
+        content: Markdown content with optional YAML frontmatter
+        
+    Returns:
+        List of tag strings (lowercase, no duplicates)
+    """
+    tags = []
+    
+    # Check if content starts with frontmatter
+    if not content.strip().startswith('---'):
+        return tags
+    
+    try:
+        # Extract frontmatter (between first two --- markers)
+        lines = content.split('\n')
+        if lines[0].strip() != '---':
+            return tags
+        
+        # Find closing ---
+        end_idx = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == '---':
+                end_idx = i
+                break
+        
+        if end_idx is None:
+            return tags
+        
+        frontmatter_lines = lines[1:end_idx]
+        
+        # Parse tags field
+        in_tags_list = False
+        for line in frontmatter_lines:
+            stripped = line.strip()
+            
+            # Check for inline array format: tags: [tag1, tag2, tag3]
+            if stripped.startswith('tags:'):
+                rest = stripped[5:].strip()
+                if rest.startswith('[') and rest.endswith(']'):
+                    # Parse inline array
+                    tags_str = rest[1:-1]  # Remove [ and ]
+                    raw_tags = [t.strip() for t in tags_str.split(',')]
+                    tags.extend([t.lower() for t in raw_tags if t])
+                    break
+                elif rest:
+                    # Single tag without brackets
+                    tags.append(rest.lower())
+                    break
+                else:
+                    # Multi-line list format
+                    in_tags_list = True
+            elif in_tags_list:
+                if stripped.startswith('-'):
+                    # List item
+                    tag = stripped[1:].strip()
+                    if tag:
+                        tags.append(tag.lower())
+                elif stripped and not stripped.startswith('#'):
+                    # End of tags list
+                    break
+        
+        # Remove duplicates and return
+        return sorted(list(set(tags)))
+        
+    except Exception as e:
+        # If parsing fails, return empty list
+        print(f"Error parsing tags: {e}")
+        return []
+
+
+def get_tags_cached(file_path: Path) -> List[str]:
+    """
+    Get tags for a file with caching based on modification time.
+    
+    Args:
+        file_path: Path to the markdown file
+        
+    Returns:
+        List of tags from the file (cached if mtime unchanged)
+    """
+    global _tag_cache
+    
+    try:
+        # Get current modification time
+        mtime = file_path.stat().st_mtime
+        file_key = str(file_path)
+        
+        # Check cache
+        if file_key in _tag_cache:
+            cached_mtime, cached_tags = _tag_cache[file_key]
+            if cached_mtime == mtime:
+                # Cache hit! Return cached tags
+                return cached_tags
+        
+        # Cache miss or stale - parse tags
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            tags = parse_tags(content)
+        
+        # Update cache
+        _tag_cache[file_key] = (mtime, tags)
+        return tags
+        
+    except Exception:
+        # If anything fails, return empty list
+        return []
+
+
+def clear_tag_cache():
+    """Clear the tag cache (useful for testing or manual cache invalidation)"""
+    global _tag_cache
+    _tag_cache.clear()
+
+
+def get_all_tags(notes_dir: str) -> Dict[str, int]:
+    """
+    Get all tags used across all notes with their count (cached).
+    
+    Args:
+        notes_dir: Directory containing notes
+        
+    Returns:
+        Dictionary mapping tag names to note counts
+    """
+    tag_counts = {}
+    notes_path = Path(notes_dir)
+    
+    for md_file in notes_path.rglob("*.md"):
+        # Get tags using cache
+        tags = get_tags_cached(md_file)
+        
+        for tag in tags:
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+    
+    return dict(sorted(tag_counts.items()))
+
+
+def get_notes_by_tag(notes_dir: str, tag: str) -> List[Dict]:
+    """
+    Get all notes that have a specific tag (cached).
+    
+    Args:
+        notes_dir: Directory containing notes
+        tag: Tag to filter by (case-insensitive)
+        
+    Returns:
+        List of note dictionaries matching the tag
+    """
+    matching_notes = []
+    tag_lower = tag.lower()
+    notes_path = Path(notes_dir)
+    
+    for md_file in notes_path.rglob("*.md"):
+        # Get tags using cache
+        tags = get_tags_cached(md_file)
+        
+        if tag_lower in tags:
+            relative_path = md_file.relative_to(notes_path)
+            stat = md_file.stat()
+            
+            matching_notes.append({
+                "name": md_file.stem,
+                "path": str(relative_path.as_posix()),
+                "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
+                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "size": stat.st_size,
+                "tags": tags
+            })
+    
+    return matching_notes
 
