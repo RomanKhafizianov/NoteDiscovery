@@ -23,7 +23,6 @@ from .utils import (
     save_note,
     delete_note,
     search_notes,
-    parse_wiki_links,
     create_note_metadata,
     ensure_directories,
     create_folder,
@@ -336,8 +335,8 @@ async def api_documentation():
             {
                 "method": "GET",
                 "path": "/api/graph",
-                "description": "Get graph data for note visualization (wiki links)",
-                "response": "{ nodes: [{ id, label }], edges: [{ from, to }] }"
+                "description": "Get graph data for note visualization",
+                "response": "{ nodes: [{ id, label }], edges: [] }"
             },
             {
                 "method": "GET",
@@ -651,13 +650,9 @@ async def get_note(note_path: str):
         if transformed_content is not None:
             content = transformed_content
         
-        # Parse wiki links
-        links = parse_wiki_links(content)
-        
         return {
             "path": note_path,
             "content": content,
-            "links": links,
             "metadata": create_note_metadata(config['storage']['notes_dir'], note_path)
         }
     except HTTPException:
@@ -745,28 +740,22 @@ async def search(q: str):
 
 @api_router.get("/graph")
 async def get_graph():
-    """Get graph data for visualization"""
+    """Get graph data for note visualization (currently only returns nodes, link detection not implemented)"""
     try:
         notes = get_all_notes(config['storage']['notes_dir'])
         nodes = []
         edges = []
         
-        # Build graph structure
+        # Build graph structure - only nodes for now
         for note in notes:
-            nodes.append({
-                "id": note['path'],
-                "label": note['name']
-            })
-            
-            # Get links from this note
-            content = get_note_content(config['storage']['notes_dir'], note['path'])
-            if content:
-                links = parse_wiki_links(content)
-                for link in links:
-                    edges.append({
-                        "from": note['path'],
-                        "to": link
-                    })
+            if note.get('type') == 'note':  # Only include actual notes
+                nodes.append({
+                    "id": note['path'],
+                    "label": note['name']
+                })
+        
+        # Note: Link detection between notes could be implemented here using markdown link parsing
+        # For now, returning empty edges
         
         return {"nodes": nodes, "edges": edges}
     except Exception as e:

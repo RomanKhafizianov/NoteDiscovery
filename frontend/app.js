@@ -2321,13 +2321,8 @@ function noteApp() {
                 }
             });
             
-            // Convert wiki-style links [[link]] to HTML links
-            let content = this.noteContent.replace(/\[\[([^\]]+)\]\]/g, (match, linkText) => {
-                return `<a href="#" style="color: var(--accent-primary);" onclick="return false;">[[${linkText}]]</a>`;
-            });
-            
             // Parse markdown
-            let html = marked.parse(content);
+            let html = marked.parse(this.noteContent);
             
             // Post-process: Add target="_blank" to external links and title attributes to images
             // Parse as DOM to safely manipulate

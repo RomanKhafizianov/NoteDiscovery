@@ -28,7 +28,7 @@
 ## 🔗 Linking & Discovery
 
 ### Internal Links
-- **Wiki-style links** - `[[Note Name]]` syntax
+- **Markdown links** - `[Note Name](note.md)` syntax
 - **Drag to link** - Drag notes or images into the editor to insert links
 - **Click to navigate** - Jump between notes seamlessly
 - **External links** - Open in new tabs automatically
