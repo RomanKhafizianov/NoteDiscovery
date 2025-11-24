@@ -94,89 +94,112 @@ function noteApp() {
         // Dropdown state
         showNewDropdown: false,
         
-        // Homepage folder navigation
+        // Homepage state
         selectedHomepageFolder: '',
+        _homepageCache: {
+            folderPath: null,
+            notes: null,
+            folders: null,
+            breadcrumb: null
+        },
         
-        // Computed-like helpers for homepage (use methods for safer evaluation)
+        // Homepage constants
+        HOMEPAGE_MAX_NOTES: 50,
+        
+        // Computed-like helpers for homepage (cached for performance)
         homepageNotes() {
+            // Return cached result if folder hasn't changed
+            if (this._homepageCache.folderPath === this.selectedHomepageFolder && this._homepageCache.notes) {
+                return this._homepageCache.notes;
+            }
+            
             if (!this.folderTree || typeof this.folderTree !== 'object') {
                 return [];
             }
             
             const folderNode = this.getFolderNode(this.selectedHomepageFolder || '');
-            if (!folderNode || !Array.isArray(folderNode.notes)) {
-                return [];
-            }
+            const result = (folderNode && Array.isArray(folderNode.notes)) ? folderNode.notes : [];
             
-            return folderNode.notes;
-        },
-
-        // Helper: Format file size nicely
-        formatSize(bytes) {
-            if (bytes === 0 || !bytes) return '0 B';
-
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            // Cache the result
+            this._homepageCache.notes = result;
+            this._homepageCache.folderPath = this.selectedHomepageFolder;
+            
+            return result;
         },
         
         homepageFolders() {
+            // Return cached result if folder hasn't changed
+            if (this._homepageCache.folderPath === this.selectedHomepageFolder && this._homepageCache.folders) {
+                return this._homepageCache.folders;
+            }
+            
             if (!this.folderTree || typeof this.folderTree !== 'object') {
                 return [];
             }
             
+            // Get child folders
             let childFolders = [];
             if (!this.selectedHomepageFolder) {
+                // Root level: all top-level folders
                 childFolders = Object.entries(this.folderTree)
                     .filter(([key]) => key !== '__root__')
                     .map(([, folder]) => folder);
             } else {
+                // Inside a folder: get its children
                 const parentFolder = this.getFolderNode(this.selectedHomepageFolder);
-                if (!parentFolder || !parentFolder.children) {
-                    return [];
+                if (parentFolder && parentFolder.children) {
+                    childFolders = Object.values(parentFolder.children);
                 }
-                childFolders = Object.values(parentFolder.children);
             }
             
-            if (!Array.isArray(childFolders) || childFolders.length === 0) {
-                return [];
-            }
-            
-            return childFolders
+            // Map to simplified structure (note count already cached in folder node)
+            const result = childFolders
                 .map(folder => ({
                     name: folder.name,
                     path: folder.path,
-                    noteCount: this.calculateFolderNoteCount(folder)
+                    noteCount: folder.noteCount || 0  // Use pre-calculated count
                 }))
                 .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+            
+            // Cache the result
+            this._homepageCache.folders = result;
+            this._homepageCache.folderPath = this.selectedHomepageFolder;
+            
+            return result;
         },
         
         homepageBreadcrumb() {
-            // Always return at least Home breadcrumb
-            // Safety check - ensure we always return an array
-            try {
-                const breadcrumb = [{ name: 'Home', path: '' }];
-                
-                if (!this.selectedHomepageFolder) {
-                    return breadcrumb;
-                }
-                
-                const parts = (this.selectedHomepageFolder || '').split('/').filter(part => part.trim() !== '');
-                
+            // Return cached result if folder hasn't changed
+            if (this._homepageCache.folderPath === this.selectedHomepageFolder && this._homepageCache.breadcrumb) {
+                return this._homepageCache.breadcrumb;
+            }
+            
+            const breadcrumb = [{ name: 'Home', path: '' }];
+            
+            if (this.selectedHomepageFolder) {
+                const parts = this.selectedHomepageFolder.split('/').filter(Boolean);
                 let currentPath = '';
+                
                 parts.forEach(part => {
-                    currentPath = currentPath ? currentPath + '/' + part : part;
+                    currentPath = currentPath ? `${currentPath}/${part}` : part;
                     breadcrumb.push({ name: part, path: currentPath });
                 });
-                
-                return breadcrumb;
-            } catch (error) {
-                // Fallback to just Home if anything goes wrong
-                return [{ name: 'Home', path: '' }];
             }
+            
+            // Cache the result
+            this._homepageCache.breadcrumb = breadcrumb;
+            this._homepageCache.folderPath = this.selectedHomepageFolder;
+            
+            return breadcrumb;
+        },
+        
+        // Helper: Format file size nicely
+        formatSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         },
         
         getFolderNode(folderPath = '') {
@@ -185,10 +208,7 @@ function noteApp() {
             }
             
             if (!folderPath) {
-                if (this.folderTree['__root__']) {
-                    return this.folderTree['__root__'];
-                }
-                return { name: '', path: '', children: {}, notes: [] };
+                return this.folderTree['__root__'] || { name: '', path: '', children: {}, notes: [], noteCount: 0 };
             }
             
             const parts = folderPath.split('/').filter(Boolean);
@@ -204,22 +224,6 @@ function noteApp() {
             }
             
             return node;
-        },
-        
-        calculateFolderNoteCount(folderNode) {
-            if (!folderNode || typeof folderNode !== 'object') {
-                return 0;
-            }
-            
-            const directNotes = Array.isArray(folderNode.notes) ? folderNode.notes.length : 0;
-            if (!folderNode.children || Object.keys(folderNode.children).length === 0) {
-                return directNotes;
-            }
-            
-            return Object.values(folderNode.children).reduce(
-                (total, child) => total + this.calculateFolderNoteCount(child),
-                directNotes
-            );
         },
         
         // Check if app is empty (no notes and no folders)
@@ -290,6 +294,14 @@ function noteApp() {
                         // No folder state in history, go to root
                         this.selectedHomepageFolder = '';
                     }
+                    
+                    // Invalidate cache to force recalculation
+                    this._homepageCache = {
+                        folderPath: null,
+                        notes: null,
+                        folders: null,
+                        breadcrumb: null
+                    };
                     
                     // Clear search
                     this.searchQuery = '';
@@ -590,8 +602,41 @@ function noteApp() {
                 }
             });
             
-            // Force Alpine reactivity by creating a new object reference
-            this.folderTree = { ...tree };
+            // Calculate and cache note counts recursively (for performance)
+            const calculateNoteCounts = (folderNode) => {
+                const directNotes = folderNode.notes ? folderNode.notes.length : 0;
+                
+                if (!folderNode.children || Object.keys(folderNode.children).length === 0) {
+                    folderNode.noteCount = directNotes;
+                    return directNotes;
+                }
+                
+                const childNotesCount = Object.values(folderNode.children).reduce(
+                    (total, child) => total + calculateNoteCounts(child),
+                    0
+                );
+                
+                folderNode.noteCount = directNotes + childNotesCount;
+                return folderNode.noteCount;
+            };
+            
+            // Calculate note counts for all folders
+            Object.values(tree).forEach(folder => {
+                if (folder.path !== undefined || folder === tree['__root__']) {
+                    calculateNoteCounts(folder);
+                }
+            });
+            
+            // Invalidate homepage cache when tree is rebuilt
+            this._homepageCache = {
+                folderPath: null,
+                notes: null,
+                folders: null,
+                breadcrumb: null
+            };
+            
+            // Assign new tree (Alpine will detect the change)
+            this.folderTree = tree;
         },
         
         // Render folder recursively (helper for deep nesting)
@@ -756,8 +801,6 @@ function noteApp() {
             }
             // Force Alpine reactivity by creating new Set reference
             this.expandedFolders = new Set(this.expandedFolders);
-            // Also trigger folderTree reactivity to re-render x-html
-            this.folderTree = { ...this.folderTree };
         },
         
         // Check if folder is expanded
@@ -767,25 +810,22 @@ function noteApp() {
         
         // Expand all folders
         expandAllFolders() {
-            // Add all folder paths to expandedFolders
             this.allFolders.forEach(folder => {
                 this.expandedFolders.add(folder);
             });
-            // Force Alpine reactivity by creating new object reference (no rebuild needed)
-            this.folderTree = { ...this.folderTree };
+            // Force Alpine reactivity
+            this.expandedFolders = new Set(this.expandedFolders);
         },
         
         // Collapse all folders
         collapseAllFolders() {
             this.expandedFolders.clear();
-            // Force Alpine reactivity by creating new object reference (no rebuild needed)
-            this.folderTree = { ...this.folderTree };
+            // Force Alpine reactivity
+            this.expandedFolders = new Set(this.expandedFolders);
         },
         
         // Expand folder tree to show a specific note
         expandFolderForNote(notePath) {
-            // Extract folder path from note path
-            // e.g., "folder1/folder2/note.md" -> ["folder1", "folder1/folder2"]
             const parts = notePath.split('/');
             
             // If note is in root, no folders to expand
@@ -801,13 +841,8 @@ function noteApp() {
                 this.expandedFolders.add(currentPath);
             });
             
-            // Force Alpine reactivity by creating new object reference
-            // This ensures the UI updates to show the expanded folders
-            this.folderTree = { ...this.folderTree };
-            
-            // Also force a re-evaluation by modifying the Set (create new Set)
-            const oldFolders = this.expandedFolders;
-            this.expandedFolders = new Set(oldFolders);
+            // Force Alpine reactivity
+            this.expandedFolders = new Set(this.expandedFolders);
         },
         
         // Scroll note into view in the sidebar navigation
@@ -2955,12 +2990,37 @@ function noteApp() {
         
         // Homepage folder navigation methods
         goToHomepageFolder(folderPath) {
-            // Navigate to folder (empty string = root)
             this.selectedHomepageFolder = folderPath || '';
             
-            // Update browser history
-            const state = { homepageFolder: folderPath || '' };
-            window.history.pushState(state, '', '/');
+            // Invalidate cache to force recalculation
+            this._homepageCache = {
+                folderPath: null,
+                notes: null,
+                folders: null,
+                breadcrumb: null
+            };
+            
+            window.history.pushState({ homepageFolder: folderPath || '' }, '', '/');
+        },
+        
+        // Navigate to homepage root and clear all editor state
+        goHome() {
+            this.selectedHomepageFolder = '';
+            this.currentNote = '';
+            this.currentNoteName = '';
+            this.noteContent = '';
+            this.currentImage = '';
+            this.mobileSidebarOpen = false;
+            
+            // Invalidate cache to force recalculation
+            this._homepageCache = {
+                folderPath: null,
+                notes: null,
+                folders: null,
+                breadcrumb: null
+            };
+            
+            window.history.pushState({ homepageFolder: '' }, '', '/');
         }
     }
 }
