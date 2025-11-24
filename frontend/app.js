@@ -267,8 +267,8 @@ function noteApp() {
             // Parse URL and load specific note if provided
             this.loadNoteFromURL();
             
-            // Set initial homepage state if no note is loaded
-            if (!this.currentNote) {
+            // Set initial homepage state ONLY if we're actually on the homepage
+            if (window.location.pathname === '/') {
                 window.history.replaceState({ homepageFolder: '' }, '', '/');
             }
             
