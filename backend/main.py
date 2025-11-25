@@ -489,6 +489,7 @@ async def get_config():
         "tagline": config['app']['tagline'],
         "version": config['app']['version'],
         "searchEnabled": config['search']['enabled'],
+        "demoMode": DEMO_MODE,  # Expose demo mode flag to frontend
         "authentication": {
             "enabled": config.get('authentication', {}).get('enabled', False)
         }
