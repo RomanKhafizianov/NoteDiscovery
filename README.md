@@ -88,7 +88,10 @@ Use the pre-built image directly from GHCR - no building required!
 >    # The documentation/ folder has app docs you can optionally mount
 >    ```
 
-> **🔐 Security Note**: Authentication is **disabled by default** with password `admin`. For testing/local use, this is fine. If exposing to a network, **change the password immediately** - see [AUTHENTICATION.md](documentation/AUTHENTICATION.md) for instructions on how to enable it.
+> **🔐 Security Note**: Authentication is **disabled by default** with password `admin`. 
+> - ✅ **Local/Testing**: Default credentials are fine
+> - ⚠️ **Public Network**: Change password immediately - see [AUTHENTICATION.md](documentation/AUTHENTICATION.md)
+> - 🎭 **Demo Deployment**: Uses default "admin" password
 
 **Option 1: Docker Compose (Recommended)**
 
