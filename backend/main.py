@@ -123,12 +123,13 @@ def safe_error_message(error: Exception, user_message: str = "An error occurred"
     return user_message
 
 # Session middleware for authentication
+# Security: Session ID is regenerated after login to prevent session fixation attacks
 app.add_middleware(
     SessionMiddleware,
     secret_key=config.get('authentication', {}).get('secret_key', 'insecure_default_key_change_this'),
     max_age=config.get('authentication', {}).get('session_max_age', 604800),  # 7 days default
-    same_site='lax',
-    https_only=False  # Set to True if using HTTPS
+    same_site='lax',  # Prevents CSRF attacks
+    https_only=False  # Set to True if using HTTPS in production
 )
 
 # Demo mode - Centralizes all demo-specific restrictions
@@ -268,7 +269,11 @@ async def login(request: Request, password: str = Form(...)):
     
     # Verify password
     if verify_password(password):
-        # Set session
+        # Session regeneration: Clear old session to prevent session fixation attacks
+        # This forces the creation of a new session ID after successful authentication
+        request.session.clear()
+        
+        # Set authenticated flag in the NEW session
         request.session['authenticated'] = True
         return RedirectResponse(url="/", status_code=303)
     else:
