@@ -16,6 +16,9 @@ from typing import List, Optional
 import aiofiles
 from datetime import datetime
 import bcrypt
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from .utils import (
     get_all_notes,
@@ -76,6 +79,24 @@ app.add_middleware(
     same_site='lax',
     https_only=False  # Set to True if using HTTPS
 )
+
+# Rate limiting (enabled via environment variable for demo deployments)
+ENABLE_RATE_LIMITING = os.getenv('ENABLE_RATE_LIMITING', 'false').lower() == 'true'
+
+if ENABLE_RATE_LIMITING:
+    limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    print("⚠️  Rate limiting ENABLED (ENABLE_RATE_LIMITING=true)")
+else:
+    # Create a dummy limiter that doesn't actually limit
+    class DummyLimiter:
+        def limit(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+    limiter = DummyLimiter()
+    print("✅ Rate limiting DISABLED (set ENABLE_RATE_LIMITING=true to enable)")
 
 # Ensure required directories exist
 ensure_directories(config)
@@ -436,7 +457,8 @@ async def get_theme(theme_id: str):
 
 
 @api_router.post("/folders")
-async def create_new_folder(data: dict):
+@limiter.limit("30/minute")
+async def create_new_folder(request: Request, data: dict):
     """Create a new folder"""
     try:
         folder_path = data.get('path', '')
@@ -488,7 +510,8 @@ async def get_image(image_path: str):
 
 
 @api_router.post("/upload-image")
-async def upload_image(file: UploadFile = File(...), note_path: str = Form(...)):
+@limiter.limit("20/minute")
+async def upload_image(request: Request, file: UploadFile = File(...), note_path: str = Form(...)):
     """
     Upload an image file and save it to the attachments directory.
     Returns the relative path to the image for markdown linking.
@@ -543,7 +566,8 @@ async def upload_image(file: UploadFile = File(...), note_path: str = Form(...))
 
 
 @api_router.post("/notes/move")
-async def move_note_endpoint(data: dict):
+@limiter.limit("30/minute")
+async def move_note_endpoint(request: Request, data: dict):
     """Move a note to a different folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -571,7 +595,8 @@ async def move_note_endpoint(data: dict):
 
 
 @api_router.post("/folders/move")
-async def move_folder_endpoint(data: dict):
+@limiter.limit("20/minute")
+async def move_folder_endpoint(request: Request, data: dict):
     """Move a folder to a different location"""
     try:
         old_path = data.get('oldPath', '')
@@ -596,7 +621,8 @@ async def move_folder_endpoint(data: dict):
 
 
 @api_router.post("/folders/rename")
-async def rename_folder_endpoint(data: dict):
+@limiter.limit("30/minute")
+async def rename_folder_endpoint(request: Request, data: dict):
     """Rename a folder"""
     try:
         old_path = data.get('oldPath', '')
@@ -621,7 +647,8 @@ async def rename_folder_endpoint(data: dict):
 
 
 @api_router.delete("/folders/{folder_path:path}")
-async def delete_folder_endpoint(folder_path: str):
+@limiter.limit("20/minute")
+async def delete_folder_endpoint(request: Request, folder_path: str):
     """Delete a folder and all its contents"""
     try:
         if not folder_path:
@@ -718,7 +745,8 @@ async def get_note(note_path: str):
 
 
 @api_router.post("/notes/{note_path:path}")
-async def create_or_update_note(note_path: str, content: dict):
+@limiter.limit("60/minute")
+async def create_or_update_note(request: Request, note_path: str, content: dict):
     """Create or update a note"""
     try:
         note_content = content.get('content', '')
@@ -756,7 +784,8 @@ async def create_or_update_note(note_path: str, content: dict):
 
 
 @api_router.delete("/notes/{note_path:path}")
-async def remove_note(note_path: str):
+@limiter.limit("30/minute")
+async def remove_note(request: Request, note_path: str):
     """Delete a note"""
     try:
         success = delete_note(config['storage']['notes_dir'], note_path)
@@ -839,7 +868,8 @@ async def calculate_note_stats(content: str):
 
 
 @api_router.post("/plugins/{plugin_name}/toggle")
-async def toggle_plugin(plugin_name: str, enabled: dict):
+@limiter.limit("10/minute")
+async def toggle_plugin(request: Request, plugin_name: str, enabled: dict):
     """Enable or disable a plugin"""
     try:
         is_enabled = enabled.get('enabled', False)

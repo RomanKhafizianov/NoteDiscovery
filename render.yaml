@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: notediscovery-demo
+    env: docker
+    
+    # OPTION 1: Pull pre-built image from GHCR (Recommended - faster, consistent)
+    # Uses images built by GitHub Actions and published to ghcr.io
+    # Deployment: Click "Manual Deploy" in Render Dashboard to pull latest
+    image:
+      url: ghcr.io/gamosoft/notediscovery:latest
+    
+    # OPTION 2: Build from source (Fallback if GHCR unavailable)
+    # Comment out 'image' above and uncomment these lines to build on Render:
+    # dockerfilePath: ./Dockerfile
+    # dockerContext: .
+    
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENABLE_RATE_LIMITING
+        value: "true"
+      - key: DEMO_MODE
+        value: "true"
+    
+    # Manual deployment only
+    autoDeploy: false
