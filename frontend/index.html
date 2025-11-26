@@ -1631,6 +1631,7 @@
     <!-- Template Selection Modal -->
     <div x-show="showTemplateModal" 
          @click.self="showTemplateModal = false; selectedTemplate = ''; newTemplateNoteName = ''"
+         @keydown.escape.window="showTemplateModal && (showTemplateModal = false, selectedTemplate = '', newTemplateNoteName = '')"
          class="fixed inset-0 flex items-center justify-center z-50"
          style="background-color: rgba(0, 0, 0, 0.5);"
          x-cloak>
