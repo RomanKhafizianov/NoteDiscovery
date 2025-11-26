@@ -206,6 +206,8 @@ date: {{date}}
 - **daily-journal** - Daily journal with morning goals and evening reflection
 - **project-plan** - Project planning template with objectives and timeline
 
+📚 **See [TEMPLATES.md](TEMPLATES.md)** for detailed documentation and example templates you can copy to your instance.
+
 ## ⚡ Keyboard Shortcuts
 
 ### General
