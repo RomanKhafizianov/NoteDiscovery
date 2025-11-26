@@ -99,6 +99,7 @@ function noteApp() {
         
         // Dropdown state
         showNewDropdown: false,
+        dropdownTargetFolder: '', // Folder context for "New" dropdown (empty = root)
         
         // Template state
         showTemplateModal: false,
@@ -620,15 +621,16 @@ function noteApp() {
             }
             
             try {
-                // Determine the note path based on current context
+                // Determine the note path based on dropdown context
                 let notePath = this.newTemplateNoteName.trim();
                 if (!notePath.endsWith('.md')) {
                     notePath += '.md';
                 }
                 
-                // If we're in a folder on the homepage, create in that folder
-                if (this.selectedHomepageFolder) {
-                    notePath = `${this.selectedHomepageFolder}/${notePath}`;
+                // If we have a target folder context, create in that folder
+                if (this.dropdownTargetFolder || this.selectedHomepageFolder) {
+                    const targetFolder = this.dropdownTargetFolder || this.selectedHomepageFolder;
+                    notePath = `${targetFolder}/${notePath}`;
                 }
                 
                 // Create note from template
@@ -980,17 +982,11 @@ function noteApp() {
                         </div>
                         <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
                             <button 
-                                @click="createNote('${folder.path.replace(/'/g, "\\'")}')"
+                                @click="dropdownTargetFolder = '${folder.path.replace(/'/g, "\\'")}'; showNewDropdown = !showNewDropdown"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="New note here"
-                            >📄</button>
-                            <button 
-                                @click="createFolder('${folder.path.replace(/'/g, "\\'")}')"
-                                class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
-                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="New subfolder"
-                            >📁</button>
+                                title="Add item here"
+                            >+</button>
                             <button 
                                 @click="renameFolder('${folder.path.replace(/'/g, "\\'")}', '${folder.name.replace(/'/g, "\\'")}')"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
@@ -1971,21 +1967,27 @@ function noteApp() {
         
         toggleNewDropdown() {
             this.showNewDropdown = !this.showNewDropdown;
+            if (this.showNewDropdown) {
+                this.dropdownTargetFolder = ''; // Set to root when opening main dropdown
+            }
         },
         
         closeDropdown() {
             this.showNewDropdown = false;
+            this.dropdownTargetFolder = ''; // Reset folder context
         },
         
         // =====================================================
         // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
         // =====================================================
         
-        async createNote(folderPath = '') {
+        async createNote(folderPath = null) {
+            // Use provided folder path, or dropdown target folder context
+            const targetFolder = folderPath !== null ? folderPath : this.dropdownTargetFolder;
             this.closeDropdown();
             
-            const promptText = folderPath 
-                ? `Create note in "${folderPath}".\nEnter note name:`
+            const promptText = targetFolder 
+                ? `Create note in "${targetFolder}".\nEnter note name:`
                 : 'Enter note name (you can use folder/name):';
             
             const noteName = prompt(promptText);
@@ -1998,8 +2000,8 @@ function noteApp() {
             }
             
             let notePath;
-            if (folderPath) {
-                notePath = `${folderPath}/${sanitizedName}.md`;
+            if (targetFolder) {
+                notePath = `${targetFolder}/${sanitizedName}.md`;
             } else {
                 notePath = sanitizedName.endsWith('.md') ? sanitizedName : `${sanitizedName}.md`;
             }
@@ -2019,8 +2021,8 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    if (folderPath) {
-                        this.expandedFolders.add(folderPath);
+                    if (targetFolder) {
+                        this.expandedFolders.add(targetFolder);
                     }
                     await this.loadNotes();
                     await this.loadNote(notePath);
@@ -2032,11 +2034,13 @@ function noteApp() {
             }
         },
         
-        async createFolder(parentPath = '') {
+        async createFolder(parentPath = null) {
+            // Use provided parent path, or dropdown target folder context
+            const targetFolder = parentPath !== null ? parentPath : this.dropdownTargetFolder;
             this.closeDropdown();
             
-            const promptText = parentPath 
-                ? `Create subfolder in "${parentPath}".\nEnter folder name:`
+            const promptText = targetFolder 
+                ? `Create subfolder in "${targetFolder}".\nEnter folder name:`
                 : 'Create new folder.\nEnter folder path (e.g., "Projects" or "Work/2025"):';
             
             const folderName = prompt(promptText);
@@ -2048,7 +2052,7 @@ function noteApp() {
                 return;
             }
             
-            const folderPath = parentPath ? `${parentPath}/${sanitizedName}` : sanitizedName;
+            const folderPath = targetFolder ? `${targetFolder}/${sanitizedName}` : sanitizedName;
             
             // Check if folder already exists
             const existingFolder = this.allFolders.find(folder => folder === folderPath);
@@ -2065,8 +2069,8 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    if (parentPath) {
-                        this.expandedFolders.add(parentPath);
+                    if (targetFolder) {
+                        this.expandedFolders.add(targetFolder);
                     }
                     this.expandedFolders.add(folderPath);
                     await this.loadNotes();

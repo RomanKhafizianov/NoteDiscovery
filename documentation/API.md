@@ -429,41 +429,5 @@ All endpoints return JSON responses:
 ```
 ---
 
----
-
-## 🔒 Security & Rate Limiting
-
-### Authentication
-When authentication is enabled (via `AUTHENTICATION_ENABLED` environment variable or `config.yaml`), all API endpoints require a valid session cookie obtained through the `/login` endpoint.
-
-### Rate Limiting
-When `DEMO_MODE` is enabled, the following rate limits are enforced:
-
-**Read Operations:**
-- `GET /api/notes` - 120/minute
-- `GET /api/templates` - 120/minute
-- `GET /api/templates/{template_name}` - 120/minute
-- `GET /api/tags` - 120/minute
-- `GET /api/tags/{tag}` - 120/minute
-
-**Write Operations:**
-- `POST /api/notes` - 60/minute
-- `DELETE /api/notes/*` - 60/minute
-- `POST /api/folders` - 60/minute
-- `DELETE /api/folders/*` - 60/minute
-- `POST /api/images/upload` - 30/minute
-- `DELETE /api/images/*` - 60/minute
-- `POST /api/templates/create-note` - 60/minute
-- `POST /api/plugins/*/toggle` - 60/minute
-
-### Path Security
-All file operations validate that paths are within the configured `notes_dir` to prevent directory traversal attacks. This includes:
-- Note operations
-- Folder operations
-- Image operations
-- Template operations
-
----
-
 💡 **Tip:** Use the `/api` endpoint to get a live, self-documented list of all available endpoints!
 
