@@ -944,7 +944,17 @@
                         >
                             <span class="text-lg">📁</span>
                             <span>New Folder</span>
-                </button>
+                        </button>
+                        <button 
+                            @click.stop="showTemplateModal = true; showNewDropdown = false"
+                            class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                            style="color: var(--text-primary);"
+                            onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                            onmouseout="this.style.backgroundColor='transparent'"
+                        >
+                            <span class="text-lg">📄</span>
+                            <span>New from Template</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1615,6 +1625,91 @@
                 </div>
             </template>
             
+        </div>
+    </div>
+    
+    <!-- Template Selection Modal -->
+    <div x-show="showTemplateModal" 
+         @click.self="showTemplateModal = false; selectedTemplate = ''; newTemplateNoteName = ''"
+         class="fixed inset-0 flex items-center justify-center z-50"
+         style="background-color: rgba(0, 0, 0, 0.5);"
+         x-cloak>
+        <div class="rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+             style="background-color: var(--bg-secondary); color: var(--text-primary);"
+             @click.stop>
+            
+            <h2 class="text-xl font-bold mb-4" style="color: var(--text-primary);">Create from Template</h2>
+            
+            <!-- Template Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">
+                    Select Template
+                </label>
+                <select 
+                    x-model="selectedTemplate"
+                    class="w-full px-3 py-2 rounded border"
+                    style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
+                >
+                    <option value="">-- Choose a template --</option>
+                    <template x-for="template in availableTemplates" :key="template.name">
+                        <option :value="template.name" x-text="template.name"></option>
+                    </template>
+                </select>
+            </div>
+            
+            <!-- Note Name Input -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">
+                    Note Name
+                </label>
+                <input 
+                    x-model="newTemplateNoteName"
+                    type="text"
+                    placeholder="Enter note name"
+                    class="w-full px-3 py-2 rounded border"
+                    style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
+                    @keydown.enter="createNoteFromTemplate()"
+                />
+            </div>
+            
+            <!-- Info about placeholders -->
+            <div class="mb-4 text-xs p-3 rounded" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
+                <strong>Available placeholders:</strong><br>
+                <code style="font-family: monospace;">{{date}}</code>, 
+                <code style="font-family: monospace;">{{time}}</code>, 
+                <code style="font-family: monospace;">{{datetime}}</code>, 
+                <code style="font-family: monospace;">{{title}}</code>, 
+                <code style="font-family: monospace;">{{folder}}</code>
+            </div>
+            
+            <!-- Empty state when no templates available -->
+            <div x-show="availableTemplates.length === 0" class="mb-4 text-sm p-3 rounded" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
+                No templates found. Create templates in the <code style="font-family: monospace;">_templates</code> folder.
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex gap-2">
+                <button 
+                    @click="createNoteFromTemplate()"
+                    :disabled="!selectedTemplate || !newTemplateNoteName.trim() || availableTemplates.length === 0"
+                    class="flex-1 px-4 py-2 rounded font-medium text-white transition-colors"
+                    style="background-color: var(--accent-primary);"
+                    :style="(!selectedTemplate || !newTemplateNoteName.trim() || availableTemplates.length === 0) ? 'opacity: 0.5; cursor: not-allowed;' : ''"
+                    onmouseover="if(!this.disabled) this.style.backgroundColor='var(--accent-hover)'"
+                    onmouseout="if(!this.disabled) this.style.backgroundColor='var(--accent-primary)'"
+                >
+                    Create Note
+                </button>
+                <button 
+                    @click="showTemplateModal = false; selectedTemplate = ''; newTemplateNoteName = ''"
+                    class="flex-1 px-4 py-2 rounded font-medium transition-colors"
+                    style="background-color: var(--bg-tertiary); color: var(--text-primary);"
+                    onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                    onmouseout="this.style.backgroundColor='var(--bg-tertiary)'"
+                >
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
     

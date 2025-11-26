@@ -100,6 +100,12 @@ function noteApp() {
         // Dropdown state
         showNewDropdown: false,
         
+        // Template state
+        showTemplateModal: false,
+        availableTemplates: [],
+        selectedTemplate: '',
+        newTemplateNoteName: '',
+        
         // Homepage state
         selectedHomepageFolder: '',
         _homepageCache: {
@@ -258,6 +264,7 @@ function noteApp() {
             await this.loadThemes();
             await this.initTheme();
             await this.loadNotes();
+            await this.loadTemplates();
             await this.checkStatsPlugin();
             this.loadSidebarWidth();
             this.loadEditorWidth();
@@ -589,6 +596,71 @@ function noteApp() {
             
             // Apply unified filtering
             this.applyFilters();
+        },
+        
+        // ========================================================================
+        // Template Methods
+        // ========================================================================
+        
+        // Load available templates from _templates folder
+        async loadTemplates() {
+            try {
+                const response = await fetch('/api/templates');
+                const data = await response.json();
+                this.availableTemplates = data.templates || [];
+            } catch (error) {
+                ErrorHandler.handle('load templates', error, false); // Don't show alert, templates are optional
+            }
+        },
+        
+        // Create a new note from a template
+        async createNoteFromTemplate() {
+            if (!this.selectedTemplate || !this.newTemplateNoteName.trim()) {
+                return;
+            }
+            
+            try {
+                // Determine the note path based on current context
+                let notePath = this.newTemplateNoteName.trim();
+                if (!notePath.endsWith('.md')) {
+                    notePath += '.md';
+                }
+                
+                // If we're in a folder on the homepage, create in that folder
+                if (this.selectedHomepageFolder) {
+                    notePath = `${this.selectedHomepageFolder}/${notePath}`;
+                }
+                
+                // Create note from template
+                const response = await fetch('/api/templates/create-note', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        templateName: this.selectedTemplate,
+                        notePath: notePath
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to create note from template');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Close modal and reset state
+                this.showTemplateModal = false;
+                this.selectedTemplate = '';
+                this.newTemplateNoteName = '';
+                
+                // Reload notes and open the new note
+                await this.loadNotes();
+                await this.loadNote(data.path);
+                
+            } catch (error) {
+                ErrorHandler.handle('create note from template', error);
+            }
         },
         
         // Clear all tag filters
