@@ -783,7 +783,8 @@ async def get_notes_by_tag_endpoint(tag_name: str):
 # --- Template Endpoints ---
 
 @api_router.get("/templates")
-async def list_templates():
+@limiter.limit("120/minute")
+async def list_templates(request: Request):
     """
     List all available templates from _templates folder.
     
@@ -798,7 +799,8 @@ async def list_templates():
 
 
 @api_router.get("/templates/{template_name}")
-async def get_template(template_name: str):
+@limiter.limit("120/minute")
+async def get_template(request: Request, template_name: str):
     """
     Get content of a specific template.
     

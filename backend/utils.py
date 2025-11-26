@@ -668,9 +668,19 @@ def get_templates(notes_dir: str) -> List[Dict]:
     if not templates_path.exists():
         return templates
     
+    # Security check: ensure _templates folder is within notes directory
+    if not validate_path_security(notes_dir, templates_path):
+        print(f"Security: Templates directory is outside notes directory: {templates_path}")
+        return templates
+    
     try:
         for template_file in templates_path.glob("*.md"):
             try:
+                # Security check: ensure each template is within notes directory
+                if not validate_path_security(notes_dir, template_file):
+                    print(f"Security: Skipping template outside notes directory: {template_file}")
+                    continue
+                
                 stat = template_file.stat()
                 templates.append({
                     "name": template_file.stem,
