@@ -100,6 +100,7 @@ function noteApp() {
         // Dropdown state
         showNewDropdown: false,
         dropdownTargetFolder: '', // Folder context for "New" dropdown (empty = root)
+        dropdownPosition: { top: 0, left: 0 }, // Position for contextual dropdown
         
         // Template state
         showTemplateModal: false,
@@ -982,7 +983,7 @@ function noteApp() {
                         </div>
                         <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" @click.stop>
                             <button 
-                                @click="dropdownTargetFolder = '${folder.path.replace(/'/g, "\\'")}'; showNewDropdown = !showNewDropdown"
+                                @click="dropdownTargetFolder = '${folder.path.replace(/'/g, "\\'")}'; toggleNewDropdown($event)"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="Add item here"
@@ -1965,10 +1966,26 @@ function noteApp() {
         // DROPDOWN MENU SYSTEM
         // =====================================================
         
-        toggleNewDropdown() {
-            this.showNewDropdown = !this.showNewDropdown;
-            if (this.showNewDropdown) {
-                this.dropdownTargetFolder = ''; // Set to root when opening main dropdown
+        toggleNewDropdown(event) {
+            this.showNewDropdown = true; // Always open (or keep open)
+            
+            if (event && event.target) {
+                const rect = event.target.getBoundingClientRect();
+                // Position dropdown next to the clicked element
+                let top = rect.bottom + 4; // 4px spacing
+                let left = rect.left;
+                
+                // Keep dropdown on screen
+                const dropdownWidth = 200;
+                const dropdownHeight = 150;
+                if (left + dropdownWidth > window.innerWidth) {
+                    left = rect.right - dropdownWidth;
+                }
+                if (top + dropdownHeight > window.innerHeight) {
+                    top = rect.top - dropdownHeight - 4;
+                }
+                
+                this.dropdownPosition = { top, left };
             }
         },
         
