@@ -854,14 +854,23 @@ async def create_note_from_template(request: Request, data: dict):
         # Apply placeholder replacements
         final_content = apply_template_placeholders(template_content, note_path)
         
-        # Save the note
-        success = save_note(config['storage']['notes_dir'], note_path, final_content)
+        # Run on_note_create hook BEFORE saving (allows plugins to modify initial content)
+        final_content = plugin_manager.run_hook_with_return(
+            'on_note_create',
+            note_path=note_path,
+            initial_content=final_content
+        )
+        
+        # Run on_note_save hook (can transform content, e.g., encrypt)
+        transformed_content = plugin_manager.run_hook('on_note_save', note_path=note_path, content=final_content)
+        if transformed_content is None:
+            transformed_content = final_content
+        
+        # Save the note with the (potentially modified/transformed) content
+        success = save_note(config['storage']['notes_dir'], note_path, transformed_content)
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to create note from template")
-        
-        # Run plugin hooks
-        plugin_manager.run_hook('on_note_create', note_path=note_path, initial_content=final_content)
         
         return {
             "success": True,
