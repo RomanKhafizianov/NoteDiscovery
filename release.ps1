@@ -126,7 +126,7 @@ $Version | Out-File -FilePath "VERSION" -Encoding utf8 -NoNewline
 if (-not $SkipCommit) {
     Write-Host "Committing version changes..." -ForegroundColor Yellow
     git add VERSION
-    git commit -m "Bump version to $Version"
+    git commit -m "Updated version to $Version"
     
     # Push commits first
     # NOTE: This will trigger GitHub's built-in 'pages-build-deployment' workflow
