@@ -2098,6 +2098,9 @@ function noteApp() {
                     }
                     this.expandedFolders.add(folderPath);
                     await this.loadNotes();
+                    
+                    // Navigate to the newly created folder on the homepage
+                    this.goToHomepageFolder(folderPath);
                 } else {
                     ErrorHandler.handle('create folder', new Error('Server returned error'));
                 }
@@ -3396,6 +3399,12 @@ function noteApp() {
         // Homepage folder navigation methods
         goToHomepageFolder(folderPath) {
             this.selectedHomepageFolder = folderPath || '';
+            
+            // Clear editor state to show landing page
+            this.currentNote = '';
+            this.currentNoteName = '';
+            this.noteContent = '';
+            this.currentImage = '';
             
             // Invalidate cache to force recalculation
             this._homepageCache = {
