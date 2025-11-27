@@ -1129,19 +1129,19 @@
                     <!-- Welcome Hero - Show when app is empty -->
                     <template x-if="isAppEmpty">
                         <div class="flex flex-col items-center justify-center h-full py-16 text-center">
-                        <svg class="mx-auto h-16 w-16 mb-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="mx-auto h-24 w-24 mb-4" style="color: var(--text-tertiary); opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                            <h1 class="text-4xl font-bold mb-4" style="color: var(--text-primary);" x-text="appName"></h1>
-                            <p class="text-xl mb-8" style="color: var(--text-secondary);" x-text="appTagline"></p>
+                            <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">No notes yet</h2>
+                            <p class="mb-6" style="color: var(--text-secondary);">Create your first note or folder</p>
                         <button 
-                                @click="createNote()"
-                                class="px-8 py-4 text-base font-medium text-white rounded-lg transition-colors"
+                                @click="dropdownTargetFolder = selectedHomepageFolder; toggleNewDropdown($event)"
+                                class="px-6 py-3 text-sm font-medium text-white rounded-lg transition-colors"
                             style="background-color: var(--accent-primary);"
                             onmouseover="this.style.backgroundColor='var(--accent-hover)'"
                             onmouseout="this.style.backgroundColor='var(--accent-primary)'"
                         >
-                            Create Your First Note
+                            + New
                         </button>
                     </div>
                     </template>
@@ -1196,13 +1196,13 @@
                                             <span x-text="homepageFolders().length === 1 ? 'folder' : 'folders'"></span>
                                         </span>
                                         <button 
-                                            @click="createNote()"
+                                            @click="dropdownTargetFolder = selectedHomepageFolder; toggleNewDropdown($event)"
                                             class="ml-auto px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
                                             style="background-color: var(--accent-primary);"
                                             onmouseover="this.style.backgroundColor='var(--accent-hover)'"
                                             onmouseout="this.style.backgroundColor='var(--accent-primary)'"
                                         >
-                                            + New Note
+                                            + New
                                         </button>
                                     </div>
                                 </div>
@@ -1214,16 +1214,16 @@
                                     <svg class="mx-auto h-24 w-24 mb-4" style="color: var(--text-tertiary); opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
-                                    <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">No notes yet</h2>
-                                    <p class="mb-6" style="color: var(--text-secondary);">Create your first note to get started</p>
+                                    <h2 class="text-2xl font-bold mb-2" style="color: var(--text-primary);" x-text="selectedHomepageFolder ? 'This folder is empty' : 'No notes yet'"></h2>
+                                    <p class="mb-6" style="color: var(--text-secondary);" x-text="selectedHomepageFolder ? 'Create something to get started' : 'Create your first note or folder'"></p>
                                     <button 
-                                        @click="createNote()"
+                                        @click="dropdownTargetFolder = selectedHomepageFolder; toggleNewDropdown($event)"
                                         class="px-6 py-3 text-sm font-medium text-white rounded-lg transition-colors"
                                         style="background-color: var(--accent-primary);"
                                         onmouseover="this.style.backgroundColor='var(--accent-hover)'"
                                         onmouseout="this.style.backgroundColor='var(--accent-primary)'"
                                     >
-                                        Create Your First Note
+                                        + New
                                     </button>
                                 </div>
                             </template>

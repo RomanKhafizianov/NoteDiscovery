@@ -2006,8 +2006,8 @@ function noteApp() {
         // =====================================================
         
         async createNote(folderPath = null) {
-            // Use provided folder path, or dropdown target folder context
-            const targetFolder = folderPath !== null ? folderPath : this.dropdownTargetFolder;
+            // Use provided folder path, or dropdown target folder context, or homepage folder
+            const targetFolder = folderPath !== null ? folderPath : (this.dropdownTargetFolder || this.selectedHomepageFolder);
             this.closeDropdown();
             
             const promptText = targetFolder 
@@ -2059,8 +2059,8 @@ function noteApp() {
         },
         
         async createFolder(parentPath = null) {
-            // Use provided parent path, or dropdown target folder context
-            const targetFolder = parentPath !== null ? parentPath : this.dropdownTargetFolder;
+            // Use provided parent path, or dropdown target folder context, or homepage folder
+            const targetFolder = parentPath !== null ? parentPath : (this.dropdownTargetFolder || this.selectedHomepageFolder);
             this.closeDropdown();
             
             const promptText = targetFolder 
