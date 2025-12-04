@@ -1006,9 +1006,10 @@ async def search(q: str):
 
 @api_router.get("/graph")
 async def get_graph():
-    """Get graph data for note visualization with wikilink detection"""
+    """Get graph data for note visualization with wikilink and markdown link detection"""
     try:
         import re
+        import urllib.parse
         notes = get_all_notes(config['storage']['notes_dir'])
         nodes = []
         edges = []
@@ -1044,8 +1045,9 @@ async def get_graph():
                     # Find wikilinks: [[target]] or [[target|display]]
                     wikilinks = re.findall(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', content)
                     
-                    # Find standard markdown internal links: [text](path.md)
-                    markdown_links = re.findall(r'\[([^\]]+)\]\(([^\)]+\.md)\)', content)
+                    # Find standard markdown internal links: [text](path) - any local path (not http/https)
+                    # Match links that don't start with http://, https://, mailto:, #, etc.
+                    markdown_links = re.findall(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', content)
                     
                     # Process wikilinks
                     for target in wikilinks:
@@ -1079,12 +1081,50 @@ async def get_graph():
                     
                     # Process markdown links
                     for _, link_path in markdown_links:
-                        # Try exact match first, then case-insensitive
+                        # Skip anchor-only links and external protocols
+                        if not link_path or link_path.startswith('#'):
+                            continue
+                            
+                        # Remove anchor part if present (e.g., "note.md#section" -> "note.md")
+                        link_path = link_path.split('#')[0]
+                        if not link_path:
+                            continue
+                        
+                        # Normalize path: remove ./ prefix, handle URL encoding
+                        link_path = urllib.parse.unquote(link_path)
+                        if link_path.startswith('./'):
+                            link_path = link_path[2:]
+                        
+                        # Add .md extension if not present and doesn't have other extension
+                        link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
+                        link_path_lower = link_path.lower()
+                        link_path_with_md_lower = link_path_with_md.lower()
+                        
+                        # Try to match target to an existing note
                         target_path = None
+                        
+                        # 1. Exact path match (with or without .md)
                         if link_path in note_paths:
-                            target_path = link_path
-                        elif link_path.lower() in note_paths_lower:
-                            target_path = note_paths_lower[link_path.lower()]
+                            target_path = link_path if link_path.endswith('.md') else link_path + '.md'
+                        elif link_path_with_md in note_paths:
+                            target_path = link_path_with_md
+                        # 2. Case-insensitive path match
+                        elif link_path_lower in note_paths_lower:
+                            target_path = note_paths_lower[link_path_lower]
+                        elif link_path_with_md_lower in note_paths_lower:
+                            target_path = note_paths_lower[link_path_with_md_lower]
+                        # 3. Try matching by filename only (for relative links)
+                        else:
+                            # Extract just the filename
+                            filename = link_path.split('/')[-1]
+                            filename_lower = filename.lower()
+                            filename_with_md = filename if filename.endswith('.md') else filename + '.md'
+                            filename_with_md_lower = filename_with_md.lower()
+                            
+                            if filename_lower in note_names:
+                                target_path = note_names[filename_lower]
+                            elif filename_with_md_lower in note_names:
+                                target_path = note_names[filename_with_md_lower]
                         
                         if target_path and target_path != note['path']:
                             edges.append({
