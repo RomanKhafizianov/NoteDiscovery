@@ -86,6 +86,11 @@ function noteApp() {
         noteStats: null,
         statsExpanded: false,
         
+        // Note metadata (frontmatter) state
+        noteMetadata: null,
+        metadataExpanded: false,
+        _lastFrontmatter: null, // Cache to avoid re-parsing unchanged frontmatter
+        
         // Sidebar resize state
         sidebarWidth: CONFIG.DEFAULT_SIDEBAR_WIDTH,
         isResizing: false,
@@ -1709,6 +1714,9 @@ function noteApp() {
                     this.calculateStats();
                 }
                 
+                // Parse frontmatter metadata
+                this.parseMetadata();
+                
                 // Store search query for highlighting
                 if (searchQuery) {
                     this.currentSearchHighlight = searchQuery;
@@ -2252,6 +2260,9 @@ function noteApp() {
             if (this.statsPluginEnabled) {
                 this.calculateStats();
             }
+            
+            // Parse metadata in real-time
+            this.parseMetadata();
             
             this.saveTimeout = setTimeout(() => {
                 this.saveNote();
@@ -3097,6 +3108,245 @@ function noteApp() {
                 images,
                 blockquotes
             };
+        },
+        
+        // Parse YAML frontmatter metadata from note content
+        parseMetadata() {
+            if (!this.noteContent) {
+                this.noteMetadata = null;
+                this._lastFrontmatter = null;
+                return;
+            }
+            
+            const content = this.noteContent;
+            
+            // Check if content starts with frontmatter
+            if (!content.trim().startsWith('---')) {
+                this.noteMetadata = null;
+                this._lastFrontmatter = null;
+                return;
+            }
+            
+            try {
+                const lines = content.split('\n');
+                if (lines[0].trim() !== '---') {
+                    this.noteMetadata = null;
+                    this._lastFrontmatter = null;
+                    return;
+                }
+                
+                // Find closing ---
+                let endIdx = -1;
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '---') {
+                        endIdx = i;
+                        break;
+                    }
+                }
+                
+                if (endIdx === -1) {
+                    this.noteMetadata = null;
+                    this._lastFrontmatter = null;
+                    return;
+                }
+                
+                // Performance optimization: skip parsing if frontmatter unchanged
+                const frontmatterRaw = lines.slice(0, endIdx + 1).join('\n');
+                if (frontmatterRaw === this._lastFrontmatter) {
+                    return; // No change, keep existing metadata
+                }
+                this._lastFrontmatter = frontmatterRaw;
+                
+                const frontmatterLines = lines.slice(1, endIdx);
+                const metadata = {};
+                let currentKey = null;
+                let currentValue = [];
+                
+                for (const line of frontmatterLines) {
+                    // Check for new key: value pair (supports keys with hyphens/underscores)
+                    const keyMatch = line.match(/^([a-zA-Z_][\w-]*):\s*(.*)$/);
+                    
+                    if (keyMatch) {
+                        // Save previous key if exists
+                        if (currentKey) {
+                            metadata[currentKey] = this.parseYamlValue(currentValue.join('\n'));
+                        }
+                        
+                        currentKey = keyMatch[1];
+                        const value = keyMatch[2].trim();
+                        currentValue = [value];
+                    } else if (line.match(/^\s+-\s+/) && currentKey) {
+                        // List item continuation (e.g., "  - item")
+                        currentValue.push(line);
+                    } else if (line.startsWith('  ') && currentKey) {
+                        // Indented content (multiline value)
+                        currentValue.push(line);
+                    }
+                }
+                
+                // Save last key
+                if (currentKey) {
+                    metadata[currentKey] = this.parseYamlValue(currentValue.join('\n'));
+                }
+                
+                this.noteMetadata = Object.keys(metadata).length > 0 ? metadata : null;
+                
+            } catch (error) {
+                console.error('Failed to parse frontmatter:', error);
+                this.noteMetadata = null;
+                this._lastFrontmatter = null;
+            }
+        },
+        
+        // Parse a YAML value (handles arrays, strings, numbers, booleans)
+        parseYamlValue(value) {
+            if (!value || value.trim() === '') return null;
+            
+            value = value.trim();
+            
+            // Check for inline array: [item1, item2]
+            if (value.startsWith('[') && value.endsWith(']')) {
+                const inner = value.slice(1, -1);
+                return inner.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s);
+            }
+            
+            // Check for YAML list format (multiple lines starting with -)
+            if (value.includes('\n  -') || value.startsWith('  -')) {
+                const items = [];
+                const lines = value.split('\n');
+                for (const line of lines) {
+                    const match = line.match(/^\s*-\s*(.+)$/);
+                    if (match) {
+                        items.push(match[1].trim().replace(/^["']|["']$/g, ''));
+                    }
+                }
+                return items.length > 0 ? items : value;
+            }
+            
+            // Check for boolean
+            if (value.toLowerCase() === 'true') return true;
+            if (value.toLowerCase() === 'false') return false;
+            
+            // Check for number
+            if (/^-?\d+(\.\d+)?$/.test(value)) {
+                return parseFloat(value);
+            }
+            
+            // Return as string (remove quotes if present)
+            return value.replace(/^["']|["']$/g, '');
+        },
+        
+        // Check if a string is a URL
+        isUrl(str) {
+            if (typeof str !== 'string') return false;
+            return /^https?:\/\/\S+$/i.test(str.trim());
+        },
+        
+        // Escape HTML to prevent XSS
+        escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        },
+        
+        // Format metadata value for display
+        formatMetadataValue(key, value) {
+            if (value === null || value === undefined) return '';
+            
+            // Arrays are handled separately in the template
+            if (Array.isArray(value)) return value;
+            
+            // Format dates nicely
+            if (key === 'date' || key === 'created' || key === 'modified' || key === 'updated') {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                }
+            }
+            
+            // Booleans
+            if (typeof value === 'boolean') {
+                return value ? '✓ Yes' : '✗ No';
+            }
+            
+            return String(value);
+        },
+        
+        // Format metadata value as HTML (for URL support)
+        formatMetadataValueHtml(key, value) {
+            const formatted = this.formatMetadataValue(key, value);
+            
+            // Check if it's a URL
+            if (this.isUrl(formatted)) {
+                const escaped = this.escapeHtml(formatted);
+                // Truncate long URLs for display
+                const displayUrl = formatted.length > 40 
+                    ? formatted.substring(0, 37) + '...' 
+                    : formatted;
+                return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="metadata-link">${this.escapeHtml(displayUrl)}</a>`;
+            }
+            
+            return this.escapeHtml(formatted);
+        },
+        
+        // Get priority metadata fields (shown in collapsed view)
+        getPriorityMetadataFields() {
+            if (!this.noteMetadata) return [];
+            
+            // Fields to show in collapsed view, in order of priority
+            const priority = ['date', 'created', 'author', 'status', 'priority', 'type', 'category'];
+            const fields = [];
+            
+            for (const key of priority) {
+                if (this.noteMetadata[key] !== undefined && !Array.isArray(this.noteMetadata[key])) {
+                    const formatted = this.formatMetadataValue(key, this.noteMetadata[key]);
+                    const isUrl = this.isUrl(formatted);
+                    fields.push({ 
+                        key, 
+                        value: formatted,
+                        valueHtml: isUrl ? this.formatMetadataValueHtml(key, this.noteMetadata[key]) : this.escapeHtml(formatted),
+                        isUrl
+                    });
+                }
+            }
+            
+            return fields.slice(0, 3); // Show max 3 fields in collapsed view
+        },
+        
+        // Get all metadata fields except tags (for expanded view)
+        getAllMetadataFields() {
+            if (!this.noteMetadata) return [];
+            
+            return Object.entries(this.noteMetadata)
+                .filter(([key]) => key !== 'tags') // Tags shown separately
+                .map(([key, value]) => {
+                    const isArray = Array.isArray(value);
+                    const formatted = this.formatMetadataValue(key, value);
+                    const isUrl = !isArray && this.isUrl(formatted);
+                    return {
+                        key,
+                        value: formatted,
+                        valueHtml: isUrl ? this.formatMetadataValueHtml(key, value) : this.escapeHtml(formatted),
+                        isArray,
+                        isUrl
+                    };
+                });
+        },
+        
+        // Check if note has any displayable metadata
+        getHasMetadata() {
+            const has = this.noteMetadata && Object.keys(this.noteMetadata).length > 0;
+            return has;
+        },
+        
+        // Get tags from metadata
+        getMetadataTags() {
+            if (!this.noteMetadata || !this.noteMetadata.tags) return [];
+            return Array.isArray(this.noteMetadata.tags) ? this.noteMetadata.tags : [this.noteMetadata.tags];
         },
         
         // Load sidebar width from localStorage
