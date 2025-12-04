@@ -98,6 +98,42 @@ tags: [python, tutorial, backend]
 - **Collapsible panel** - Saves state across sessions
 - **Auto-sync** - Updates after saving notes
 
+## ⚙️ Note Properties Panel
+
+View and interact with YAML frontmatter metadata directly in the preview.
+
+### Features
+- **Collapsible panel** - Compact bar at the top of preview, expands on click
+- **Auto-hides** - Only appears when note has frontmatter
+- **Clickable tags** - Filter notes by clicking any tag
+- **Smart formatting** - Dates formatted nicely, booleans shown as ✓/✗
+- **URL detection** - Links in metadata are clickable
+- **Real-time updates** - Changes as you edit frontmatter
+- **Performance optimized** - Cached parsing, no re-parse if unchanged
+
+### Collapsed View
+Shows tags as pills plus up to 3 priority fields (date, author, status, etc.)
+
+### Expanded View
+Click to expand and see all metadata fields in a clean grid layout.
+
+### Supported Formats
+```yaml
+---
+tags: [project, important]     # Inline array
+date: 2024-01-15               # Formatted as "Jan 15, 2024"
+author: John Doe               # String value
+status: draft                  # String value
+priority: high                 # String value
+source: https://example.com    # Clickable link
+draft: true                    # Shows as "✓ Yes"
+custom-field: any value        # Keys with hyphens supported
+items:                         # YAML list format
+  - item 1
+  - item 2
+---
+```
+
 ## 🔍 Search & Filtering
 
 ### Text Search

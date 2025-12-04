@@ -290,6 +290,24 @@
             opacity: 1;
         }
         
+        /* Note Properties Panel */
+        .note-properties {
+            font-size: 0.8125rem;
+            line-height: 1.4;
+        }
+        .note-properties .metadata-tag {
+            font-weight: 500;
+        }
+        .note-properties .metadata-link {
+            color: var(--accent-primary);
+            text-decoration: none !important;
+            border-bottom: 1px dashed var(--accent-primary);
+            transition: border-bottom-style 0.15s;
+        }
+        .note-properties .metadata-link:hover {
+            border-bottom-style: solid;
+        }
+        
         /* Standard internal links (non-wikilink, e.g. [text](path)) */
         .markdown-preview a:not([href^="http"]):not([href^="https"]):not([href^="//"]):not([href^="mailto:"]):not([data-wikilink]) {
             color: var(--accent-primary);
@@ -1498,8 +1516,119 @@
                             style="background-color: var(--bg-primary); min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${100 - editorWidth}%;` : 'width: 100%;'"
                         >
+                            <!-- Note Properties/Metadata Panel -->
+                            <div 
+                                x-show="getHasMetadata() && currentNote"
+                                class="note-properties mx-6 mt-4 mb-2"
+                            >
+                                <!-- Collapsed View -->
+                                <div 
+                                    x-show="!metadataExpanded"
+                                    @click="metadataExpanded = true"
+                                    class="flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all"
+                                    style="background-color: var(--bg-tertiary); border: 1px solid var(--border-primary);"
+                                    onmouseover="this.style.borderColor='var(--accent-primary)'"
+                                    onmouseout="this.style.borderColor='var(--border-primary)'"
+                                >
+                                    <!-- Property icon -->
+                                    <span class="text-xs opacity-60">⚙️</span>
+                                    
+                                    <!-- Tags as pills -->
+                                    <template x-for="tag in getMetadataTags().slice(0, 5)" :key="tag">
+                                        <span 
+                                            @click.stop="toggleTag(tag.toLowerCase())"
+                                            class="metadata-tag px-2 py-0.5 text-xs rounded-full cursor-pointer transition-colors"
+                                            style="background-color: var(--accent-light, rgba(124, 58, 237, 0.15)); color: var(--accent-primary);"
+                                            onmouseover="this.style.backgroundColor='var(--accent-primary)'; this.style.color='white'"
+                                            onmouseout="this.style.backgroundColor='var(--accent-light, rgba(124, 58, 237, 0.15))'; this.style.color='var(--accent-primary)'"
+                                            x-text="'#' + tag"
+                                        ></span>
+                                    </template>
+                                    <template x-if="getMetadataTags().length > 5">
+                                        <span class="text-xs" style="color: var(--text-tertiary);">+<span x-text="getMetadataTags().length - 5"></span> more</span>
+                                    </template>
+                                    
+                                    <!-- Priority fields (date, author, status) -->
+                                    <template x-for="field in getPriorityMetadataFields()" :key="field.key">
+                                        <span class="text-xs flex items-center gap-1" style="color: var(--text-secondary);">
+                                            <span class="opacity-50">·</span>
+                                            <span class="capitalize" x-text="field.key + ':'"></span>
+                                            <span style="color: var(--text-primary);" x-html="field.valueHtml" @click="field.isUrl && $event.stopPropagation()"></span>
+                                        </span>
+                                    </template>
+                                    
+                                    <!-- Expand hint -->
+                                    <span class="ml-auto text-xs opacity-40">▼</span>
+                                </div>
+                                
+                                <!-- Expanded View -->
+                                <div 
+                                    x-show="metadataExpanded"
+                                    class="rounded-lg overflow-hidden"
+                                    style="background-color: var(--bg-tertiary); border: 1px solid var(--border-primary);"
+                                >
+                                    <!-- Header -->
+                                    <div 
+                                        @click="metadataExpanded = false"
+                                        class="flex items-center justify-between px-3 py-2 cursor-pointer"
+                                        style="border-bottom: 1px solid var(--border-primary);"
+                                    >
+                                        <span class="text-xs font-medium" style="color: var(--text-secondary);">
+                                            ⚙️ Properties
+                                        </span>
+                                        <span class="text-xs opacity-40">▲ Collapse</span>
+                                    </div>
+                                    
+                                    <!-- Properties Grid -->
+                                    <div class="px-3 py-2 space-y-2">
+                                        <!-- Tags row -->
+                                        <template x-if="getMetadataTags().length > 0">
+                                            <div class="flex flex-wrap gap-1.5 items-start">
+                                                <span class="text-xs w-16 shrink-0 pt-0.5" style="color: var(--text-tertiary);">tags</span>
+                                                <div class="flex flex-wrap gap-1">
+                                                    <template x-for="tag in getMetadataTags()" :key="tag">
+                                                        <span 
+                                                            @click="toggleTag(tag.toLowerCase())"
+                                                            class="metadata-tag px-2 py-0.5 text-xs rounded-full cursor-pointer transition-colors"
+                                                            style="background-color: var(--accent-light, rgba(124, 58, 237, 0.15)); color: var(--accent-primary);"
+                                                            onmouseover="this.style.backgroundColor='var(--accent-primary)'; this.style.color='white'"
+                                                            onmouseout="this.style.backgroundColor='var(--accent-light, rgba(124, 58, 237, 0.15))'; this.style.color='var(--accent-primary)'"
+                                                            x-text="'#' + tag"
+                                                        ></span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Other fields -->
+                                        <template x-for="field in getAllMetadataFields()" :key="field.key">
+                                            <div class="flex gap-1.5 items-start text-xs">
+                                                <span class="w-16 shrink-0 pt-0.5" style="color: var(--text-tertiary);" x-text="field.key"></span>
+                                                <!-- Array values -->
+                                                <template x-if="field.isArray">
+                                                    <div class="flex flex-wrap gap-1">
+                                                        <template x-for="item in field.value" :key="item">
+                                                            <span 
+                                                                class="px-1.5 py-0.5 rounded text-xs"
+                                                                style="background-color: var(--bg-hover); color: var(--text-primary);"
+                                                                x-text="item"
+                                                            ></span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <!-- Single values -->
+                                                <template x-if="!field.isArray">
+                                                    <span style="color: var(--text-primary);" x-html="field.valueHtml"></span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div 
                                 class="p-6 markdown-preview"
+                                :class="{ 'pt-2': getHasMetadata() && currentNote }"
                                 x-html="renderedMarkdown"
                                 @click="handleInternalLink($event)"
                             ></div>
