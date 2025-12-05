@@ -64,6 +64,9 @@
         window.mermaid = mermaid;
     </script>
     
+    <!-- vis-network for graph visualization (v9.1.9) -->
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    
     <!-- Theme styles will be loaded dynamically -->
     <link rel="stylesheet" id="theme-stylesheet" href="">
     
@@ -289,6 +292,19 @@
         .markdown-preview a[data-wikilink].wikilink-broken:hover {
             opacity: 1;
         }
+
+        /* Search highlight base style (used in note preview and search results) */
+        .search-highlight {
+            padding: 2px 4px;
+            border-radius: 3px;
+            background-color: rgba(255, 193, 7, 0.4);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        .search-highlight.active-match {
+            background-color: var(--accent-primary);
+            color: white;
+        }
         
         /* Note Properties Panel */
         .note-properties {
@@ -306,6 +322,42 @@
         }
         .note-properties .metadata-link:hover {
             border-bottom-style: solid;
+        }
+        
+        /* Graph View */
+        #graph-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        #graph-overlay .vis-network {
+            outline: none;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .graph-legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            z-index: 10;
+        }
+        .graph-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 4px 0;
+        }
+        .graph-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
         }
         
         /* Standard internal links (non-wikilink, e.g. [text](path)) */
@@ -391,10 +443,10 @@
             cursor: copy !important;
         }
         
-        /* Folder tree styling */
+        /* Folder tree styling - compact Obsidian-like */
         .folder-item {
             user-select: none;
-            transition: all 0.2s ease;
+            border-radius: 4px;
         }
         
         .folder-item:hover {
@@ -406,8 +458,11 @@
         }
         
         .note-item {
-            padding-left: 1.5rem;
-            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+        
+        .note-item:hover {
+            background-color: var(--bg-hover);
         }
         
         /* Drag and drop improvements */
@@ -424,7 +479,7 @@
         /* Smooth transitions for drag states */
         .folder-item,
         .note-item {
-            transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
         }
         
         /* Better drop zone visibility */
@@ -794,25 +849,25 @@
             </div>
             
             <!-- Search -->
-            <div class="flex-shrink-0 p-3 border-b" style="border-color: var(--border-primary);">
+            <div class="flex-shrink-0 px-2 py-2 border-b" style="border-color: var(--border-primary);">
                 <div class="relative">
                     <input 
                         type="text" 
                         x-model="searchQuery"
                         @input="searchNotes()"
-                        placeholder="Search notes..."
-                        class="w-full px-3 py-2 pl-8 pr-8 text-sm rounded-lg focus:outline-none focus:ring-2"
+                        placeholder="Search..."
+                        class="w-full px-2 py-1.5 pl-7 pr-7 text-xs rounded focus:outline-none focus:ring-1"
                         style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary);"
                     >
                     <!-- Search Icon -->
-                    <svg class="absolute left-2 top-2.5 w-4 h-4" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="absolute left-2 top-2 w-3.5 h-3.5" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                     <!-- Clear Button -->
                     <button
                         x-show="searchQuery.length > 0"
                         @click="searchQuery = ''; searchResults = []; currentSearchHighlight = ''; clearSearchHighlights();"
-                        class="absolute right-2 top-2.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        class="absolute right-1.5 top-1.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         style="color: var(--text-tertiary);"
                         title="Clear search"
                     >
@@ -825,7 +880,7 @@
                 <!-- Match Navigation (shown when there are matches in current note) -->
                 <div 
                     x-show="totalMatches > 0" 
-                    class="flex items-center justify-between mt-2 px-2 py-1 rounded text-xs"
+                    class="flex items-center justify-between mt-1.5 px-2 py-0.5 rounded text-xs"
                     style="background-color: var(--bg-secondary); color: var(--text-secondary);"
                 >
                     <span x-text="`Match ${currentMatchIndex + 1} of ${totalMatches}`"></span>
@@ -923,16 +978,16 @@
             </div>
             
             <!-- New Item Dropdown -->
-            <div class="flex-shrink-0 p-3 border-b" style="border-color: var(--border-primary);">
+            <div class="flex-shrink-0 px-2 py-1.5 border-b" style="border-color: var(--border-primary);">
                 <button 
                     @click="dropdownTargetFolder = ''; toggleNewDropdown($event)"
-                    class="w-full px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 flex items-center justify-center gap-2"
+                    class="w-full px-3 py-1.5 text-xs font-medium text-white rounded focus:outline-none focus:ring-1 flex items-center justify-center gap-1.5"
                     style="background-color: var(--accent-primary);"
                     onmouseover="this.style.backgroundColor='var(--accent-hover)'"
                     onmouseout="this.style.backgroundColor='var(--accent-primary)'"
                 >
                     <span>+ New</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                 </button>
@@ -948,15 +1003,15 @@
                         </div>
                         <template x-for="note in searchResults" :key="note.path">
                             <div 
-                                @click="loadNote(note.path, true, searchQuery)"
-                                class="px-3 py-2 mb-1 text-sm rounded cursor-pointer"
+                                @click="openItem(note.path, note.type, searchQuery)"
+                                class="px-2 py-1.5 text-sm cursor-pointer rounded"
                                 :style="currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
                                 onmouseover="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='transparent'"
                                 :title="note.path"
                             >
                                 <div class="font-medium truncate" x-text="note.name"></div>
-                                <div class="text-xs truncate" style="color: var(--text-tertiary);" x-text="(note.matches && note.matches.length > 0) ? note.matches[0].context : (note.folder || 'Root')"></div>
+                                <div class="text-xs truncate" style="color: var(--text-tertiary);" x-html="(note.matches && note.matches.length > 0) ? note.matches[0].context : (note.folder || 'Root')"></div>
                             </div>
                         </template>
                     </div>
@@ -1062,8 +1117,8 @@
                                 draggable="true"
                                 @dragstart="onNoteDragStart(note.path, $event)"
                                 @dragend="onNoteDragEnd()"
-                                @click="note.type === 'image' ? viewImage(note.path) : loadNote(note.path)"
-                                class="note-item px-3 py-2 mb-1 text-sm rounded relative border-2 border-transparent"
+                                @click="openItem(note.path, note.type)"
+                                class="note-item px-2 py-1 text-sm relative border-2 border-transparent"
                                 :style="((note.type === 'image' ? currentImage === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type === 'image' ? ' opacity: 0.85;' : '') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
                                 @mouseover="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
                                 @mouseout="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='transparent'"
@@ -1097,18 +1152,28 @@
             
             <!-- Footer -->
             <div class="flex-shrink-0 p-3 border-t" style="border-color: var(--border-primary);">
-                <!-- Theme Selector (compact) -->
-                <select 
-                    x-model="currentTheme"
-                    @change="setTheme(currentTheme)"
-                    class="w-full px-2 py-1.5 text-xs rounded mb-2 focus:outline-none focus:ring-2 focus:ring-opacity-50"
-                    style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary); cursor: pointer;"
-                    title="Select theme"
-                >
-                    <template x-for="theme in availableThemes" :key="theme.id">
-                        <option :value="theme.id" x-text="theme.name"></option>
-                    </template>
-                </select>
+                <!-- Theme Selector and Graph Button -->
+                <div class="flex gap-2 mb-2">
+                    <select 
+                        x-model="currentTheme"
+                        @change="setTheme(currentTheme)"
+                        class="flex-1 px-2 py-1.5 text-xs rounded focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                        style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary); cursor: pointer;"
+                        title="Select theme"
+                    >
+                        <template x-for="theme in availableThemes" :key="theme.id">
+                            <option :value="theme.id" x-text="theme.name"></option>
+                        </template>
+                    </select>
+                    <button 
+                        @click="showGraph = true; initGraph()"
+                        class="px-2 py-1.5 text-xs rounded transition-colors"
+                        :style="showGraph ? 'background-color: var(--accent-primary); color: white;' : 'background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary);'"
+                        title="View note connections graph"
+                    >
+                        🔗
+                    </button>
+                </div>
                 
                 <!-- Stats -->
                 <div class="text-xs text-center" style="color: var(--text-tertiary);">
@@ -1140,7 +1205,36 @@
         ></div>
         
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden relative">
+            
+            <!-- Graph View Overlay (works from homepage or editor) -->
+            <div 
+                x-show="showGraph"
+                id="graph-overlay"
+                class="absolute inset-0"
+                style="background-color: var(--bg-primary); z-index: 50;"
+            >
+                <!-- Graph renders here via vis-network -->
+                <div x-show="!graphLoaded" class="flex items-center justify-center h-full">
+                    <div class="text-center" style="color: var(--text-secondary);">
+                        <svg class="animate-spin h-8 w-8 mx-auto mb-3" style="color: var(--accent-primary);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p>Loading graph...</p>
+                    </div>
+                </div>
+                <!-- Close button -->
+                <button 
+                    @click="showGraph = false"
+                    class="absolute top-4 left-4 px-3 py-2 text-sm font-medium rounded-lg transition-colors z-10"
+                    style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-primary);"
+                    onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                    onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
+                >
+                    ← Back
+                </button>
+            </div>
             
             <template x-if="!currentNote && !currentImage">
                 <!-- Notes Homepage -->
@@ -1310,7 +1404,7 @@
                                     <!-- Notes -->
                                     <template x-for="note in homepageNotes().slice(0, HOMEPAGE_MAX_NOTES)" :key="note.path">
                                         <div 
-                                            @click="note.path.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? (currentImage = note.path, currentNote = '') : loadNote(note.path)"
+                                            @click="openItem(note.path, note.type)"
                                             class="p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
                                             style="background-color: var(--bg-secondary); border-color: var(--border-primary); min-height: 140px; display: flex; flex-direction: column; position: relative;"
                                             onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.transform='translateY(-2px)'; this.querySelector('.card-delete-btn').style.opacity='1';"
@@ -1476,11 +1570,11 @@
                         </div>
                     </div>
                     
-                    <!-- Editor/Preview -->
+                    <!-- Editor/Preview/Graph -->
                     <div class="flex-1 flex relative" style="min-height: 0;">
                         <!-- Editor -->
                         <div 
-                            x-show="viewMode === 'edit' || viewMode === 'split'"
+                            x-show="!currentImage && (viewMode === 'edit' || viewMode === 'split')"
                             class="flex flex-col"
                             style="min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
@@ -1502,7 +1596,7 @@
                         
                         <!-- Split view resize handle -->
                         <div 
-                            x-show="viewMode === 'split'"
+                            x-show="!currentImage && viewMode === 'split'"
                             @mousedown="startSplitResize($event)"
                             class="split-resize-handle"
                             style="width: 6px; cursor: col-resize; background: linear-gradient(90deg, transparent 0%, var(--border-secondary) 50%, transparent 100%); transition: all 0.2s; position: relative; z-index: 10; opacity: 0.5;"
