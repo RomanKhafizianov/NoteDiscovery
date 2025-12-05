@@ -443,10 +443,10 @@
             cursor: copy !important;
         }
         
-        /* Folder tree styling */
+        /* Folder tree styling - compact Obsidian-like */
         .folder-item {
             user-select: none;
-            transition: all 0.2s ease;
+            border-radius: 4px;
         }
         
         .folder-item:hover {
@@ -458,8 +458,11 @@
         }
         
         .note-item {
-            padding-left: 1.5rem;
-            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+        
+        .note-item:hover {
+            background-color: var(--bg-hover);
         }
         
         /* Drag and drop improvements */
@@ -476,7 +479,7 @@
         /* Smooth transitions for drag states */
         .folder-item,
         .note-item {
-            transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
         }
         
         /* Better drop zone visibility */
@@ -1001,7 +1004,7 @@
                         <template x-for="note in searchResults" :key="note.path">
                             <div 
                                 @click="openItem(note.path, note.type, searchQuery)"
-                                class="px-3 py-2 mb-1 text-sm rounded cursor-pointer"
+                                class="px-2 py-1.5 text-sm cursor-pointer rounded"
                                 :style="currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
                                 onmouseover="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='transparent'"
@@ -1115,7 +1118,7 @@
                                 @dragstart="onNoteDragStart(note.path, $event)"
                                 @dragend="onNoteDragEnd()"
                                 @click="openItem(note.path, note.type)"
-                                class="note-item px-3 py-2 mb-1 text-sm rounded relative border-2 border-transparent"
+                                class="note-item px-2 py-1 text-sm relative border-2 border-transparent"
                                 :style="((note.type === 'image' ? currentImage === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type === 'image' ? ' opacity: 0.85;' : '') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
                                 @mouseover="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
                                 @mouseout="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='transparent'"

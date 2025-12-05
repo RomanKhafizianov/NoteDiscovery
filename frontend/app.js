@@ -982,7 +982,7 @@ function noteApp() {
                         @dragenter.prevent="dragOverFolder = '${folder.path.replace(/'/g, "\\'")}'"
                         @dragleave="dragOverFolder = null"
                         @drop.stop="onFolderDrop('${folder.path.replace(/'/g, "\\'")}' )"
-                        class="folder-item px-3 py-3 mb-1 text-sm rounded transition-all relative"
+                        class="folder-item px-2 py-1 text-sm relative"
                         style="color: var(--text-primary); cursor: pointer;"
                         :class="{
                             'border-2 border-dashed bg-accent-light': (draggedNote || draggedFolder) && dragOverFolder === '${folder.path.replace(/'/g, "\\'")}',
@@ -1040,7 +1040,7 @@ function noteApp() {
             
             // If expanded, render folder contents (child folders + notes)
             if (isExpanded) {
-                html += `<div class="folder-contents" style="padding-left: 12px;">`;
+                html += `<div class="folder-contents" style="padding-left: 10px;">`;
                 
                 // First, render child folders (if any)
                 if (folder.children && Object.keys(folder.children).length > 0) {
@@ -1080,7 +1080,7 @@ function noteApp() {
                                 @dragstart="onNoteDragStart('${note.path.replace(/'/g, "\\'")}', $event)"
                                 @dragend="onNoteDragEnd()"
                                 @click="${clickHandler}"
-                                class="note-item px-3 py-2 mb-1 text-sm rounded relative border-2 border-transparent"
+                                class="note-item px-2 py-1 text-sm relative border-2 border-transparent"
                                 style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isImage ? 'opacity: 0.85;' : ''} cursor: pointer;"
                                 @mouseover="if('${note.path}' !== currentNote && '${note.path}' !== currentImage) $el.style.backgroundColor='var(--bg-hover)'"
                                 @mouseout="if('${note.path}' !== currentNote && '${note.path}' !== currentImage) $el.style.backgroundColor='transparent'"
@@ -1169,7 +1169,7 @@ function noteApp() {
                 const sidebar = document.querySelector('.flex-1.overflow-y-auto.custom-scrollbar');
                 if (!sidebar) return;
                 
-                const noteElements = sidebar.querySelectorAll('[class*="px-3 py-2 mb-1"]');
+                const noteElements = sidebar.querySelectorAll('.note-item');
                 let targetElement = null;
                 const noteName = notePath.split('/').pop().replace('.md', '');
                 
