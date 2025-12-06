@@ -60,6 +60,9 @@ function noteApp() {
         currentTheme: 'light',
         availableThemes: [],
         
+        // Icon rail / panel state
+        activePanel: 'files', // 'files', 'search', 'tags', 'settings'
+        
         // Folder state
         folderTree: [],
         allFolders: [],
