@@ -2573,7 +2573,21 @@ function noteApp() {
                         startOnLoad: false,
                         theme: mermaidTheme,
                         securityLevel: 'strict', // Use strict for better security
-                        fontFamily: 'inherit'
+                        fontFamily: 'inherit',
+                        // v11 changed useMaxWidth defaults - restore responsive behavior
+                        flowchart: { useMaxWidth: true },
+                        sequence: { useMaxWidth: true },
+                        gantt: { useMaxWidth: true },
+                        journey: { useMaxWidth: true },
+                        timeline: { useMaxWidth: true },
+                        class: { useMaxWidth: true },
+                        state: { useMaxWidth: true },
+                        er: { useMaxWidth: true },
+                        pie: { useMaxWidth: true },
+                        quadrantChart: { useMaxWidth: true },
+                        requirement: { useMaxWidth: true },
+                        mindmap: { useMaxWidth: true },
+                        gitGraph: { useMaxWidth: true }
                     });
                     this.lastMermaidTheme = mermaidTheme;
                 }
@@ -3659,15 +3673,23 @@ function noteApp() {
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
     
-    <!-- Mermaid.js for diagrams (v10.9.0) -->
+    <!-- Mermaid.js for diagrams -->
     <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.esm.min.mjs';
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.esm.min.mjs';
         const isDark = ${this.getThemeType() === 'dark'};
         mermaid.initialize({ 
             startOnLoad: false,
             theme: isDark ? 'dark' : 'default',
             securityLevel: 'strict',
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
+            flowchart: { useMaxWidth: true },
+            sequence: { useMaxWidth: true },
+            gantt: { useMaxWidth: true },
+            state: { useMaxWidth: true },
+            er: { useMaxWidth: true },
+            pie: { useMaxWidth: true },
+            mindmap: { useMaxWidth: true },
+            gitGraph: { useMaxWidth: true }
         });
         
         // Render any Mermaid code blocks
