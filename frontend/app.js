@@ -36,6 +36,7 @@ function noteApp() {
         appName: 'NoteDiscovery',
         appTagline: 'Your Self-Hosted Knowledge Base',
         appVersion: '0.0.0',
+        authEnabled: false,
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -465,6 +466,7 @@ function noteApp() {
                 this.appName = config.name;
                 this.appTagline = config.tagline;
                 this.appVersion = config.version || '0.0.0';
+                this.authEnabled = config.authentication?.enabled || false;
             } catch (error) {
                 console.error('Failed to load config:', error);
             }
