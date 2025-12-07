@@ -146,3 +146,8 @@ git push origin "v$Version"
 Write-Host "`nRelease $Version completed successfully!" -ForegroundColor Green
 Write-Host "Tag: v$Version" -ForegroundColor Cyan
 
+# Open GitHub Actions page to monitor build status
+$actionsUrl = "https://github.com/gamosoft/NoteDiscovery/actions"
+Write-Host "`nOpening GitHub Actions to monitor build status..." -ForegroundColor Yellow
+Start-Process $actionsUrl
+
