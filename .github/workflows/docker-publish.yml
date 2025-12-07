@@ -131,12 +131,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Restart Hugging Face Space
-        if: success()
-        run: |
-          echo "Triggering HF Space restart to pull latest image..."
-          curl -X POST \
-            "https://huggingface.co/api/spaces/${{ vars.HF_SPACE_ID }}/restart" \
-            -H "Authorization: Bearer ${{ secrets.HF_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --fail-with-body || echo "HF Space restart failed (Space may not exist or token invalid)"
+  # Restart HF Space after successful build
+  restart-hf-space:
+    needs: build-and-push
+    if: success()
+    uses: ./.github/workflows/hf-space-restart.yml
+    secrets: inherit
