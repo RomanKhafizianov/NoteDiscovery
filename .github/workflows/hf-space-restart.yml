@@ -1,4 +1,4 @@
-name: Restart Hugging Face Space
+name: Rebuild Hugging Face Space
 
 on:
   # Can be called from other workflows
@@ -10,12 +10,12 @@ on:
     - cron: '0 0 * * *'  # Daily at midnight UTC
 
 jobs:
-  restart-space:
+  rebuild-space:
     runs-on: ubuntu-latest
     steps:
-      - name: Restart Hugging Face Space
+      - name: Rebuild Hugging Face Space
         run: |
-          echo "Triggering HF Space restart to pull latest image..."
+          echo "Triggering HF Space factory rebuild to pull latest image..."
           
           if [ -z "${{ vars.HF_SPACE_ID }}" ]; then
             echo "::warning::HF_SPACE_ID variable not set. Skipping HF restart."
@@ -28,7 +28,7 @@ jobs:
           fi
           
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://huggingface.co/api/spaces/${{ vars.HF_SPACE_ID }}/restart" \
+            "https://huggingface.co/api/spaces/${{ vars.HF_SPACE_ID }}/restart?factory=true" \
             -H "Authorization: Bearer ${{ secrets.HF_TOKEN }}" \
             -H "Content-Type: application/json")
           
@@ -36,10 +36,10 @@ jobs:
           BODY=$(echo "$RESPONSE" | sed '$d')
           
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "✅ HF Space restart triggered successfully!"
+            echo "✅ HF Space factory rebuild triggered successfully!"
             echo "Space: ${{ vars.HF_SPACE_ID }}"
           else
-            echo "::warning::HF Space restart failed (HTTP $HTTP_CODE)"
+            echo "::warning::HF Space rebuild failed (HTTP $HTTP_CODE)"
             echo "Response: $BODY"
             echo "Space may not exist or token may be invalid."
           fi
