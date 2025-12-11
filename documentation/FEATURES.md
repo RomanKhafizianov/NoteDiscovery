@@ -275,6 +275,7 @@ date: {{date}}
 | `Ctrl+B` | `Cmd+B` | Bold | `**text**` |
 | `Ctrl+I` | `Cmd+I` | Italic | `*text*` |
 | `Ctrl+K` | `Cmd+K` | Insert link | `[text](url)` |
+| `Ctrl+Alt+T` | `Cmd+Option+T` | Insert table | 3x3 table placeholder |
 
 ## 🚀 Performance
 

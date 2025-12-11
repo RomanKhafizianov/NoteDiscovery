@@ -461,6 +461,12 @@ function noteApp() {
                             e.preventDefault();
                             this.insertLink();
                         }
+                        
+                        // Ctrl/Cmd + Alt + T for table
+                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 't') {
+                            e.preventDefault();
+                            this.insertTable();
+                        }
                     }
                 });
             }
@@ -2541,6 +2547,39 @@ function noteApp() {
                 const urlStart = start + linkText.length + 3; // After "[linkText]("
                 const urlEnd = urlStart + linkUrl.length;
                 editor.setSelectionRange(urlStart, urlEnd);
+                editor.focus();
+            });
+            
+            // Trigger autosave
+            this.autoSave();
+        },
+        
+        // Insert a markdown table placeholder
+        insertTable() {
+            const editor = document.getElementById('note-editor');
+            if (!editor) return;
+            
+            const cursorPos = editor.selectionStart;
+            
+            // Basic 3x3 table placeholder
+            const table = `| Header 1 | Header 2 | Header 3 |
+|----------|----------|----------|
+| Cell 1   | Cell 2   | Cell 3   |
+| Cell 4   | Cell 5   | Cell 6   |
+`;
+            
+            // Add newline before if not at start of line
+            const textBefore = this.noteContent.substring(0, cursorPos);
+            const needsNewlineBefore = textBefore.length > 0 && !textBefore.endsWith('\n');
+            const prefix = needsNewlineBefore ? '\n\n' : '';
+            
+            // Insert the table
+            this.noteContent = textBefore + prefix + table + this.noteContent.substring(cursorPos);
+            
+            // Position cursor at first header for easy editing
+            this.$nextTick(() => {
+                const newPos = cursorPos + prefix.length + 2; // After "| "
+                editor.setSelectionRange(newPos, newPos + 8); // Select "Header 1"
                 editor.focus();
             });
             
