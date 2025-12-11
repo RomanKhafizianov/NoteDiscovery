@@ -86,6 +86,10 @@ def move_note(notes_dir: str, old_path: str, new_path: str) -> bool:
     if not old_full_path.exists():
         return False
     
+    # Check if target already exists (prevent overwriting)
+    if new_full_path.exists():
+        return False
+    
     # Invalidate cache for old path
     old_key = str(old_full_path)
     if old_key in _tag_cache:

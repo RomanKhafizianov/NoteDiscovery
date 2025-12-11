@@ -2615,6 +2615,15 @@ function noteApp() {
             
             if (oldPath === newPath) return;
             
+            // Check if a note with the new name already exists
+            const existingNote = this.notes.find(n => n.path.toLowerCase() === newPath.toLowerCase());
+            if (existingNote) {
+                alert(`A note named "${newName}" already exists in this folder.`);
+                // Reset the name in the UI
+                this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
+                return;
+            }
+            
             // Create new note with same content
             try {
                 const response = await fetch(`/api/notes/${newPath}`, {
