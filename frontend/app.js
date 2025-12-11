@@ -1419,9 +1419,8 @@ function noteApp() {
             if (isImage) {
                 // For images, insert image markdown
                 const filename = notePath.split('/').pop().replace(/\.[^/.]+$/, ''); // Remove extension
-                // URL-encode the path to handle spaces and special characters
-                const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-                link = `![${filename}](/api/images/${encodedPath})`;
+                // Use relative path (not /api/images/) for portability
+                link = `![${filename}](${notePath})`;
             } else {
                 // For notes, insert note link
                 const noteName = notePath.split('/').pop().replace('.md', '');
@@ -1511,9 +1510,8 @@ function noteApp() {
         // Insert image markdown at cursor position
         insertImageMarkdown(imagePath, altText, cursorPos) {
             const filename = altText.replace(/\.[^/.]+$/, ''); // Remove extension
-            // URL-encode the path to handle spaces and special characters
-            const encodedPath = imagePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-            const markdown = `![${filename}](/api/images/${encodedPath})`;
+            // Use relative path (not /api/images/) for portability
+            const markdown = `![${filename}](${imagePath})`;
             
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
@@ -2922,9 +2920,22 @@ function noteApp() {
                 }
             });
             
-            // Find all images and add title attribute from alt text for hover tooltips
+            // Find all images and transform paths for display
             const images = tempDiv.querySelectorAll('img');
             images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src) {
+                    // Transform relative paths to /api/images/ for serving
+                    // Skip external URLs and already-transformed paths
+                    if (!src.startsWith('http://') && !src.startsWith('https://') && 
+                        !src.startsWith('//') && !src.startsWith('/api/images/') &&
+                        !src.startsWith('data:')) {
+                        // URL-encode path segments to handle spaces and special characters
+                        const encodedPath = src.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                        img.setAttribute('src', `/api/images/${encodedPath}`);
+                    }
+                }
+                
                 const altText = img.getAttribute('alt');
                 if (altText) {
                     // Set title attribute to show alt text on hover
@@ -3730,7 +3741,35 @@ function noteApp() {
                 const noteName = this.currentNoteName || 'note';
                 
                 // Get current rendered HTML (this already has markdown converted and will have LaTeX delimiters)
-                const renderedHTML = this.renderedMarkdown;
+                let renderedHTML = this.renderedMarkdown;
+                
+                // Embed local images as base64 for fully self-contained HTML
+                const imgRegex = /src="\/api\/images\/([^"]+)"/g;
+                const imgMatches = [...renderedHTML.matchAll(imgRegex)];
+                
+                for (const match of imgMatches) {
+                    const encodedPath = match[1];
+                    try {
+                        // Fetch the image
+                        const imgResponse = await fetch(`/api/images/${encodedPath}`);
+                        if (imgResponse.ok) {
+                            const blob = await imgResponse.blob();
+                            // Convert to base64 data URL
+                            const base64 = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result);
+                                reader.readAsDataURL(blob);
+                            });
+                            // Replace the src with base64 data URL
+                            renderedHTML = renderedHTML.replace(match[0], `src="${base64}"`);
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to embed image: ${encodedPath}`, e);
+                        // Fall back to relative path
+                        const decodedPath = decodeURIComponent(encodedPath);
+                        renderedHTML = renderedHTML.replace(match[0], `src="${decodedPath}"`);
+                    }
+                }
                 
                 // Get current theme CSS
                 const currentTheme = this.currentTheme || 'light';
