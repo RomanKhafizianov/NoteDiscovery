@@ -267,7 +267,7 @@ date: {{date}}
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
 | `Ctrl+Z` | `Cmd+Z` | Undo |
-| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
+| `Ctrl+Y` | `Cmd+Y` | Redo |
 | `Ctrl+Shift+Z` | `Cmd+Shift+Z` | Toggle Zen Mode |
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |

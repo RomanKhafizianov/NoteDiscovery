@@ -452,8 +452,8 @@ function noteApp() {
                         this.undo();
                     }
                     
-                    // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for redo
-                    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+                    // Ctrl/Cmd + Y for redo (Ctrl+Shift+Z now opens Zen mode)
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
                         e.preventDefault();
                         this.redo();
                     }
