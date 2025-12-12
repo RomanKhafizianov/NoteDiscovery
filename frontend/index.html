@@ -1848,28 +1848,43 @@
                                 </button>
                             </div>
                             
-                            <!-- Export HTML Button -->
-                            <button 
-                                @click="exportToHTML()"
-                                class="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded transition hover:opacity-80"
-                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="Export as HTML"
-                            >
-                                <span class="hidden md:inline">📄 Export HTML</span>
-                                <span class="md:hidden">📄</span>
-                            </button>
-                            
-                            <!-- Copy Link Button -->
-                            <button 
-                                @click="copyNoteLink()"
+                            <!-- Note Actions Toolbar -->
+                            <div 
                                 x-show="currentNote"
-                                class="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded transition hover:opacity-80"
-                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="Copy link to clipboard"
+                                class="flex items-center rounded overflow-hidden"
+                                style="background-color: var(--bg-tertiary); border: 1px solid var(--border-primary);"
                             >
-                                <span class="hidden md:inline">🔗 Copy Link</span>
-                                <span class="md:hidden">🔗</span>
-                            </button>
+                                <button 
+                                    @click="exportToHTML()"
+                                    class="p-2 transition"
+                                    style="color: var(--text-secondary);"
+                                    title="Export as HTML"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </button>
+                                <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
+                                <button 
+                                    @click="copyNoteLink()"
+                                    class="p-2 transition hover:bg-opacity-80"
+                                    :title="linkCopied ? 'Copied!' : 'Copy link to clipboard'"
+                                    :style="'color: ' + (linkCopied ? 'var(--success, #22c55e)' : 'var(--text-secondary)') + ';'"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <!-- Link icon (default) -->
+                                    <svg x-show="!linkCopied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                    </svg>
+                                    <!-- Checkmark icon (after copy) -->
+                                    <svg x-show="linkCopied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     

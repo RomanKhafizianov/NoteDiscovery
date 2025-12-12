@@ -55,6 +55,7 @@ function noteApp() {
         totalMatches: 0, // Total number of matches in the note
         isSaving: false,
         lastSaved: false,
+        linkCopied: false,
         saveTimeout: null,
         
         // Theme state
@@ -4016,10 +4017,7 @@ function noteApp() {
         
         // Copy current note link to clipboard
         async copyNoteLink() {
-            if (!this.currentNote) {
-                alert('No note selected');
-                return;
-            }
+            if (!this.currentNote) return;
             
             // Build the full URL
             const pathWithoutExtension = this.currentNote.replace('.md', '');
@@ -4028,14 +4026,6 @@ function noteApp() {
             
             try {
                 await navigator.clipboard.writeText(url);
-                
-                // Brief visual feedback (change button text temporarily)
-                const btn = event.target.closest('button');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<span class="hidden md:inline">✓ Copied!</span><span class="md:hidden">✓</span>';
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                }, 1500);
             } catch (error) {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
@@ -4044,8 +4034,13 @@ function noteApp() {
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('Link copied to clipboard!');
             }
+            
+            // Show brief "Copied!" feedback
+            this.linkCopied = true;
+            setTimeout(() => {
+                this.linkCopied = false;
+            }, 1500);
         },
         
         // Homepage folder navigation methods
