@@ -55,6 +55,7 @@ function noteApp() {
         totalMatches: 0, // Total number of matches in the note
         isSaving: false,
         lastSaved: false,
+        linkCopied: false,
         saveTimeout: null,
         
         // Theme state
@@ -460,6 +461,12 @@ function noteApp() {
                         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                             e.preventDefault();
                             this.insertLink();
+                        }
+                        
+                        // Ctrl/Cmd + Alt + T for table
+                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 't') {
+                            e.preventDefault();
+                            this.insertTable();
                         }
                     }
                 });
@@ -2548,6 +2555,39 @@ function noteApp() {
             this.autoSave();
         },
         
+        // Insert a markdown table placeholder
+        insertTable() {
+            const editor = document.getElementById('note-editor');
+            if (!editor) return;
+            
+            const cursorPos = editor.selectionStart;
+            
+            // Basic 3x3 table placeholder
+            const table = `| Header 1 | Header 2 | Header 3 |
+|----------|----------|----------|
+| Cell 1   | Cell 2   | Cell 3   |
+| Cell 4   | Cell 5   | Cell 6   |
+`;
+            
+            // Add newline before if not at start of line
+            const textBefore = this.noteContent.substring(0, cursorPos);
+            const needsNewlineBefore = textBefore.length > 0 && !textBefore.endsWith('\n');
+            const prefix = needsNewlineBefore ? '\n\n' : '';
+            
+            // Insert the table
+            this.noteContent = textBefore + prefix + table + this.noteContent.substring(cursorPos);
+            
+            // Position cursor at first header for easy editing
+            this.$nextTick(() => {
+                const newPos = cursorPos + prefix.length + 2; // After "| "
+                editor.setSelectionRange(newPos, newPos + 8); // Select "Header 1"
+                editor.focus();
+            });
+            
+            // Trigger autosave
+            this.autoSave();
+        },
+        
         // Save current note
         async saveNote() {
             if (!this.currentNote) return;
@@ -3973,6 +4013,34 @@ function noteApp() {
                 console.error('HTML export failed:', error);
                 alert(`Failed to export HTML: ${error.message}`);
             }
+        },
+        
+        // Copy current note link to clipboard
+        async copyNoteLink() {
+            if (!this.currentNote) return;
+            
+            // Build the full URL
+            const pathWithoutExtension = this.currentNote.replace('.md', '');
+            const encodedPath = pathWithoutExtension.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            const url = `${window.location.origin}/${encodedPath}`;
+            
+            try {
+                await navigator.clipboard.writeText(url);
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            
+            // Show brief "Copied!" feedback
+            this.linkCopied = true;
+            setTimeout(() => {
+                this.linkCopied = false;
+            }, 1500);
         },
         
         // Homepage folder navigation methods
