@@ -1889,6 +1889,7 @@
                             </button>
                             <span x-show="isSaving" class="text-xs" style="color: var(--text-secondary);">Saving...</span>
                             <span x-show="!isSaving && lastSaved" class="text-xs" style="color: var(--success);">✓ Saved</span>
+                            <span x-show="!isSaving && !lastSaved && lastEditedText" class="text-xs hidden md:inline" style="color: var(--text-tertiary);" x-text="'Edited ' + lastEditedText"></span>
                         </div>
                         
                         <!-- Demo Mode Warning Banner -->

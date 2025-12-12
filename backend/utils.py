@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # In-memory cache for parsed tags
@@ -201,7 +201,7 @@ def get_all_notes(notes_dir: str) -> List[Dict]:
             "name": md_file.stem,
             "path": str(relative_path.as_posix()),
             "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
-            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
             "size": stat.st_size,
             "type": "note",
             "tags": tags
@@ -354,8 +354,8 @@ def create_note_metadata(notes_dir: str, note_path: str) -> Dict:
         line_count = sum(1 for _ in f)
     
     return {
-        "created": datetime.fromtimestamp(stat.st_ctime).isoformat(),
-        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+        "created": datetime.fromtimestamp(stat.st_ctime, tz=timezone.utc).isoformat(),
+        "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
         "size": stat.st_size,
         "lines": line_count
     }
@@ -477,7 +477,7 @@ def get_all_images(notes_dir: str) -> List[Dict]:
                     "name": image_file.name,
                     "path": str(relative_path.as_posix()),
                     "folder": str(relative_path.parent.as_posix()),
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
                     "size": stat.st_size,
                     "type": "image"
                 })
@@ -667,7 +667,7 @@ def get_notes_by_tag(notes_dir: str, tag: str) -> List[Dict]:
                 "name": md_file.stem,
                 "path": str(relative_path.as_posix()),
                 "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
-                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
                 "size": stat.st_size,
                 "tags": tags
             })
@@ -712,7 +712,7 @@ def get_templates(notes_dir: str) -> List[Dict]:
                 templates.append({
                     "name": template_file.stem,
                     "path": str(template_file.relative_to(notes_dir).as_posix()),
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                    "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
                 })
             except Exception as e:
                 print(f"Error reading template {template_file}: {e}")

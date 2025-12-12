@@ -940,6 +940,29 @@ function noteApp() {
             return note && note.tags ? note.tags : [];
         },
         
+        // Get current note's last modified time as relative string
+        get lastEditedText() {
+            if (!this.currentNote) return '';
+            const note = this.notes.find(n => n.path === this.currentNote);
+            if (!note || !note.modified) return '';
+            
+            const modified = new Date(note.modified);
+            const now = new Date();
+            const diffMs = now - modified;
+            const diffSecs = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(diffSecs / 60);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffSecs < 60) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            // For older dates, show the date
+            return modified.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        },
+        
         // Parse tags from markdown content (matches backend logic)
         parseTagsFromContent(content) {
             if (!content || !content.trim().startsWith('---')) {

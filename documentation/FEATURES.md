@@ -50,6 +50,7 @@
 - **Shareable links** - Bookmark or share direct links to notes with highlighted terms
 - **Refresh safe** - Page reload keeps you on the same note with search context
 - **Copy link button** - One-click copy of note URL to clipboard
+- **Last edited indicator** - Shows relative time since last edit (e.g., "Edited 2h ago")
 
 ## 🎨 Customization
 
