@@ -470,6 +470,67 @@
             background-color: var(--bg-primary);
             z-index: 0;
         }
+        
+        /* Zen Mode Styles */
+        .zen-mode-active {
+            background-color: var(--bg-primary);
+        }
+        .zen-mode-active .zen-hide {
+            display: none !important;
+        }
+        .zen-mode-active .zen-editor-container {
+            width: 100%;
+            margin: 0;
+            padding: 2rem 4rem;
+            height: 100vh;
+        }
+        .zen-mode-active .zen-editor-container .editor-wrapper {
+            background-color: var(--bg-primary);
+        }
+        .zen-mode-active .zen-editor-container .editor-textarea {
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .zen-mode-active .zen-editor-container .syntax-overlay {
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .zen-exit-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+            z-index: 9999;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .zen-exit-button:hover {
+            opacity: 1 !important;
+            background-color: var(--bg-secondary);
+            transform: scale(1.05);
+        }
+        .zen-mode-active:hover .zen-exit-button {
+            opacity: 0.6;
+        }
+        
+        /* Zen mode fade transition */
+        .zen-fade-enter {
+            animation: zenFadeIn 0.3s ease-out;
+        }
+        @keyframes zenFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
         /* Syntax highlight colors using theme variables */
         .syntax-overlay .md-heading { color: var(--accent-primary); font-weight: 600; }
         .syntax-overlay .md-bold { color: var(--text-primary); font-weight: 700; }
@@ -1000,7 +1061,23 @@
         }
     </style>
 </head>
-<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);">
+<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);" :class="{'zen-mode-active': zenMode}">
+    
+    <!-- Zen Mode Exit Button -->
+    <button 
+        x-show="zenMode"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-60 translate-y-0"
+        @click="toggleZenMode()"
+        class="zen-exit-button"
+        title="Exit Zen Mode (Esc)"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span>Exit Zen</span>
+    </button>
     
     <!-- Mobile Overlay -->
     <div 
@@ -1014,7 +1091,7 @@
         
         <!-- Sidebar with Icon Rail -->
         <div 
-            class="flex mobile-sidebar" 
+            class="flex mobile-sidebar zen-hide" 
             :class="{'mobile-sidebar-open': mobileSidebarOpen}"
             :style="'width: ' + sidebarWidth + 'px; background-color: var(--bg-secondary); min-width: 200px; max-width: 600px;'"
         >
@@ -1741,9 +1818,9 @@
             
             <template x-if="currentNote || currentImage">
                 <!-- Editor Area -->
-                <div class="flex-1 flex flex-col overflow-hidden" style="background-color: var(--bg-primary);">
+                <div class="flex-1 flex flex-col overflow-hidden" :class="{'zen-editor-container': zenMode}" style="background-color: var(--bg-primary);">
                     <!-- Toolbar -->
-                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
+                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar zen-hide" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
                         <div class="flex items-center space-x-2">
                             <!-- Mobile Menu Button -->
                             <button 
@@ -1888,6 +1965,20 @@
                                     <!-- Checkmark icon (after copy) -->
                                     <svg x-show="linkCopied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
+                                <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
+                                <button 
+                                    @click="toggleZenMode()"
+                                    class="p-2 transition"
+                                    style="color: var(--text-secondary);"
+                                    title="Zen Mode (Ctrl+Shift+Z)"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <!-- Expand/Focus icon -->
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
                                     </svg>
                                 </button>
                             </div>
@@ -2082,7 +2173,7 @@
                     
                     <!-- Stats Status Bar (only shows if plugin enabled) -->
                     <div x-show="statsPluginEnabled && currentNote && noteStats" 
-                         class="border-t"
+                         class="border-t zen-hide"
                          style="background-color: var(--bg-secondary); border-color: var(--border-primary);">
                         
                         <!-- Collapsed State (default) -->

@@ -56,6 +56,8 @@ function noteApp() {
         isSaving: false,
         lastSaved: false,
         linkCopied: false,
+        zenMode: false,
+        previousViewMode: 'split',
         saveTimeout: null,
         
         // Theme state
@@ -468,6 +470,18 @@ function noteApp() {
                             e.preventDefault();
                             this.insertTable();
                         }
+                        
+                        // Ctrl/Cmd + Shift + Z for Zen mode (only when note is open)
+                        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
+                            e.preventDefault();
+                            this.toggleZenMode();
+                        }
+                    }
+                    
+                    // Escape to exit Zen mode (works anywhere)
+                    if (e.key === 'Escape' && this.zenMode) {
+                        e.preventDefault();
+                        this.toggleZenMode();
                     }
                 });
             }
@@ -482,6 +496,15 @@ function noteApp() {
                     }
                 });
             }
+            
+            // Listen for fullscreen changes (to sync zen mode state)
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement && this.zenMode) {
+                    // User exited fullscreen manually, exit zen mode too
+                    this.zenMode = false;
+                    this.viewMode = this.previousViewMode;
+                }
+            });
         },
         
         // Load app configuration
@@ -4041,6 +4064,55 @@ function noteApp() {
             setTimeout(() => {
                 this.linkCopied = false;
             }, 1500);
+        },
+        
+        // Toggle Zen Mode (full immersive writing experience)
+        async toggleZenMode() {
+            if (!this.zenMode) {
+                // Entering Zen Mode
+                this.previousViewMode = this.viewMode;
+                this.viewMode = 'edit';
+                this.mobileSidebarOpen = false;
+                this.zenMode = true;
+                
+                // Request fullscreen
+                try {
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) {
+                        await elem.requestFullscreen();
+                    } else if (elem.webkitRequestFullscreen) {
+                        await elem.webkitRequestFullscreen();
+                    } else if (elem.msRequestFullscreen) {
+                        await elem.msRequestFullscreen();
+                    }
+                } catch (e) {
+                    // Fullscreen not supported or denied, continue anyway
+                    console.log('Fullscreen not available:', e);
+                }
+                
+                // Focus editor after transition
+                setTimeout(() => {
+                    const editor = document.getElementById('note-editor');
+                    if (editor) editor.focus();
+                }, 300);
+            } else {
+                // Exiting Zen Mode
+                this.zenMode = false;
+                this.viewMode = this.previousViewMode;
+                
+                // Exit fullscreen
+                try {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        await document.msExitFullscreen();
+                    }
+                } catch (e) {
+                    console.log('Exit fullscreen error:', e);
+                }
+            }
         },
         
         // Homepage folder navigation methods
