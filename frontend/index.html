@@ -1852,11 +1852,23 @@
                             <button 
                                 @click="exportToHTML()"
                                 class="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded transition hover:opacity-80"
-                                style="background-color: var(--accent-secondary); color: var(--text-primary);"
+                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="Export as HTML"
                             >
                                 <span class="hidden md:inline">📄 Export HTML</span>
                                 <span class="md:hidden">📄</span>
+                            </button>
+                            
+                            <!-- Copy Link Button -->
+                            <button 
+                                @click="copyNoteLink()"
+                                x-show="currentNote"
+                                class="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded transition hover:opacity-80"
+                                style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
+                                title="Copy link to clipboard"
+                            >
+                                <span class="hidden md:inline">🔗 Copy Link</span>
+                                <span class="md:hidden">🔗</span>
                             </button>
                         </div>
                     </div>

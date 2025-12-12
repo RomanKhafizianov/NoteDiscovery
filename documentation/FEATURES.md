@@ -49,6 +49,7 @@
 - **Browser history** - Back/forward buttons navigate between notes
 - **Shareable links** - Bookmark or share direct links to notes with highlighted terms
 - **Refresh safe** - Page reload keeps you on the same note with search context
+- **Copy link button** - One-click copy of note URL to clipboard
 
 ## 🎨 Customization
 

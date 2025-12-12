@@ -4014,6 +4014,40 @@ function noteApp() {
             }
         },
         
+        // Copy current note link to clipboard
+        async copyNoteLink() {
+            if (!this.currentNote) {
+                alert('No note selected');
+                return;
+            }
+            
+            // Build the full URL
+            const pathWithoutExtension = this.currentNote.replace('.md', '');
+            const encodedPath = pathWithoutExtension.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            const url = `${window.location.origin}/${encodedPath}`;
+            
+            try {
+                await navigator.clipboard.writeText(url);
+                
+                // Brief visual feedback (change button text temporarily)
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<span class="hidden md:inline">✓ Copied!</span><span class="md:hidden">✓</span>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 1500);
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Link copied to clipboard!');
+            }
+        },
+        
         // Homepage folder navigation methods
         goToHomepageFolder(folderPath) {
             this.showGraph = false; // Close graph when navigating
