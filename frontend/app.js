@@ -58,7 +58,26 @@ function noteApp() {
         linkCopied: false,
         zenMode: false,
         previousViewMode: 'split',
+        favorites: [],
+        favoritesSet: new Set(), // For O(1) lookups
+        favoritesExpanded: true,
         saveTimeout: null,
+        
+        // Note lookup maps for O(1) wikilink resolution (built on loadNotes)
+        _noteLookup: {
+            byPath: new Map(),           // path -> true
+            byPathLower: new Map(),      // path.toLowerCase() -> true
+            byName: new Map(),           // name (without .md) -> true  
+            byNameLower: new Map(),      // name.toLowerCase() -> true
+            byEndPath: new Map(),        // '/filename' and '/filename.md' -> true
+        },
+        
+        // Preview rendering debounce
+        _previewDebounceTimeout: null,
+        _lastRenderedContent: '',
+        _cachedRenderedHTML: '',
+        _mathDebounceTimeout: null,
+        _mermaidDebounceTimeout: null,
         
         // Theme state
         currentTheme: 'light',
@@ -308,6 +327,8 @@ function noteApp() {
             this.loadEditorWidth();
             this.loadViewMode();
             this.loadTagsExpanded();
+            this.loadFavorites();
+            this.loadFavoritesExpanded();
             this.loadSyntaxHighlightSetting();
             
             // Parse URL and load specific note if provided
@@ -396,6 +417,11 @@ function noteApp() {
             // Watch tags panel expanded state and save to localStorage
             this.$watch('tagsExpanded', () => {
                 this.saveTagsExpanded();
+            });
+            
+            // Watch favorites expanded state and save to localStorage
+            this.$watch('favoritesExpanded', () => {
+                this.saveFavoritesExpanded();
             });
             
             // Setup keyboard shortcuts (only once to prevent double triggers)
@@ -730,11 +756,62 @@ function noteApp() {
                 const data = await response.json();
                 this.notes = data.notes;
                 this.allFolders = data.folders || [];
+                this.buildNoteLookupMaps(); // Build O(1) lookup maps
                 this.buildFolderTree();
                 await this.loadTags(); // Load tags after notes are loaded
             } catch (error) {
                 ErrorHandler.handle('load notes', error);
             }
+        },
+        
+        // Build lookup maps for O(1) wikilink resolution
+        buildNoteLookupMaps() {
+            // Clear existing maps
+            this._noteLookup.byPath.clear();
+            this._noteLookup.byPathLower.clear();
+            this._noteLookup.byName.clear();
+            this._noteLookup.byNameLower.clear();
+            this._noteLookup.byEndPath.clear();
+            
+            for (const note of this.notes) {
+                const path = note.path;
+                const pathLower = path.toLowerCase();
+                const name = note.name;
+                const nameLower = name.toLowerCase();
+                const nameWithoutMd = name.replace(/\.md$/i, '');
+                const nameWithoutMdLower = nameWithoutMd.toLowerCase();
+                
+                // Store all variations for fast lookup
+                this._noteLookup.byPath.set(path, true);
+                this._noteLookup.byPath.set(path.replace(/\.md$/i, ''), true);
+                this._noteLookup.byPathLower.set(pathLower, true);
+                this._noteLookup.byPathLower.set(pathLower.replace(/\.md$/i, ''), true);
+                this._noteLookup.byName.set(name, true);
+                this._noteLookup.byName.set(nameWithoutMd, true);
+                this._noteLookup.byNameLower.set(nameLower, true);
+                this._noteLookup.byNameLower.set(nameWithoutMdLower, true);
+                
+                // End path matching (for /folder/note style links)
+                this._noteLookup.byEndPath.set('/' + nameWithoutMdLower, true);
+                this._noteLookup.byEndPath.set('/' + nameLower, true);
+            }
+        },
+        
+        // Fast O(1) check if a wikilink target exists
+        wikiLinkExists(linkTarget) {
+            const targetLower = linkTarget.toLowerCase();
+            
+            // Check all lookup maps
+            return (
+                this._noteLookup.byPath.has(linkTarget) ||
+                this._noteLookup.byPath.has(linkTarget + '.md') ||
+                this._noteLookup.byPathLower.has(targetLower) ||
+                this._noteLookup.byPathLower.has(targetLower + '.md') ||
+                this._noteLookup.byName.has(linkTarget) ||
+                this._noteLookup.byNameLower.has(targetLower) ||
+                this._noteLookup.byEndPath.has('/' + targetLower) ||
+                this._noteLookup.byEndPath.has('/' + targetLower + '.md')
+            );
         },
         
         // Load all tags
@@ -938,6 +1015,88 @@ function noteApp() {
             if (!this.currentNote) return [];
             const note = this.notes.find(n => n.path === this.currentNote);
             return note && note.tags ? note.tags : [];
+        },
+        
+        // ==================== FAVORITES ====================
+        
+        // Load favorites from localStorage
+        loadFavorites() {
+            try {
+                const stored = localStorage.getItem('noteFavorites');
+                if (stored) {
+                    this.favorites = JSON.parse(stored);
+                    this.favoritesSet = new Set(this.favorites);
+                }
+            } catch (e) {
+                this.favorites = [];
+                this.favoritesSet = new Set();
+            }
+        },
+        
+        // Save favorites to localStorage
+        saveFavorites() {
+            try {
+                localStorage.setItem('noteFavorites', JSON.stringify(this.favorites));
+            } catch (e) {
+                console.warn('Could not save favorites to localStorage');
+            }
+        },
+        
+        // Check if a note is favorited (O(1) lookup)
+        isFavorite(notePath) {
+            return this.favoritesSet.has(notePath);
+        },
+        
+        // Toggle favorite status for a note
+        toggleFavorite(notePath = null) {
+            const path = notePath || this.currentNote;
+            if (!path) return;
+            
+            if (this.favoritesSet.has(path)) {
+                // Remove from favorites
+                this.favoritesSet.delete(path);
+                this.favorites = this.favorites.filter(f => f !== path);
+            } else {
+                // Add to favorites
+                this.favoritesSet.add(path);
+                this.favorites.push(path);
+            }
+            
+            this.saveFavorites();
+        },
+        
+        // Get favorite notes with full details (for display)
+        get favoriteNotes() {
+            return this.favorites
+                .map(path => {
+                    const note = this.notes.find(n => n.path === path);
+                    if (!note) return null;
+                    return {
+                        path: note.path,
+                        name: note.path.split('/').pop().replace('.md', ''),
+                        folder: note.folder || ''
+                    };
+                })
+                .filter(Boolean); // Remove nulls (deleted notes)
+        },
+        
+        loadFavoritesExpanded() {
+            try {
+                const saved = localStorage.getItem('favoritesExpanded');
+                if (saved !== null) {
+                    this.favoritesExpanded = saved === 'true';
+                }
+            } catch (e) {
+                console.error('Error loading favorites expanded state:', e);
+            }
+        },
+        
+        saveFavoritesExpanded() {
+            try {
+                localStorage.setItem('favoritesExpanded', this.favoritesExpanded.toString());
+            } catch (e) {
+                console.error('Error saving favorites expanded state:', e);
+            }
         },
         
         // Get current note's last modified time as relative string
@@ -1885,6 +2044,8 @@ function noteApp() {
                 const data = await response.json();
                 
                 this.currentNote = notePath;
+                this._lastRenderedContent = ''; // Clear render cache for new note
+                this._cachedRenderedHTML = '';
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 this.currentImage = ''; // Clear image viewer when loading a note
@@ -2753,6 +2914,8 @@ function noteApp() {
                         this.currentNote = '';
                         this.noteContent = '';
                         this.currentNoteName = '';
+                        this._lastRenderedContent = ''; // Clear render cache
+                        this._cachedRenderedHTML = '';
                         // Redirect to root
                         window.history.replaceState({}, '', '/');
                     }
@@ -2901,6 +3064,11 @@ function noteApp() {
         get renderedMarkdown() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
             
+            // Performance: Return cached HTML if content hasn't changed
+            if (this.noteContent === this._lastRenderedContent && this._cachedRenderedHTML) {
+                return this._cachedRenderedHTML;
+            }
+            
             // Strip YAML frontmatter from content before rendering
             let contentToRender = this.noteContent;
             if (contentToRender.trim().startsWith('---')) {
@@ -2923,37 +3091,18 @@ function noteApp() {
             
             // Convert Obsidian-style wikilinks: [[note]] or [[note|display text]]
             // Must be done before marked.parse() to avoid conflicts with markdown syntax
-            const notes = this.notes; // Reference for closure
+            const self = this; // Reference for closure
             contentToRender = contentToRender.replace(
                 /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
                 (match, target, displayText) => {
                     const linkTarget = target.trim();
                     const linkText = displayText ? displayText.trim() : linkTarget;
-                    const linkTargetLower = linkTarget.toLowerCase();
                     
-                    // Check if note exists (by path or by name, case-insensitive)
-                    const noteExists = notes.some(n => {
-                        const pathLower = n.path.toLowerCase();
-                        const nameLower = n.name.toLowerCase();
-                        return (
-                            // Exact path match
-                            n.path === linkTarget || 
-                            n.path === linkTarget + '.md' ||
-                            // Case-insensitive path match
-                            pathLower === linkTargetLower ||
-                            pathLower === linkTargetLower + '.md' ||
-                            // Name match (with or without .md)
-                            n.name === linkTarget ||
-                            n.name === linkTarget + '.md' ||
-                            nameLower === linkTargetLower ||
-                            nameLower === linkTargetLower + '.md' ||
-                            // Match by filename at end of path
-                            n.path.endsWith('/' + linkTarget) ||
-                            n.path.endsWith('/' + linkTarget + '.md') ||
-                            pathLower.endsWith('/' + linkTargetLower) ||
-                            pathLower.endsWith('/' + linkTargetLower + '.md')
-                        );
-                    });
+                    // Fast O(1) check using pre-built lookup maps
+                    // Handle section anchors: extract base note path
+                    const hashIndex = linkTarget.indexOf('#');
+                    const basePath = hashIndex !== -1 ? linkTarget.substring(0, hashIndex) : linkTarget;
+                    const noteExists = basePath === '' || self.wikiLinkExists(basePath);
                     
                     // Escape special chars: href needs quote escaping, text needs HTML escaping
                     const safeHref = linkTarget.replace(/"/g, '%22');
@@ -3031,11 +3180,13 @@ function noteApp() {
             
             html = tempDiv.innerHTML;
             
-            // Trigger MathJax rendering after DOM updates
-            this.typesetMath();
+            // Debounced MathJax rendering (avoid re-running on every keystroke)
+            if (this._mathDebounceTimeout) clearTimeout(this._mathDebounceTimeout);
+            this._mathDebounceTimeout = setTimeout(() => this.typesetMath(), 300);
             
-            // Render Mermaid diagrams
-            this.renderMermaid();
+            // Debounced Mermaid rendering
+            if (this._mermaidDebounceTimeout) clearTimeout(this._mermaidDebounceTimeout);
+            this._mermaidDebounceTimeout = setTimeout(() => this.renderMermaid(), 300);
             
             // Apply syntax highlighting and add copy buttons to code blocks
             setTimeout(() => {
@@ -3058,6 +3209,10 @@ function noteApp() {
                     });
                 }
             }, 0);
+            
+            // Cache the result for performance
+            this._lastRenderedContent = this.noteContent;
+            this._cachedRenderedHTML = html;
             
             return html;
         },

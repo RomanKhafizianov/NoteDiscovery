@@ -51,6 +51,7 @@
 - **Refresh safe** - Page reload keeps you on the same note with search context
 - **Copy link button** - One-click copy of note URL to clipboard
 - **Last edited indicator** - Shows relative time since last edit (e.g., "Edited 2h ago")
+- **Favorites** - Star notes for quick access; displayed at top of sidebar
 
 ## 🎨 Customization
 
