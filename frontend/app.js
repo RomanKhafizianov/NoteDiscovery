@@ -631,17 +631,19 @@ function noteApp() {
             // Store code blocks and inline code with placeholders to protect from other patterns
             const codePlaceholders = [];
             
-            // Frontmatter (must be at start) - protect it
-            html = html.replace(/^(---\n[\s\S]*?\n---)/m, (match) => {
-                codePlaceholders.push('<span class="md-frontmatter">' + match + '</span>');
-                return `\x00CODE${codePlaceholders.length - 1}\x00`;
-            });
-            
-            // Code blocks - protect them
+            // Code blocks FIRST - protect them before anything else
             html = html.replace(/(```[\s\S]*?```)/g, (match) => {
                 codePlaceholders.push('<span class="md-codeblock">' + match + '</span>');
                 return `\x00CODE${codePlaceholders.length - 1}\x00`;
             });
+            
+            // Frontmatter (must be at VERY start of document, not any line)
+            if (html.startsWith('---\n')) {
+                html = html.replace(/^(---\n[\s\S]*?\n---)/, (match) => {
+                    codePlaceholders.push('<span class="md-frontmatter">' + match + '</span>');
+                    return `\x00CODE${codePlaceholders.length - 1}\x00`;
+                });
+            }
             
             // Inline code - protect it
             html = html.replace(/`([^`\n]+)`/g, (match) => {
