@@ -50,6 +50,8 @@
 - **Shareable links** - Bookmark or share direct links to notes with highlighted terms
 - **Refresh safe** - Page reload keeps you on the same note with search context
 - **Copy link button** - One-click copy of note URL to clipboard
+- **Last edited indicator** - Shows relative time since last edit (e.g., "Edited 2h ago")
+- **Favorites** - Star notes for quick access; displayed at top of sidebar
 
 ## 🎨 Customization
 
@@ -265,7 +267,9 @@ date: {{date}}
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
 | `Ctrl+Z` | `Cmd+Z` | Undo |
-| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
+| `Ctrl+Y` | `Cmd+Y` | Redo |
+| `Ctrl+Shift+Z` | `Cmd+Shift+Z` | Toggle Zen Mode |
+| `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |
 | `Shift+F3` | `Shift+F3` | Previous search match |
 
@@ -277,6 +281,18 @@ date: {{date}}
 | `Ctrl+I` | `Cmd+I` | Italic | `*text*` |
 | `Ctrl+K` | `Cmd+K` | Insert link | `[text](url)` |
 | `Ctrl+Alt+T` | `Cmd+Option+T` | Insert table | 3x3 table placeholder |
+
+## 🧘 Zen Mode
+
+Full immersive distraction-free writing experience:
+
+- **Full screen** - Uses browser Fullscreen API for true immersion
+- **Hidden UI** - Sidebar, toolbar, and stats bar disappear
+- **Centered editor** - Comfortable width for optimal reading
+- **Larger text** - 18px font size with relaxed line spacing
+- **Quick access** - Button in toolbar or `Ctrl+Shift+Z` shortcut
+- **Easy exit** - Press `Esc`, click exit button, or use shortcut again
+- **State preserved** - Returns to your previous view mode on exit
 
 ## 🚀 Performance
 

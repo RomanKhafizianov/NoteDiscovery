@@ -470,6 +470,67 @@
             background-color: var(--bg-primary);
             z-index: 0;
         }
+        
+        /* Zen Mode Styles */
+        .zen-mode-active {
+            background-color: var(--bg-primary);
+        }
+        .zen-mode-active .zen-hide {
+            display: none !important;
+        }
+        .zen-mode-active .zen-editor-container {
+            width: 100%;
+            margin: 0;
+            padding: 2rem 4rem;
+            height: 100vh;
+        }
+        .zen-mode-active .zen-editor-container .editor-wrapper {
+            background-color: var(--bg-primary);
+        }
+        .zen-mode-active .zen-editor-container .editor-textarea {
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .zen-mode-active .zen-editor-container .syntax-overlay {
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .zen-exit-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+            z-index: 9999;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .zen-exit-button:hover {
+            opacity: 1 !important;
+            background-color: var(--bg-secondary);
+            transform: scale(1.05);
+        }
+        .zen-mode-active:hover .zen-exit-button {
+            opacity: 0.6;
+        }
+        
+        /* Zen mode fade transition */
+        .zen-fade-enter {
+            animation: zenFadeIn 0.3s ease-out;
+        }
+        @keyframes zenFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
         /* Syntax highlight colors using theme variables */
         .syntax-overlay .md-heading { color: var(--accent-primary); font-weight: 600; }
         .syntax-overlay .md-bold { color: var(--text-primary); font-weight: 700; }
@@ -1000,7 +1061,23 @@
         }
     </style>
 </head>
-<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);">
+<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);" :class="{'zen-mode-active': zenMode}">
+    
+    <!-- Zen Mode Exit Button -->
+    <button 
+        x-show="zenMode"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-60 translate-y-0"
+        @click="toggleZenMode()"
+        class="zen-exit-button"
+        title="Exit Zen Mode (Esc)"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span>Exit Zen</span>
+    </button>
     
     <!-- Mobile Overlay -->
     <div 
@@ -1014,7 +1091,7 @@
         
         <!-- Sidebar with Icon Rail -->
         <div 
-            class="flex mobile-sidebar" 
+            class="flex mobile-sidebar zen-hide" 
             :class="{'mobile-sidebar-open': mobileSidebarOpen}"
             :style="'width: ' + sidebarWidth + 'px; background-color: var(--bg-secondary); min-width: 200px; max-width: 600px;'"
         >
@@ -1138,6 +1215,62 @@
             
                     <!-- Folder Tree -->
                     <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
+                        
+                        <!-- Favorites Section -->
+                        <div x-show="favoriteNotes.length > 0" class="mb-3">
+                            <div 
+                                @click="favoritesExpanded = !favoritesExpanded"
+                                class="flex items-center justify-between px-2 py-1 cursor-pointer rounded hover:bg-opacity-50 transition-colors"
+                                style="color: var(--text-tertiary);"
+                                @mouseenter="$el.style.backgroundColor = 'var(--bg-hover)'"
+                                @mouseleave="$el.style.backgroundColor = 'transparent'"
+                            >
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" style="color: var(--warning, #eab308);">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                    </svg>
+                                    <span class="text-xs font-semibold uppercase tracking-wide">Favorites</span>
+                                </div>
+                                <svg 
+                                    class="w-3 h-3 transition-transform" 
+                                    :class="{'rotate-90': favoritesExpanded}"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                            <div x-show="favoritesExpanded" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="mt-1">
+                                <template x-for="fav in favoriteNotes" :key="fav.path">
+                                    <div 
+                                        @click="loadNote(fav.path)"
+                                        class="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer group"
+                                        :class="{'bg-opacity-50': currentNote === fav.path}"
+                                        :style="currentNote === fav.path ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
+                                        @mouseenter="if (currentNote !== fav.path) $el.style.backgroundColor = 'var(--bg-hover)'"
+                                        @mouseleave="if (currentNote !== fav.path) $el.style.backgroundColor = 'transparent'"
+                                    >
+                                        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                                            <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--warning, #eab308);" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                            </svg>
+                                            <span class="text-xs truncate" x-text="fav.name"></span>
+                                        </div>
+                                        <button 
+                                            @click.stop="toggleFavorite(fav.path)"
+                                            class="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+                                            title="Remove from favorites"
+                                            @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                            @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                        >
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
                         <div class="text-xs px-2 py-1 mb-2" style="color: var(--text-tertiary);">
                             <div class="flex items-center justify-between mb-1">
                                 <span>Folders & Notes</span>
@@ -1741,9 +1874,9 @@
             
             <template x-if="currentNote || currentImage">
                 <!-- Editor Area -->
-                <div class="flex-1 flex flex-col overflow-hidden" style="background-color: var(--bg-primary);">
+                <div class="flex-1 flex flex-col overflow-hidden" :class="{'zen-editor-container': zenMode}" style="background-color: var(--bg-primary);">
                     <!-- Toolbar -->
-                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
+                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar zen-hide" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
                         <div class="flex items-center space-x-2">
                             <!-- Mobile Menu Button -->
                             <button 
@@ -1812,6 +1945,7 @@
                             </button>
                             <span x-show="isSaving" class="text-xs" style="color: var(--text-secondary);">Saving...</span>
                             <span x-show="!isSaving && lastSaved" class="text-xs" style="color: var(--success);">✓ Saved</span>
+                            <span x-show="!isSaving && !lastSaved && lastEditedText" class="text-xs hidden md:inline" style="color: var(--text-tertiary);" x-text="'Edited ' + lastEditedText"></span>
                         </div>
                         
                         <!-- Demo Mode Warning Banner -->
@@ -1861,6 +1995,24 @@
                                 style="background-color: var(--bg-tertiary); border: 1px solid var(--border-primary);"
                             >
                                 <button 
+                                    @click="toggleFavorite()"
+                                    class="p-2 transition"
+                                    :title="isFavorite(currentNote) ? 'Remove from favorites' : 'Add to favorites'"
+                                    :style="'color: ' + (isFavorite(currentNote) ? 'var(--warning, #eab308)' : 'var(--text-secondary)') + ';'"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <!-- Filled star (favorited) -->
+                                    <svg x-show="isFavorite(currentNote)" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                    </svg>
+                                    <!-- Empty star (not favorited) -->
+                                    <svg x-show="!isFavorite(currentNote)" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                    </svg>
+                                </button>
+                                <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
+                                <button 
                                     @click="exportToHTML()"
                                     class="p-2 transition"
                                     style="color: var(--text-secondary);"
@@ -1888,6 +2040,20 @@
                                     <!-- Checkmark icon (after copy) -->
                                     <svg x-show="linkCopied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
+                                <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
+                                <button 
+                                    @click="toggleZenMode()"
+                                    class="p-2 transition"
+                                    style="color: var(--text-secondary);"
+                                    title="Zen Mode (Ctrl+Shift+Z)"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <!-- Expand/Focus icon -->
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
                                     </svg>
                                 </button>
                             </div>
@@ -2082,7 +2248,7 @@
                     
                     <!-- Stats Status Bar (only shows if plugin enabled) -->
                     <div x-show="statsPluginEnabled && currentNote && noteStats" 
-                         class="border-t"
+                         class="border-t zen-hide"
                          style="background-color: var(--bg-secondary); border-color: var(--border-primary);">
                         
                         <!-- Collapsed State (default) -->
