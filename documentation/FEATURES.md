@@ -267,11 +267,13 @@ date: {{date}}
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
 | `Ctrl+Z` | `Cmd+Z` | Undo |
-| `Ctrl+Y` | `Cmd+Y` | Redo |
-| `Ctrl+Shift+Z` | `Cmd+Shift+Z` | Toggle Zen Mode |
+| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
+| `Ctrl+Alt+Z` | `Cmd+Option+Z` | Toggle Zen Mode |
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |
 | `Shift+F3` | `Shift+F3` | Previous search match |
+
+> **Note for Mac users:** Some Option-based shortcuts (`Cmd+Option+N/F/T`) may conflict with browser shortcuts in Chrome/Brave. Safari has better compatibility. If shortcuts don't work, try using `Ctrl` instead of `Cmd`, or use the UI buttons.
 
 ### Markdown Formatting
 
@@ -290,7 +292,7 @@ Full immersive distraction-free writing experience:
 - **Hidden UI** - Sidebar, toolbar, and stats bar disappear
 - **Centered editor** - Comfortable width for optimal reading
 - **Larger text** - 18px font size with relaxed line spacing
-- **Quick access** - Button in toolbar or `Ctrl+Shift+Z` shortcut
+- **Quick access** - Button in toolbar or `Ctrl+Alt+Z` / `Cmd+Option+Z` shortcut
 - **Easy exit** - Press `Esc`, click exit button, or use shortcut again
 - **State preserved** - Returns to your previous view mode on exit
 
