@@ -431,11 +431,29 @@
         }
         
         /* Editor styling */
-        .editor-textarea {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        /* Shared editor styles - MUST be identical for textarea and overlay */
+        .editor-textarea,
+        .syntax-overlay {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
             tab-size: 2;
+            letter-spacing: normal;
+            word-spacing: normal;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            padding: 1.5rem;
+            margin: 0;
+            border: none;
+            box-sizing: border-box;
+        }
+        
+        .editor-textarea {
             background-color: var(--bg-primary) !important;
             color: var(--text-primary) !important;
+            resize: none;
+            overflow: auto;
         }
         
         /* Syntax Highlighting Overlay */
@@ -448,6 +466,8 @@
         .editor-wrapper .editor-textarea {
             position: relative;
             z-index: 1;
+            flex: 1;
+            width: 100%;
         }
         .editor-wrapper.syntax-highlight .editor-textarea {
             color: transparent !important;
@@ -457,18 +477,17 @@
         .syntax-overlay {
             position: absolute;
             inset: 0;
-            padding: 1.5rem;
             pointer-events: none;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow: hidden;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: inherit;
-            line-height: inherit;
-            tab-size: 2;
+            overflow: auto;
             color: var(--text-primary);
             background-color: var(--bg-primary);
             z-index: 0;
+            /* Hide scrollbars but allow programmatic scrolling */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .syntax-overlay::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
         }
         
         /* Zen Mode Styles */
@@ -487,10 +506,7 @@
         .zen-mode-active .zen-editor-container .editor-wrapper {
             background-color: var(--bg-primary);
         }
-        .zen-mode-active .zen-editor-container .editor-textarea {
-            font-size: 18px;
-            line-height: 1.8;
-        }
+        .zen-mode-active .zen-editor-container .editor-textarea,
         .zen-mode-active .zen-editor-container .syntax-overlay {
             font-size: 18px;
             line-height: 1.8;
@@ -535,7 +551,7 @@
         .syntax-overlay .md-heading { color: var(--accent-primary); font-weight: 600; }
         .syntax-overlay .md-bold { color: var(--text-primary); font-weight: 700; }
         .syntax-overlay .md-italic { color: var(--text-secondary); font-style: italic; }
-        .syntax-overlay .md-code { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); padding: 1px 3px; border-radius: 3px; }
+        .syntax-overlay .md-code { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
         .syntax-overlay .md-link { color: var(--link-color, var(--accent-primary)); }
         .syntax-overlay .md-link-url { color: var(--text-tertiary); }
         .syntax-overlay .md-list { color: var(--accent-primary); }
@@ -2089,7 +2105,7 @@
                                     @dragenter="onEditorDragEnter($event)"
                                     @dragleave="onEditorDragLeave($event)"
                                     @paste="handlePaste($event)"
-                                    :class="'flex-1 w-full p-6 resize-none focus:outline-none editor-textarea' + (draggedItem && dropTarget === 'editor' ? ' link-drop-target' : '')"
+                                    :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + (draggedItem && dropTarget === 'editor' ? ' link-drop-target' : '')"
                                     :style="'background-color: var(--bg-primary); color: var(--text-primary);' + (draggedItem && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
                                     :placeholder="draggedItem && dropTarget === 'editor' ? '💡 Drop here to insert at cursor position...' : 'Start writing in markdown...'"
                                 ></textarea>
