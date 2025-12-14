@@ -25,6 +25,8 @@ const ErrorHandler = {
         
         // Show user-friendly alert if requested
         if (showAlert) {
+            // Note: ErrorHandler doesn't have access to Alpine's t() function
+            // This message remains in English as a fallback
             alert(`Failed to ${operation}. Please try again.`);
         }
     }
@@ -82,6 +84,32 @@ function noteApp() {
         // Theme state
         currentTheme: 'light',
         availableThemes: [],
+        
+        // Locale/i18n state
+        currentLocale: 'en-US',
+        availableLocales: [],
+        // Default translations (loaded inline for immediate availability before API fetch)
+        translations: {
+            common: { save: "Save", cancel: "Cancel", delete: "Delete", rename: "Rename", create: "Create", close: "Close", yes: "✓ Yes", no: "✗ No", ok: "OK", error: "Error", loading: "Loading...", saved: "✓ Saved", saving: "Saving...", copied: "✓ Copied!" },
+            sidebar: { title: "FILES", favorites_title: "Favorites", folders_and_notes: "Folders & Notes", new_button: "+ New", new_note: "New Note", new_folder: "New Folder", new_from_template: "New from Template", search_placeholder: "Search notes...", search_hint: "Type to search your notes", clear_search: "Clear search", drag_hint: "💡 Drag=Move", root_folder: "📂 Root folder", no_notes: "No notes yet", no_favorites: "No favorites yet", no_results: "No results found", expand_all: "Expand all folders", collapse_all: "Collapse all folders", toggle_sidebar: "Toggle sidebar", go_to_homepage: "Go to homepage", files: "Files", search: "Search", search_title: "SEARCH", settings: "Settings", settings_title: "SETTINGS", filtered_notes: "Filtered Notes" },
+            editor: { placeholder: "Start writing in markdown...", drop_hint: "💡 Drop here to insert at cursor position...", mode_edit: "Edit", mode_split: "Split", mode_preview: "Preview", edited: "Edited {{time}}", just_now: "just now", minutes_ago: "{{count}}m ago", hours_ago: "{{count}}h ago", days_ago: "{{count}}d ago" },
+            notes: { confirm_delete: "Delete \"{{name}}\"?", already_exists: "A note named \"{{name}}\" already exists in this location.\nPlease choose a different name.", prompt_name: "Enter note name:", prompt_name_in_folder: "Create note in \"{{folder}}\".\nEnter note name:", prompt_name_with_path: "Enter note name (you can use folder/name):", prompt_rename: "Enter new name:", invalid_name: "Invalid note name.", empty_name: "Note name cannot be empty.", not_found: "Note not found: {{path}}", no_content: "No note content to export", open_first: "Please open a note first before uploading images." },
+            folders: { confirm_delete: "⚠️ WARNING ⚠️\n\nAre you sure you want to delete the folder \"{{name}}\"?\n\nThis will PERMANENTLY delete:\n• All notes inside this folder\n• All subfolders and their contents\n\nThis action CANNOT be undone!", already_exists: "A folder named \"{{name}}\" already exists in this location.\nPlease choose a different name.", prompt_name: "Enter folder name:", prompt_name_in_folder: "Create subfolder in \"{{folder}}\".\nEnter folder name:", prompt_name_with_path: "Create new folder.\nEnter folder path (e.g., \"Projects\" or \"Work/2025\"):", prompt_rename: "Rename folder \"{{name}}\" to:", invalid_name: "Invalid folder name.", cannot_move_into_self: "Cannot move folder into itself or its subfolder." },
+            toolbar: { undo: "Undo (Ctrl+Z)", redo: "Redo (Ctrl+Y)", delete_note: "Delete note", delete_image: "Delete image", export_html: "Export as HTML", copy_link: "Copy link to clipboard", add_favorite: "Add to favorites", remove_favorite: "Remove from favorites" },
+            zen_mode: { title: "Zen Mode", tooltip: "Zen Mode (Ctrl+Alt+Z)", exit: "Exit Zen Mode", exit_hint: "Exit Zen Mode (Esc)" },
+            tags: { title: "Tags", no_tags: "No tags found", clear_all: "Clear tag filters", filter_by: "Filter by {{tag}} ({{count}} notes)" },
+            stats: { words: "words", reading_time: "~{{minutes}}m read", links: "{{count}} links", click_details: "▼ Click for details" },
+            graph: { title: "Graph View", empty: "No connections to display", markdown_links: "Markdown links", click_hint: "Click: select • Double-click: open" },
+            templates: { title: "Templates", select: "Select a template...", prompt_name: "Enter note name:", no_templates: "No templates available", create_failed: "Failed to create note from template" },
+            images: { confirm_delete: "Delete image \"{{name}}\"?", upload_failed: "Failed to upload image", no_valid_files: "No valid image files found. Supported formats: JPG, PNG, GIF, WEBP", formats: "Supports JPG, PNG, GIF, WebP (max 10MB)" },
+            move: { failed_note: "Failed to move note.", failed_folder: "Failed to move folder." },
+            search: { previous: "Previous (Shift+F3)", next: "Next (F3)", matches: "{{current}} of {{total}}" },
+            theme: { title: "Theme" },
+            language: { title: "Language" },
+            syntax_highlight: { title: "Editor Syntax Highlight", enable: "Enable", disable: "Disable" },
+            homepage: { title: "Home", welcome: "Welcome to NoteDiscovery", get_started: "Create something to get started", no_notes_title: "No notes yet", no_notes_desc: "Create your first note or folder", folder_empty: "This folder is empty" },
+            export: { failed: "Failed to export HTML: {{error}}" }
+        },
         
         // Syntax highlighting
         syntaxHighlightEnabled: false,
@@ -229,7 +257,7 @@ function noteApp() {
                 return this._homepageCache.breadcrumb;
             }
             
-            const breadcrumb = [{ name: 'Home', path: '' }];
+            const breadcrumb = [{ name: this.t('homepage.title'), path: '' }];
             
             if (this.selectedHomepageFolder) {
                 const parts = this.selectedHomepageFolder.split('/').filter(Boolean);
@@ -255,6 +283,18 @@ function noteApp() {
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        },
+        
+        // Helper: Format date using current locale
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '';
+            return date.toLocaleDateString(this.currentLocale, { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
         },
         
         getFolderNode(folderPath = '') {
@@ -320,6 +360,8 @@ function noteApp() {
             await this.loadConfig();
             await this.loadThemes();
             await this.initTheme();
+            await this.loadAvailableLocales();
+            await this.loadLocale();
             await this.loadNotes();
             await this.loadTemplates();
             await this.checkStatsPlugin();
@@ -761,6 +803,68 @@ function noteApp() {
             }
         },
         
+        // ==================== INTERNATIONALIZATION ====================
+        
+        // Translation function - get translated string by key
+        t(key, params = {}) {
+            const keys = key.split('.');
+            let value = this.translations;
+            
+            for (const k of keys) {
+                value = value?.[k];
+            }
+            
+            // Fallback to key if translation not found (silently - default translations are inline)
+            if (typeof value !== 'string') {
+                return key;
+            }
+            
+            // Replace {{param}} placeholders
+            return value.replace(/\{\{(\w+)\}\}/g, (_, name) => params[name] ?? `{{${name}}}`);
+        },
+        
+        // Load available locales from backend
+        async loadAvailableLocales() {
+            try {
+                const response = await fetch('/api/locales');
+                const data = await response.json();
+                this.availableLocales = data.locales || [];
+            } catch (error) {
+                console.error('Failed to load available locales:', error);
+                this.availableLocales = [{ code: 'en-US', name: 'English', flag: '🇺🇸' }];
+            }
+        },
+        
+        // Load translations for a specific locale
+        async loadLocale(localeCode = null) {
+            const targetLocale = localeCode || localStorage.getItem('locale') || 'en-US';
+            
+            try {
+                const response = await fetch(`/api/locales/${targetLocale}`);
+                if (response.ok) {
+                    this.translations = await response.json();
+                    this.currentLocale = targetLocale;
+                    localStorage.setItem('locale', targetLocale);
+                } else if (targetLocale !== 'en-US') {
+                    // Fallback to en-US if requested locale not found
+                    await this.loadLocale('en-US');
+                }
+            } catch (error) {
+                console.error('Failed to load locale:', error);
+                // If en-US also fails, translations will be empty and t() will return keys
+                if (targetLocale !== 'en-US') {
+                    await this.loadLocale('en-US');
+                }
+            }
+        },
+        
+        // Change locale and reload translations
+        async changeLocale(localeCode) {
+            await this.loadLocale(localeCode);
+        },
+        
+        // ==================== END INTERNATIONALIZATION ====================
+        
         // Load all notes
         async loadNotes() {
             try {
@@ -907,7 +1011,7 @@ function noteApp() {
                 // CRITICAL: Check if note already exists
                 const existingNote = this.notes.find(note => note.path === notePath);
                 if (existingNote) {
-                    alert(`A note named "${this.newTemplateNoteName.trim()}" already exists in this location.\nPlease choose a different name.`);
+                    alert(this.t('notes.already_exists', { name: this.newTemplateNoteName.trim() }));
                     return;
                 }
                 
@@ -923,7 +1027,7 @@ function noteApp() {
                 
                 if (!response.ok) {
                     const error = await response.json();
-                    alert(error.detail || 'Failed to create note from template');
+                    alert(error.detail || this.t('templates.create_failed'));
                     return;
                 }
                 
@@ -1125,13 +1229,13 @@ function noteApp() {
             const diffHours = Math.floor(diffMins / 60);
             const diffDays = Math.floor(diffHours / 24);
             
-            if (diffSecs < 60) return 'just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
+            if (diffSecs < 60) return this.t('editor.just_now');
+            if (diffMins < 60) return this.t('editor.minutes_ago', { count: diffMins });
+            if (diffHours < 24) return this.t('editor.hours_ago', { count: diffHours });
+            if (diffDays < 7) return this.t('editor.days_ago', { count: diffDays });
             
-            // For older dates, show the date
-            return modified.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            // For older dates, show the date in selected locale
+            return modified.toLocaleDateString(this.currentLocale, { month: 'short', day: 'numeric' });
         },
         
         // Parse tags from markdown content (matches backend logic)
@@ -1675,7 +1779,7 @@ function noteApp() {
         // Handle image files dropped into editor
         async handleImageDrop(event) {
             if (!this.currentNote) {
-                alert('Please open a note first before uploading images.');
+                alert(this.t('notes.open_first'));
                 return;
             }
             
@@ -1687,7 +1791,7 @@ function noteApp() {
             });
             
             if (imageFiles.length === 0) {
-                alert('No valid image files found. Supported formats: JPG, PNG, GIF, WEBP');
+                alert(this.t('images.no_valid_files'));
                 return;
             }
             
@@ -1820,7 +1924,7 @@ function noteApp() {
         // Delete an image
         async deleteImage(imagePath) {
             const filename = imagePath.split('/').pop();
-            if (!confirm(`Delete image "${filename}"?`)) return;
+            if (!confirm(this.t('images.confirm_delete', { name: filename }))) return;
             
             try {
                 const response = await fetch(`/api/notes/${encodeURIComponent(imagePath)}`, {
@@ -1893,7 +1997,7 @@ function noteApp() {
                     if (noteByPathCI) {
                         this.loadNote(noteByPathCI.path);
                 } else {
-                    alert(`Note not found: ${notePath}`);
+                    alert(this.t('notes.not_found', { path: notePath }));
                     }
                 }
             }
@@ -1974,11 +2078,11 @@ function noteApp() {
                             this.currentNote = newPath;
                         }
                     } else {
-                        alert('Failed to move note.');
+                        alert(this.t('move.failed_note'));
                     }
                 } catch (error) {
                     console.error('Failed to move note:', error);
-                    alert('Failed to move note.');
+                    alert(this.t('move.failed_note'));
                 }
                 
                 this.draggedNote = null;
@@ -1990,7 +2094,7 @@ function noteApp() {
                 // Prevent dropping folder into itself or its subfolders
                 if (targetFolderPath === this.draggedFolder || 
                     targetFolderPath.startsWith(this.draggedFolder + '/')) {
-                    alert('Cannot move folder into itself or its subfolder.');
+                    alert(this.t('folders.cannot_move_into_self'));
                     this.draggedFolder = null;
                     return;
                 }
@@ -2020,11 +2124,11 @@ function noteApp() {
                             this.currentNote = this.currentNote.replace(this.draggedFolder, newPath);
                         }
                     } else {
-                        alert('Failed to move folder.');
+                        alert(this.t('move.failed_folder'));
                     }
                 } catch (error) {
                     console.error('Failed to move folder:', error);
-                    alert('Failed to move folder.');
+                    alert(this.t('move.failed_folder'));
                 }
                 
                 this.draggedFolder = null;
@@ -2423,15 +2527,15 @@ function noteApp() {
             this.closeDropdown();
             
             const promptText = targetFolder 
-                ? `Create note in "${targetFolder}".\nEnter note name:`
-                : 'Enter note name (you can use folder/name):';
+                ? this.t('notes.prompt_name_in_folder', { folder: targetFolder })
+                : this.t('notes.prompt_name_with_path');
             
             const noteName = prompt(promptText);
             if (!noteName) return;
             
             const sanitizedName = noteName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
             if (!sanitizedName) {
-                alert('Invalid note name.');
+                alert(this.t('notes.invalid_name'));
                 return;
             }
             
@@ -2445,7 +2549,7 @@ function noteApp() {
             // CRITICAL: Check if note already exists
             const existingNote = this.notes.find(note => note.path === notePath);
             if (existingNote) {
-                alert(`A note named "${sanitizedName}" already exists in this location.\nPlease choose a different name.`);
+                alert(this.t('notes.already_exists', { name: sanitizedName }));
                 return;
             }
             
@@ -2484,15 +2588,15 @@ function noteApp() {
             this.closeDropdown();
             
             const promptText = targetFolder 
-                ? `Create subfolder in "${targetFolder}".\nEnter folder name:`
-                : 'Create new folder.\nEnter folder path (e.g., "Projects" or "Work/2025"):';
+                ? this.t('folders.prompt_name_in_folder', { folder: targetFolder })
+                : this.t('folders.prompt_name_with_path');
             
             const folderName = prompt(promptText);
             if (!folderName) return;
             
             const sanitizedName = folderName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
             if (!sanitizedName) {
-                alert('Invalid folder name.');
+                alert(this.t('folders.invalid_name'));
                 return;
             }
             
@@ -2501,7 +2605,7 @@ function noteApp() {
             // Check if folder already exists
             const existingFolder = this.allFolders.find(folder => folder === folderPath);
             if (existingFolder) {
-                alert(`A folder named "${sanitizedName}" already exists in this location.\nPlease choose a different name.`);
+                alert(this.t('folders.already_exists', { name: sanitizedName }));
                 return;
             }
             
@@ -2536,7 +2640,7 @@ function noteApp() {
             
             const sanitizedName = newName.trim().replace(/[^a-zA-Z0-9-_\s]/g, '');
             if (!sanitizedName) {
-                alert('Invalid folder name.');
+                alert(this.t('folders.invalid_name'));
                 return;
             }
             
@@ -2578,14 +2682,7 @@ function noteApp() {
         
         // Delete folder
         async deleteFolder(folderPath, folderName) {
-            const confirmation = confirm(
-                `⚠️ WARNING ⚠️\n\n` +
-                `Are you sure you want to delete the folder "${folderName}"?\n\n` +
-                `This will PERMANENTLY delete:\n` +
-                `• All notes inside this folder\n` +
-                `• All subfolders and their contents\n\n` +
-                `This action CANNOT be undone!`
-            );
+            const confirmation = confirm(this.t('folders.confirm_delete', { name: folderName }));
             
             if (!confirmation) return;
             
@@ -2884,7 +2981,7 @@ function noteApp() {
             const newName = this.currentNoteName.trim();
             
             if (!newName) {
-                alert('Note name cannot be empty.');
+                alert(this.t('notes.empty_name'));
                 return;
             }
             
@@ -2896,7 +2993,7 @@ function noteApp() {
             // Check if a note with the new name already exists
             const existingNote = this.notes.find(n => n.path.toLowerCase() === newPath.toLowerCase());
             if (existingNote) {
-                alert(`A note named "${newName}" already exists in this folder.`);
+                alert(this.t('notes.already_exists', { name: newName }));
                 // Reset the name in the UI
                 this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
                 return;
@@ -2934,7 +3031,7 @@ function noteApp() {
         
         // Delete any note from sidebar
         async deleteNote(notePath, noteName) {
-            if (!confirm(`Delete "${noteName}"?`)) return;
+            if (!confirm(this.t('notes.confirm_delete', { name: noteName }))) return;
             
             try {
                 const response = await fetch(`/api/notes/${notePath}`, {
@@ -3722,7 +3819,7 @@ function noteApp() {
                     date = new Date(value);
                 }
                 if (!isNaN(date.getTime())) {
-                    return date.toLocaleDateString('en-US', { 
+                    return date.toLocaleDateString(this.currentLocale, { 
                         year: 'numeric', 
                         month: 'short', 
                         day: 'numeric' 
@@ -3732,7 +3829,7 @@ function noteApp() {
             
             // Booleans
             if (typeof value === 'boolean') {
-                return value ? '✓ Yes' : '✗ No';
+                return value ? this.t('common.yes') : this.t('common.no');
             }
             
             return String(value);
@@ -4006,7 +4103,7 @@ function noteApp() {
         // Export current note as HTML
         async exportToHTML() {
             if (!this.currentNote || !this.noteContent) {
-                alert('No note content to export');
+                alert(this.t('notes.no_content'));
                 return;
             }
             
@@ -4245,7 +4342,7 @@ function noteApp() {
                 
             } catch (error) {
                 console.error('HTML export failed:', error);
-                alert(`Failed to export HTML: ${error.message}`);
+                alert(this.t('export.failed', { error: error.message }));
             }
         },
         
@@ -4638,10 +4735,10 @@ function noteApp() {
                 </div>
                 <div class="graph-legend-item">
                     <span class="graph-legend-dot" style="background: ${mdColor};"></span>
-                    <span style="color: ${textColor};">Markdown links</span>
+                    <span style="color: ${textColor};">${this.t('graph.markdown_links')}</span>
                 </div>
                 <div style="margin-top: 8px; font-size: 10px; color: ${textColor}; opacity: 0.7;">
-                    Click: select • Double-click: open
+                    ${this.t('graph.click_hint')}
                 </div>
             `;
             container.appendChild(legend);

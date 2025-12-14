@@ -127,6 +127,7 @@ docker run -d \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/plugins:/app/plugins \
   -v $(pwd)/themes:/app/themes \
+  -v $(pwd)/locales:/app/locales \
   -v $(pwd)/config.yaml:/app/config.yaml \
   --restart unless-stopped \
   ghcr.io/gamosoft/notediscovery:latest
@@ -140,6 +141,7 @@ docker run -d `
   -v ${PWD}/data:/app/data `
   -v ${PWD}/plugins:/app/plugins `
   -v ${PWD}/themes:/app/themes `
+  -v ${PWD}/locales:/app/locales `
   -v ${PWD}/config.yaml:/app/config.yaml `
   --restart unless-stopped `
   ghcr.io/gamosoft/notediscovery:latest
@@ -220,6 +222,25 @@ Want to learn more?
 - 🌐 **[API.md](documentation/API.md)** - REST API documentation and examples
 - 🔐 **[AUTHENTICATION.md](documentation/AUTHENTICATION.md)** - Enable password protection for your instance
 - 🔧 **[ENVIRONMENT_VARIABLES.md](documentation/ENVIRONMENT_VARIABLES.md)** - Configure settings via environment variables
+
+## 🌍 Multiple Languages
+
+NoteDiscovery supports multiple languages! Currently available:
+- 🇺🇸 English (en-US) - Default
+- 🇪🇸 Español (es-ES)
+- 🇩🇪 Deutsch (de-DE)
+- 🇫🇷 Français (fr-FR)
+
+**To change language:** Go to Settings (gear icon) → Language dropdown.
+
+**To add your own language:** See the [Contributing Guidelines](CONTRIBUTING.md#-contributing-translations) for instructions on creating translation files.
+
+**Docker users:** Mount your custom locales folder to add or override translations:
+
+```yaml
+volumes:
+  - ./locales:/app/locales  # Custom translations
+```
 
 💡 **Pro Tip:** If you clone this repository, you can mount the `documentation/` folder to view these docs inside the app:
 

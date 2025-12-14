@@ -519,6 +519,50 @@ async def get_theme(theme_id: str):
     return {"css": css, "theme_id": theme_id}
 
 
+# Locales endpoints (unauthenticated - needed for login page and initial load)
+@app.get("/api/locales")
+async def get_available_locales():
+    """Get list of available locales"""
+    import json
+    locales_dir = Path(__file__).parent.parent / "locales"
+    locales = []
+    
+    if locales_dir.exists():
+        for file in sorted(locales_dir.glob("*.json")):
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    meta = data.get('_meta', {})
+                    locales.append({
+                        "code": meta.get('code', file.stem),
+                        "name": meta.get('name', file.stem),
+                        "flag": meta.get('flag', '🌐')
+                    })
+            except (json.JSONDecodeError, IOError):
+                # Skip invalid locale files
+                continue
+    
+    return {"locales": locales}
+
+
+@app.get("/api/locales/{locale_code}")
+async def get_locale(locale_code: str):
+    """Get translations for a specific locale"""
+    import json
+    locales_dir = Path(__file__).parent.parent / "locales"
+    locale_file = locales_dir / f"{locale_code}.json"
+    
+    if not locale_file.exists():
+        raise HTTPException(status_code=404, detail="Locale not found")
+    
+    try:
+        with open(locale_file, 'r', encoding='utf-8') as f:
+            translations = json.load(f)
+        return translations
+    except (json.JSONDecodeError, IOError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load locale: {str(e)}")
+
+
 @api_router.post("/folders")
 @limiter.limit("30/minute")
 async def create_new_folder(request: Request, data: dict):
