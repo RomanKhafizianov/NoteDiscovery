@@ -683,6 +683,10 @@ function noteApp() {
             // Restore protected code blocks
             html = html.replace(/\x00CODE(\d+)\x00/g, (match, index) => codePlaceholders[parseInt(index)]);
             
+            // Add trailing space to match textarea's phantom line for cursor
+            // This ensures the overlay and textarea have the same content height
+            html += '\n ';
+            
             return html;
         },
         

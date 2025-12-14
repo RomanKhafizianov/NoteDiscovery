@@ -453,6 +453,7 @@
             background-color: var(--bg-primary) !important;
             color: var(--text-primary) !important;
             resize: none;
+            overflow: auto;
         }
         
         /* Syntax Highlighting Overlay */
@@ -477,10 +478,16 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            overflow: hidden;
+            overflow: auto;
             color: var(--text-primary);
             background-color: var(--bg-primary);
             z-index: 0;
+            /* Hide scrollbars but allow programmatic scrolling */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .syntax-overlay::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
         }
         
         /* Zen Mode Styles */
