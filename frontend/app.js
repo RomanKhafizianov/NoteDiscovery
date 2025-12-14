@@ -428,44 +428,50 @@ function noteApp() {
             if (!window.__noteapp_shortcuts_initialized) {
                 window.__noteapp_shortcuts_initialized = true;
                 window.addEventListener('keydown', (e) => {
+                    // Use e.code for all letter keys for consistency across keyboard layouts
+                    
                     // Ctrl/Cmd + S to save
-                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
                         e.preventDefault();
                         this.saveNote();
                     }
                     
-                    // Ctrl/Cmd + Alt + N for new note
-                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'n') {
+                    // Ctrl/Cmd + Alt/Option + N for new note
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyN') {
                         e.preventDefault();
                         this.createNote();
                     }
                     
-                    // Ctrl/Cmd + Alt + F for new folder
-                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'f') {
+                    // Ctrl/Cmd + Alt/Option + F for new folder
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyF') {
                         e.preventDefault();
                         this.createFolder();
                     }
                     
-                    // Ctrl/Cmd + Z for undo
-                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+                    // Ctrl/Cmd + Z for undo (without shift or alt)
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyZ') {
                         e.preventDefault();
                         this.undo();
                     }
                     
-                    // Ctrl/Cmd + Y for redo (Ctrl+Shift+Z now opens Zen mode)
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                    // Ctrl/Cmd + Y OR Ctrl/Cmd+Shift+Z for redo
+                    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') {
+                        e.preventDefault();
+                        this.redo();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === 'KeyZ') {
                         e.preventDefault();
                         this.redo();
                     }
                     
                     // F3 for next search match
-                    if (e.key === 'F3' && !e.shiftKey) {
+                    if (e.code === 'F3' && !e.shiftKey) {
                         e.preventDefault();
                         this.nextMatch();
                     }
                     
                     // Shift + F3 for previous search match
-                    if (e.key === 'F3' && e.shiftKey) {
+                    if (e.code === 'F3' && e.shiftKey) {
                         e.preventDefault();
                         this.previousMatch();
                     }
@@ -474,31 +480,31 @@ function noteApp() {
                     const isEditorFocused = document.activeElement?.id === 'note-editor';
                     if (isEditorFocused && this.currentNote) {
                         // Ctrl/Cmd + B for bold
-                        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyB') {
                             e.preventDefault();
                             this.wrapSelection('**', '**', 'bold text');
                         }
                         
                         // Ctrl/Cmd + I for italic
-                        if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyI') {
                             e.preventDefault();
                             this.wrapSelection('*', '*', 'italic text');
                         }
                         
                         // Ctrl/Cmd + K for link
-                        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK') {
                             e.preventDefault();
                             this.insertLink();
                         }
                         
-                        // Ctrl/Cmd + Alt + T for table
-                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 't') {
+                        // Ctrl/Cmd + Alt/Option + T for table
+                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyT') {
                             e.preventDefault();
                             this.insertTable();
                         }
                         
-                        // Ctrl/Cmd + Shift + Z for Zen mode (only when note is open)
-                        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
+                        // Ctrl/Cmd + Alt/Option + Z for Zen mode
+                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyZ') {
                             e.preventDefault();
                             this.toggleZenMode();
                         }
