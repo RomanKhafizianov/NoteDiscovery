@@ -86,30 +86,10 @@ function noteApp() {
         availableThemes: [],
         
         // Locale/i18n state
-        currentLocale: 'en-US',
+        currentLocale: localStorage.getItem('locale') || 'en-US',
         availableLocales: [],
-        // Default translations (loaded inline for immediate availability before API fetch)
-        translations: {
-            common: { save: "Save", cancel: "Cancel", delete: "Delete", rename: "Rename", create: "Create", close: "Close", yes: "✓ Yes", no: "✗ No", ok: "OK", error: "Error", loading: "Loading...", saved: "✓ Saved", saving: "Saving...", copied: "✓ Copied!" },
-            sidebar: { title: "FILES", favorites_title: "Favorites", folders_and_notes: "Folders & Notes", new_button: "+ New", new_note: "New Note", new_folder: "New Folder", new_from_template: "New from Template", search_placeholder: "Search notes...", search_hint: "Type to search your notes", clear_search: "Clear search", drag_hint: "💡 Drag=Move", root_folder: "📂 Root folder", no_notes: "No notes yet", no_favorites: "No favorites yet", no_results: "No results found", expand_all: "Expand all folders", collapse_all: "Collapse all folders", toggle_sidebar: "Toggle sidebar", go_to_homepage: "Go to homepage", files: "Files", search: "Search", search_title: "SEARCH", settings: "Settings", settings_title: "SETTINGS", filtered_notes: "Filtered Notes" },
-            editor: { placeholder: "Start writing in markdown...", drop_hint: "💡 Drop here to insert at cursor position...", mode_edit: "Edit", mode_split: "Split", mode_preview: "Preview", edited: "Edited {{time}}", just_now: "just now", minutes_ago: "{{count}}m ago", hours_ago: "{{count}}h ago", days_ago: "{{count}}d ago" },
-            notes: { confirm_delete: "Delete \"{{name}}\"?", already_exists: "A note named \"{{name}}\" already exists in this location.\nPlease choose a different name.", prompt_name: "Enter note name:", prompt_name_in_folder: "Create note in \"{{folder}}\".\nEnter note name:", prompt_name_with_path: "Enter note name (you can use folder/name):", prompt_rename: "Enter new name:", invalid_name: "Invalid note name.", empty_name: "Note name cannot be empty.", not_found: "Note not found: {{path}}", no_content: "No note content to export", open_first: "Please open a note first before uploading images." },
-            folders: { confirm_delete: "⚠️ WARNING ⚠️\n\nAre you sure you want to delete the folder \"{{name}}\"?\n\nThis will PERMANENTLY delete:\n• All notes inside this folder\n• All subfolders and their contents\n\nThis action CANNOT be undone!", already_exists: "A folder named \"{{name}}\" already exists in this location.\nPlease choose a different name.", prompt_name: "Enter folder name:", prompt_name_in_folder: "Create subfolder in \"{{folder}}\".\nEnter folder name:", prompt_name_with_path: "Create new folder.\nEnter folder path (e.g., \"Projects\" or \"Work/2025\"):", prompt_rename: "Rename folder \"{{name}}\" to:", invalid_name: "Invalid folder name.", cannot_move_into_self: "Cannot move folder into itself or its subfolder." },
-            toolbar: { undo: "Undo (Ctrl+Z)", redo: "Redo (Ctrl+Y)", delete_note: "Delete note", delete_image: "Delete image", export_html: "Export as HTML", copy_link: "Copy link to clipboard", add_favorite: "Add to favorites", remove_favorite: "Remove from favorites" },
-            zen_mode: { title: "Zen Mode", tooltip: "Zen Mode (Ctrl+Alt+Z)", exit: "Exit Zen Mode", exit_hint: "Exit Zen Mode (Esc)" },
-            tags: { title: "Tags", no_tags: "No tags found", clear_all: "Clear tag filters", filter_by: "Filter by {{tag}} ({{count}} notes)" },
-            stats: { words: "words", reading_time: "~{{minutes}}m read", links: "{{count}} links", click_details: "▼ Click for details" },
-            graph: { title: "Graph View", empty: "No connections to display", markdown_links: "Markdown links", click_hint: "Click: select • Double-click: open" },
-            templates: { title: "Templates", select: "Select a template...", prompt_name: "Enter note name:", no_templates: "No templates available", create_failed: "Failed to create note from template" },
-            images: { confirm_delete: "Delete image \"{{name}}\"?", upload_failed: "Failed to upload image", no_valid_files: "No valid image files found. Supported formats: JPG, PNG, GIF, WEBP", formats: "Supports JPG, PNG, GIF, WebP (max 10MB)" },
-            move: { failed_note: "Failed to move note.", failed_folder: "Failed to move folder." },
-            search: { previous: "Previous (Shift+F3)", next: "Next (F3)", matches: "{{current}} of {{total}}" },
-            theme: { title: "Theme" },
-            language: { title: "Language" },
-            syntax_highlight: { title: "Editor Syntax Highlight", enable: "Enable", disable: "Disable" },
-            homepage: { title: "Home", welcome: "Welcome to NoteDiscovery", get_started: "Create something to get started", no_notes_title: "No notes yet", no_notes_desc: "Create your first note or folder", folder_empty: "This folder is empty" },
-            export: { failed: "Failed to export HTML: {{error}}" }
-        },
+        // Translations loaded from backend (preloaded before Alpine init via window.__preloadedTranslations)
+        translations: window.__preloadedTranslations || {},
         
         // Syntax highlighting
         syntaxHighlightEnabled: false,
@@ -361,7 +341,8 @@ function noteApp() {
             await this.loadThemes();
             await this.initTheme();
             await this.loadAvailableLocales();
-            await this.loadLocale();
+            // Note: Translations are preloaded synchronously before Alpine init (see index.html)
+            // loadLocale() is only called when user changes language from settings
             await this.loadNotes();
             await this.loadTemplates();
             await this.checkStatsPlugin();
