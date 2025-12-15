@@ -1394,7 +1394,8 @@
                         <!-- Empty state -->
                         <template x-if="notes.length === 0 && allFolders.length === 0">
                             <div class="px-3 py-4 text-sm text-center" style="color: var(--text-tertiary);">
-                                No notes or folders yet.<br>Create your first note or folder!
+                                <span x-text="t('sidebar.no_notes_yet')"></span><br>
+                                <span x-text="t('sidebar.create_first')"></span>
                             </div>
                         </template>
                     </div>
@@ -1763,7 +1764,7 @@
                             <!-- Header -->
                             <div class="mb-6">
                                 <h1 class="text-3xl font-bold mb-2" style="color: var(--text-primary);" x-text="appName"></h1>
-                                <p class="text-lg" style="color: var(--text-secondary);" x-text="appTagline"></p>
+                                <p class="text-lg" style="color: var(--text-secondary);" x-text="t('app.tagline')"></p>
                                 <!-- Demo Mode Warning Banner -->
                                 <div x-data="{ showDemoBanner: false }" x-init="fetch('/api/config').then(r => r.json()).then(d => showDemoBanner = d.demoMode || false)" x-show="showDemoBanner" class="mt-4 flex items-center px-4 py-2.5 text-sm rounded-lg" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); color: white; font-weight: 500;">
                                     <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1800,11 +1801,11 @@
                                     <div class="flex flex-wrap items-center gap-4 text-sm" style="color: var(--text-secondary);">
                                         <span class="font-semibold" style="color: var(--text-primary);">
                                             <span x-text="homepageNotes().length"></span> 
-                                            <span x-text="homepageNotes().length === 1 ? 'note' : 'notes'"></span>
+                                            <span x-text="homepageNotes().length === 1 ? t('homepage.note_singular') : t('homepage.note_plural')"></span>
                                         </span>
                                         <span x-show="homepageFolders().length > 0">
                                             <span x-text="homepageFolders().length"></span> 
-                                            <span x-text="homepageFolders().length === 1 ? 'folder' : 'folders'"></span>
+                                            <span x-text="homepageFolders().length === 1 ? t('homepage.folder_singular') : t('homepage.folder_plural')"></span>
                                         </span>
                                         <button 
                                             @click="dropdownTargetFolder = selectedHomepageFolder; toggleNewDropdown($event)"
@@ -1875,7 +1876,7 @@
                                             
                                             <!-- Folder Metadata -->
                                             <div class="flex items-center justify-between text-xs mt-auto pt-2" style="color: var(--text-tertiary);">
-                                                <span x-text="folder.noteCount + ' ' + (folder.noteCount === 1 ? 'note' : 'notes')"></span>
+                                                <span x-text="folder.noteCount + ' ' + (folder.noteCount === 1 ? t('homepage.note_singular') : t('homepage.note_plural'))"></span>
                                                 <svg class="w-4 h-4" style="color: var(--accent-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                                 </svg>

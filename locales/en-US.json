@@ -5,6 +5,10 @@
     "flag": "🇺🇸"
   },
 
+  "app": {
+    "tagline": "Your Self-Hosted Knowledge Base"
+  },
+
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -37,6 +41,8 @@
     "drag_hint": "💡 Drag=Move",
     "root_folder": "📂 Root folder",
     "no_notes": "No notes yet. Create your first note!",
+    "no_notes_yet": "No notes or folders yet.",
+    "create_first": "Create your first note or folder!",
     "no_favorites": "No favorites yet",
     "no_results": "No results found",
     "expand_all": "Expand all folders",
@@ -86,7 +92,8 @@
     "prompt_name_with_path": "Create new folder.\nEnter folder path (e.g., \"Projects\" or \"Work/2025\"):",
     "prompt_rename": "Rename folder \"{{name}}\" to:",
     "invalid_name": "Invalid folder name.",
-    "cannot_move_into_self": "Cannot move folder into itself or its subfolder."
+    "cannot_move_into_self": "Cannot move folder into itself or its subfolder.",
+    "empty": "empty"
   },
 
   "toolbar": {
@@ -178,7 +185,11 @@
     "get_started": "Create something to get started",
     "no_notes_title": "No notes yet",
     "no_notes_desc": "Create your first note or folder",
-    "folder_empty": "This folder is empty"
+    "folder_empty": "This folder is empty",
+    "note_singular": "note",
+    "note_plural": "notes",
+    "folder_singular": "folder",
+    "folder_plural": "folders"
   }
 }
 

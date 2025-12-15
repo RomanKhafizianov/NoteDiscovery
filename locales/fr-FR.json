@@ -5,6 +5,10 @@
     "flag": "🇫🇷"
   },
 
+  "app": {
+    "tagline": "Votre Base de Connaissances Auto-Hébergée"
+  },
+
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -37,6 +41,8 @@
     "drag_hint": "💡 Glisser=Déplacer",
     "root_folder": "📂 Dossier racine",
     "no_notes": "Pas encore de notes. Créez votre première note !",
+    "no_notes_yet": "Pas encore de notes ni de dossiers.",
+    "create_first": "Créez votre première note ou dossier !",
     "no_favorites": "Pas encore de favoris",
     "no_results": "Aucun résultat trouvé",
     "expand_all": "Développer tous les dossiers",
@@ -86,7 +92,8 @@
     "prompt_name_with_path": "Créer un nouveau dossier.\nEntrez le chemin du dossier (ex. \"Projets\" ou \"Travail/2025\") :",
     "prompt_rename": "Renommer le dossier \"{{name}}\" en :",
     "invalid_name": "Nom de dossier invalide.",
-    "cannot_move_into_self": "Impossible de déplacer un dossier dans lui-même ou dans un sous-dossier."
+    "cannot_move_into_self": "Impossible de déplacer un dossier dans lui-même ou dans un sous-dossier.",
+    "empty": "vide"
   },
 
   "toolbar": {
@@ -178,7 +185,11 @@
     "get_started": "Créez quelque chose pour commencer",
     "no_notes_title": "Pas encore de notes",
     "no_notes_desc": "Créez votre première note ou dossier",
-    "folder_empty": "Ce dossier est vide"
+    "folder_empty": "Ce dossier est vide",
+    "note_singular": "note",
+    "note_plural": "notes",
+    "folder_singular": "dossier",
+    "folder_plural": "dossiers"
   }
 }
 

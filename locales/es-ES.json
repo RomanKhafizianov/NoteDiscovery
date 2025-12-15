@@ -5,6 +5,10 @@
     "flag": "🇪🇸"
   },
 
+  "app": {
+    "tagline": "Tu Base de Conocimientos Autoalojada"
+  },
+
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
@@ -37,6 +41,8 @@
     "drag_hint": "💡 Arrastrar=Mover",
     "root_folder": "📂 Carpeta raíz",
     "no_notes": "Aún no hay notas. ¡Crea tu primera nota!",
+    "no_notes_yet": "Aún no hay notas ni carpetas.",
+    "create_first": "¡Crea tu primera nota o carpeta!",
     "no_favorites": "Aún no hay favoritos",
     "no_results": "No se encontraron resultados",
     "expand_all": "Expandir todas las carpetas",
@@ -86,7 +92,8 @@
     "prompt_name_with_path": "Crear nueva carpeta.\nIntroduce la ruta de la carpeta (ej., \"Proyectos\" o \"Trabajo/2025\"):",
     "prompt_rename": "Renombrar carpeta \"{{name}}\" a:",
     "invalid_name": "Nombre de carpeta inválido.",
-    "cannot_move_into_self": "No se puede mover una carpeta dentro de sí misma o de una subcarpeta."
+    "cannot_move_into_self": "No se puede mover una carpeta dentro de sí misma o de una subcarpeta.",
+    "empty": "vacía"
   },
 
   "toolbar": {
@@ -178,7 +185,11 @@
     "get_started": "Crea algo para empezar",
     "no_notes_title": "Aún no hay notas",
     "no_notes_desc": "Crea tu primera nota o carpeta",
-    "folder_empty": "Esta carpeta está vacía"
+    "folder_empty": "Esta carpeta está vacía",
+    "note_singular": "nota",
+    "note_plural": "notas",
+    "folder_singular": "carpeta",
+    "folder_plural": "carpetas"
   }
 }
 

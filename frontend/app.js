@@ -36,7 +36,6 @@ function noteApp() {
     return {
         // App state
         appName: 'NoteDiscovery',
-        appTagline: 'Your Self-Hosted Knowledge Base',
         appVersion: '0.0.0',
         authEnabled: false,
         notes: [],
@@ -568,7 +567,6 @@ function noteApp() {
                 const response = await fetch('/api/config');
                 const config = await response.json();
                 this.appName = config.name;
-                this.appTagline = config.tagline;
                 this.appVersion = config.version || '0.0.0';
                 this.authEnabled = config.authentication?.enabled || false;
             } catch (error) {
@@ -1441,7 +1439,7 @@ function noteApp() {
                             </button>
                             <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
                                 <span>${folder.name}</span>
-                                ${folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0) ? '<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(empty)</span>' : ''}
+                                ${folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0) ? `<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(${this.t('folders.empty')})</span>` : ''}
                             </span>
                         </div>
                         <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" onclick="event.stopPropagation()">

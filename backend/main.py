@@ -80,8 +80,9 @@ if 'AUTHENTICATION_SECRET_KEY' in os.environ:
 # Initialize app
 app = FastAPI(
     title=config['app']['name'],
-    description=config['app']['tagline'],
-    version=config['app']['version']
+    version=config['app']['version'],
+    docs_url=None,    # Disable Swagger UI at /docs
+    redoc_url=None    # Disable ReDoc at /redoc
 )
 
 # CORS middleware configuration
@@ -325,8 +326,7 @@ async def api_documentation():
     return {
         "app": {
             "name": config['app']['name'],
-            "version": config['app']['version'],
-            "description": config['app']['tagline']
+            "version": config['app']['version']
         },
         "endpoints": [
             {
@@ -339,7 +339,7 @@ async def api_documentation():
                 "method": "GET",
                 "path": "/api/config",
                 "description": "Get application configuration",
-                "response": "{ name, tagline, version, searchEnabled }"
+                "response": "{ name, version, searchEnabled }"
             },
             {
                 "method": "GET",
@@ -489,7 +489,6 @@ async def get_config():
     """Get app configuration for frontend"""
     return {
         "name": config['app']['name'],
-        "tagline": config['app']['tagline'],
         "version": config['app']['version'],
         "searchEnabled": config['search']['enabled'],
         "demoMode": DEMO_MODE,  # Expose demo mode flag to frontend
