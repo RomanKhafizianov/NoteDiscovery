@@ -641,10 +641,10 @@ async def move_note_endpoint(request: Request, data: dict):
         if not old_path or not new_path:
             raise HTTPException(status_code=400, detail="Both oldPath and newPath required")
         
-        success = move_note(config['storage']['notes_dir'], old_path, new_path)
+        success, error_msg = move_note(config['storage']['notes_dir'], old_path, new_path)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to move note")
+            raise HTTPException(status_code=400, detail=error_msg or "Failed to move note")
         
         # Run plugin hooks
         plugin_manager.run_hook('on_note_save', note_path=new_path, content='')
@@ -672,10 +672,10 @@ async def move_folder_endpoint(request: Request, data: dict):
         if not old_path or not new_path:
             raise HTTPException(status_code=400, detail="Both oldPath and newPath required")
         
-        success = move_folder(config['storage']['notes_dir'], old_path, new_path)
+        success, error_msg = move_folder(config['storage']['notes_dir'], old_path, new_path)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to move folder")
+            raise HTTPException(status_code=400, detail=error_msg or "Failed to move folder")
         
         return {
             "success": True,
@@ -700,10 +700,10 @@ async def rename_folder_endpoint(request: Request, data: dict):
         if not old_path or not new_path:
             raise HTTPException(status_code=400, detail="Both oldPath and newPath required")
         
-        success = rename_folder(config['storage']['notes_dir'], old_path, new_path)
+        success, error_msg = rename_folder(config['storage']['notes_dir'], old_path, new_path)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to rename folder")
+            raise HTTPException(status_code=400, detail=error_msg or "Failed to rename folder")
         
         return {
             "success": True,

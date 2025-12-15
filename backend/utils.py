@@ -73,57 +73,70 @@ def get_all_folders(notes_dir: str) -> List[str]:
     return sorted(folders)
 
 
-def move_note(notes_dir: str, old_path: str, new_path: str) -> bool:
-    """Move a note to a different location"""
+def move_note(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
+    """Move a note to a different location
+    
+    Returns:
+        Tuple of (success: bool, error_message: str)
+    """
     old_full_path = Path(notes_dir) / old_path
     new_full_path = Path(notes_dir) / new_path
     
     # Security checks
-    if not validate_path_security(notes_dir, old_full_path) or \
-       not validate_path_security(notes_dir, new_full_path):
-        return False
+    if not validate_path_security(notes_dir, old_full_path):
+        return False, "Invalid source path"
+    if not validate_path_security(notes_dir, new_full_path):
+        return False, "Invalid destination path"
     
     if not old_full_path.exists():
-        return False
+        return False, f"Source note does not exist: {old_path}"
     
     # Check if target already exists (prevent overwriting)
     if new_full_path.exists():
-        return False
+        return False, f"A note already exists at: {new_path}"
     
     # Invalidate cache for old path
     old_key = str(old_full_path)
     if old_key in _tag_cache:
         del _tag_cache[old_key]
     
-    # Create parent directory if needed
-    new_full_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Move the file
-    old_full_path.rename(new_full_path)
+    try:
+        # Create parent directory if needed
+        new_full_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Move the file
+        old_full_path.rename(new_full_path)
+    except Exception as e:
+        return False, f"Failed to move file: {str(e)}"
     
     # Note: We don't automatically delete empty folders to preserve user's folder structure
     
-    return True
+    return True, ""
 
 
-def move_folder(notes_dir: str, old_path: str, new_path: str) -> bool:
-    """Move a folder to a different location"""
+def move_folder(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
+    """Move a folder to a different location
+    
+    Returns:
+        Tuple of (success: bool, error_message: str)
+    """
     import shutil
     
     old_full_path = Path(notes_dir) / old_path
     new_full_path = Path(notes_dir) / new_path
     
     # Security checks
-    if not validate_path_security(notes_dir, old_full_path) or \
-       not validate_path_security(notes_dir, new_full_path):
-        return False
+    if not validate_path_security(notes_dir, old_full_path):
+        return False, "Invalid source path"
+    if not validate_path_security(notes_dir, new_full_path):
+        return False, "Invalid destination path"
     
     if not old_full_path.exists() or not old_full_path.is_dir():
-        return False
+        return False, f"Source folder does not exist: {old_path}"
     
     # Check if target already exists
     if new_full_path.exists():
-        return False
+        return False, f"A folder already exists at: {new_path}"
     
     # Invalidate cache for all notes in this folder
     global _tag_cache
@@ -132,18 +145,21 @@ def move_folder(notes_dir: str, old_path: str, new_path: str) -> bool:
     for key in keys_to_delete:
         del _tag_cache[key]
     
-    # Create parent directory if needed
-    new_full_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Move the folder
-    shutil.move(str(old_full_path), str(new_full_path))
+    try:
+        # Create parent directory if needed
+        new_full_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Move the folder
+        shutil.move(str(old_full_path), str(new_full_path))
+    except Exception as e:
+        return False, f"Failed to move folder: {str(e)}"
     
     # Note: We don't automatically delete empty folders to preserve user's folder structure
     
-    return True
+    return True, ""
 
 
-def rename_folder(notes_dir: str, old_path: str, new_path: str) -> bool:
+def rename_folder(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
     """Rename a folder (same as move but for clarity)"""
     return move_folder(notes_dir, old_path, new_path)
 
