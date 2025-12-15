@@ -147,6 +147,15 @@
     "failed": "HTML-Export fehlgeschlagen: {{error}}"
   },
 
+  "login": {
+    "title": "Anmelden",
+    "tagline": "Deine Selbstgehostete Wissensdatenbank",
+    "password_placeholder": "Passwort eingeben",
+    "unlock_button": "🔓 Entsperren",
+    "footer": "🔒 Sicher & Selbstgehostet",
+    "error_incorrect_password": "Falsches Passwort. Bitte versuche es erneut."
+  },
+
   "images": {
     "confirm_delete": "Bild \"{{name}}\" löschen?",
     "upload_failed": "Bild-Upload fehlgeschlagen",

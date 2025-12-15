@@ -147,6 +147,15 @@
     "failed": "Failed to export HTML: {{error}}"
   },
 
+  "login": {
+    "title": "Login",
+    "tagline": "Your Self-Hosted Knowledge Base",
+    "password_placeholder": "Enter your password",
+    "unlock_button": "🔓 Unlock",
+    "footer": "🔒 Secure & Self-Hosted",
+    "error_incorrect_password": "Incorrect password. Please try again."
+  },
+
   "images": {
     "confirm_delete": "Delete image \"{{name}}\"?",
     "upload_failed": "Failed to upload image",

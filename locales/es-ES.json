@@ -147,6 +147,15 @@
     "failed": "Error al exportar HTML: {{error}}"
   },
 
+  "login": {
+    "title": "Iniciar sesión",
+    "tagline": "Tu Base de Conocimientos Autoalojada",
+    "password_placeholder": "Introduce tu contraseña",
+    "unlock_button": "🔓 Desbloquear",
+    "footer": "🔒 Seguro y Autoalojado",
+    "error_incorrect_password": "Contraseña incorrecta. Por favor, inténtalo de nuevo."
+  },
+
   "images": {
     "confirm_delete": "¿Eliminar imagen \"{{name}}\"?",
     "upload_failed": "Error al subir imagen",

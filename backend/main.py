@@ -97,7 +97,8 @@ app.add_middleware(
 )
 print(f"🌐 CORS allowed origins: {allowed_origins}")
 
-# ============================================================================
+# ===========================================================
+# =================
 # Security Helpers
 # ============================================================================
 
@@ -253,14 +254,7 @@ async def login_page(request: Request, error: str = None):
     async with aiofiles.open(login_path, 'r', encoding='utf-8') as f:
         content = await f.read()
     
-    # Inject error message if present
-    if error:
-        content = content.replace('<!-- ERROR_CLASS_PLACEHOLDER -->', 'class="error"')
-        content = content.replace('<!-- ERROR_MESSAGE_PLACEHOLDER -->', 
-                                 f'<div class="error-message">{error}</div>')
-    else:
-        content = content.replace('<!-- ERROR_CLASS_PLACEHOLDER -->', '')
-        content = content.replace('<!-- ERROR_MESSAGE_PLACEHOLDER -->', '')
+    # No server-side manipulation needed - frontend handles error display via URL params
     
     return content
 
@@ -281,8 +275,8 @@ async def login(request: Request, password: str = Form(...)):
         request.session['authenticated'] = True
         return RedirectResponse(url="/", status_code=303)
     else:
-        # Redirect back to login with error message
-        return RedirectResponse(url="/login?error=Incorrect+password.+Please+try+again.", status_code=303)
+        # Redirect back to login with error code (frontend will translate)
+        return RedirectResponse(url="/login?error=incorrect_password", status_code=303)
 
 
 @app.get("/logout")

@@ -147,6 +147,15 @@
     "failed": "Échec de l'export HTML : {{error}}"
   },
 
+  "login": {
+    "title": "Connexion",
+    "tagline": "Votre Base de Connaissances Auto-Hébergée",
+    "password_placeholder": "Entrez votre mot de passe",
+    "unlock_button": "🔓 Déverrouiller",
+    "footer": "🔒 Sécurisé et Auto-Hébergé",
+    "error_incorrect_password": "Mot de passe incorrect. Veuillez réessayer."
+  },
+
   "images": {
     "confirm_delete": "Supprimer l'image \"{{name}}\" ?",
     "upload_failed": "Échec du téléchargement de l'image",
