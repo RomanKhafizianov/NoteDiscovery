@@ -1262,6 +1262,7 @@
                                         class="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer group"
                                         :class="{'bg-opacity-50': currentNote === fav.path}"
                                         :style="currentNote === fav.path ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
+                                        :title="fav.path"
                                         @mouseenter="if (currentNote !== fav.path) $el.style.backgroundColor = 'var(--bg-hover)'"
                                         @mouseleave="if (currentNote !== fav.path) $el.style.backgroundColor = 'transparent'"
                                     >

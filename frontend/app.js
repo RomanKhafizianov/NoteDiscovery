@@ -1170,14 +1170,13 @@ function noteApp() {
             
             if (this.favoritesSet.has(path)) {
                 // Remove from favorites
-                this.favoritesSet.delete(path);
                 this.favorites = this.favorites.filter(f => f !== path);
             } else {
                 // Add to favorites
-                this.favoritesSet.add(path);
-                this.favorites.push(path);
+                this.favorites = [...this.favorites, path];
             }
-            
+            // Recreate Set from array for consistency
+            this.favoritesSet = new Set(this.favorites);
             this.saveFavorites();
         },
         
@@ -1185,10 +1184,14 @@ function noteApp() {
         get favoriteNotes() {
             return this.favorites
                 .map(path => {
-                    const note = this.notes.find(n => n.path === path);
+                    // Find note by exact path or case-insensitive match
+                    let note = this.notes.find(n => n.path === path);
+                    if (!note) {
+                        note = this.notes.find(n => n.path.toLowerCase() === path.toLowerCase());
+                    }
                     if (!note) return null;
                     return {
-                        path: note.path,
+                        path: note.path, // Use actual path from notes (fixes case issues)
                         name: note.path.split('/').pop().replace('.md', ''),
                         folder: note.folder || ''
                     };
@@ -2040,15 +2043,18 @@ function noteApp() {
                 return;
             }
             
+            // IMPORTANT: Capture dragged item info immediately before async operations
+            // because ondragend may fire and clear these values
+            const draggedNotePath = this.draggedNote || (this.draggedItem?.type === 'note' ? this.draggedItem.path : null);
+            const draggedFolderPath = this.draggedFolder;
+            
             // Handle note drop into folder
-            if (this.draggedNote) {
-                const note = this.notes.find(n => n.path === this.draggedNote);
+            if (draggedNotePath) {
+                const note = this.notes.find(n => n.path === draggedNotePath);
                 if (!note) return;
                 
                 // Don't allow moving images to folders
                 if (note.type === 'image') {
-                    this.draggedNote = null;
-                    this.draggedItem = null;
                     return;
                 }
                 
@@ -2056,82 +2062,112 @@ function noteApp() {
                 const filename = note.path.split('/').pop();
                 const newPath = targetFolderPath ? `${targetFolderPath}/${filename}` : filename;
                 
-                if (newPath === this.draggedNote) {
-                    this.draggedNote = null;
+                if (newPath === draggedNotePath) {
                     return;
                 }
+                
+                // Check if this note is favorited BEFORE the async call
+                const wasFavorited = this.favoritesSet.has(draggedNotePath);
                 
                 try {
                     const response = await fetch('/api/notes/move', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            oldPath: this.draggedNote,
+                            oldPath: draggedNotePath,
                             newPath: newPath
                         })
                     });
                     
                     if (response.ok) {
-                        await this.loadNotes();
+                        // Update favorites if the moved note was favorited
+                        if (wasFavorited) {
+                            // Update Array (create new array for reactivity)
+                            const newFavorites = this.favorites.map(f => f === draggedNotePath ? newPath : f);
+                            this.favorites = newFavorites;
+                            // Recreate Set from array for consistency
+                            this.favoritesSet = new Set(newFavorites);
+                            this.saveFavorites();
+                        }
+                        
                         // Keep current note open if it was the moved note
-                        if (this.currentNote === this.draggedNote) {
+                        const wasCurrentNote = this.currentNote === draggedNotePath;
+                        
+                        await this.loadNotes();
+                        
+                        if (wasCurrentNote) {
                             this.currentNote = newPath;
                         }
                     } else {
-                        alert(this.t('move.failed_note'));
+                        const errorData = await response.json().catch(() => ({}));
+                        alert(errorData.detail || this.t('move.failed_note'));
                     }
                 } catch (error) {
                     console.error('Failed to move note:', error);
                     alert(this.t('move.failed_note'));
                 }
                 
-                this.draggedNote = null;
                 return;
             }
             
             // Handle folder drop into folder
-            if (this.draggedFolder) {
+            if (draggedFolderPath) {
                 // Prevent dropping folder into itself or its subfolders
-                if (targetFolderPath === this.draggedFolder || 
-                    targetFolderPath.startsWith(this.draggedFolder + '/')) {
+                if (targetFolderPath === draggedFolderPath || 
+                    targetFolderPath.startsWith(draggedFolderPath + '/')) {
                     alert(this.t('folders.cannot_move_into_self'));
-                    this.draggedFolder = null;
                     return;
                 }
                 
-                const folderName = this.draggedFolder.split('/').pop();
+                const folderName = draggedFolderPath.split('/').pop();
                 const newPath = targetFolderPath ? `${targetFolderPath}/${folderName}` : folderName;
                 
-                if (newPath === this.draggedFolder) {
-                    this.draggedFolder = null;
+                if (newPath === draggedFolderPath) {
                     return;
                 }
+                
+                // Capture favorites info before async call
+                const oldPrefix = draggedFolderPath + '/';
+                const newPrefix = newPath + '/';
                 
                 try {
                     const response = await fetch('/api/folders/move', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            oldPath: this.draggedFolder,
+                            oldPath: draggedFolderPath,
                             newPath: newPath
                         })
                     });
                     
                     if (response.ok) {
+                        // Update favorites that were in the moved folder
+                        const newFavorites = this.favorites.map(f => {
+                            if (f.startsWith(oldPrefix)) {
+                                return f.replace(oldPrefix, newPrefix);
+                            }
+                            return f;
+                        });
+                        // Check if anything changed
+                        if (JSON.stringify(newFavorites) !== JSON.stringify(this.favorites)) {
+                            this.favorites = newFavorites;
+                            this.favoritesSet = new Set(newFavorites);
+                            this.saveFavorites();
+                        }
+                        
                         await this.loadNotes();
                         // Update current note path if it was in the moved folder
-                        if (this.currentNote && this.currentNote.startsWith(this.draggedFolder + '/')) {
-                            this.currentNote = this.currentNote.replace(this.draggedFolder, newPath);
+                        if (this.currentNote && this.currentNote.startsWith(oldPrefix)) {
+                            this.currentNote = this.currentNote.replace(oldPrefix, newPrefix);
                         }
                     } else {
-                        alert(this.t('move.failed_folder'));
+                        const errorData = await response.json().catch(() => ({}));
+                        alert(errorData.detail || this.t('move.failed_folder'));
                     }
                 } catch (error) {
                     console.error('Failed to move folder:', error);
                     alert(this.t('move.failed_folder'));
                 }
-                
-                this.draggedFolder = null;
                 this.dropTarget = null;
             }
         },
@@ -2666,9 +2702,25 @@ function noteApp() {
                         this.expandedFolders.add(newPath);
                     }
                     
+                    // Update favorites that were in the renamed folder
+                    const folderPrefix = folderPath + '/';
+                    const newFolderPrefix = newPath + '/';
+                    const newFavorites = this.favorites.map(f => {
+                        if (f.startsWith(folderPrefix)) {
+                            return f.replace(folderPrefix, newFolderPrefix);
+                        }
+                        return f;
+                    });
+                    // Check if anything changed
+                    if (JSON.stringify(newFavorites) !== JSON.stringify(this.favorites)) {
+                        this.favorites = newFavorites;
+                        this.favoritesSet = new Set(newFavorites);
+                        this.saveFavorites();
+                    }
+                    
                     // Update current note path if it's in the renamed folder
-                    if (this.currentNote && this.currentNote.startsWith(folderPath + '/')) {
-                        this.currentNote = this.currentNote.replace(folderPath, newPath);
+                    if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
+                        this.currentNote = this.currentNote.replace(folderPrefix, newFolderPrefix);
                     }
                     
                     await this.loadNotes();
@@ -2696,8 +2748,17 @@ function noteApp() {
                     // Remove from expanded folders
                     this.expandedFolders.delete(folderPath);
                     
+                    // Remove any favorites that were in the deleted folder
+                    const folderPrefix = folderPath + '/';
+                    const newFavorites = this.favorites.filter(f => !f.startsWith(folderPrefix));
+                    if (newFavorites.length !== this.favorites.length) {
+                        this.favorites = newFavorites;
+                        this.favoritesSet = new Set(newFavorites);
+                        this.saveFavorites();
+                    }
+                    
                     // Clear current note if it was in the deleted folder
-                    if (this.currentNote && this.currentNote.startsWith(folderPath + '/')) {
+                    if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
                         this.currentNote = '';
                         this.noteContent = '';
                     }
@@ -3011,6 +3072,14 @@ function noteApp() {
                     // Delete old note
                     await fetch(`/api/notes/${oldPath}`, { method: 'DELETE' });
                     
+                    // Update favorites if the renamed note was favorited
+                    if (this.favoritesSet.has(oldPath)) {
+                        const newFavorites = this.favorites.map(f => f === oldPath ? newPath : f);
+                        this.favorites = newFavorites;
+                        this.favoritesSet = new Set(newFavorites);
+                        this.saveFavorites();
+                    }
+                    
                     this.currentNote = newPath;
                     await this.loadNotes();
                 } else {
@@ -3039,6 +3108,14 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
+                    // Remove from favorites if it was favorited
+                    if (this.favoritesSet.has(notePath)) {
+                        const newFavorites = this.favorites.filter(f => f !== notePath);
+                        this.favorites = newFavorites;
+                        this.favoritesSet = new Set(newFavorites);
+                        this.saveFavorites();
+                    }
+                    
                     // If the deleted note is currently open, clear it
                     if (this.currentNote === notePath) {
                         this.currentNote = '';
