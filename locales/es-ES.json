@@ -139,8 +139,14 @@
     "title": "Plantillas",
     "select": "Selecciona una plantilla...",
     "prompt_name": "Introduce el nombre de la nota:",
-    "no_templates": "No hay plantillas disponibles",
-    "create_failed": "Error al crear nota desde plantilla"
+    "no_templates": "No se encontraron plantillas. Crea plantillas en la carpeta _templates.",
+    "create_failed": "Error al crear nota desde plantilla",
+    "create_from_template": "Crear desde Plantilla",
+    "select_template": "Seleccionar Plantilla",
+    "choose_template": "Elige una plantilla",
+    "note_name": "Nombre de la Nota",
+    "available_placeholders": "Marcadores disponibles",
+    "create_note": "Crear Nota"
   },
 
   "export": {
@@ -184,8 +190,14 @@
 
   "syntax_highlight": {
     "title": "Resaltado de Sintaxis del Editor",
+    "description": "Colorear sintaxis markdown en el editor",
     "enable": "Activar resaltado de sintaxis",
     "disable": "Desactivar resaltado de sintaxis"
+  },
+
+  "settings": {
+    "account": "Cuenta",
+    "logout": "Cerrar sesión"
   },
 
   "homepage": {

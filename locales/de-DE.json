@@ -139,8 +139,14 @@
     "title": "Vorlagen",
     "select": "Vorlage auswählen...",
     "prompt_name": "Notizname eingeben:",
-    "no_templates": "Keine Vorlagen verfügbar",
-    "create_failed": "Erstellung der Notiz aus Vorlage fehlgeschlagen"
+    "no_templates": "Keine Vorlagen gefunden. Erstelle Vorlagen im _templates Ordner.",
+    "create_failed": "Erstellung der Notiz aus Vorlage fehlgeschlagen",
+    "create_from_template": "Aus Vorlage erstellen",
+    "select_template": "Vorlage auswählen",
+    "choose_template": "Vorlage wählen",
+    "note_name": "Notizname",
+    "available_placeholders": "Verfügbare Platzhalter",
+    "create_note": "Notiz erstellen"
   },
 
   "export": {
@@ -184,8 +190,14 @@
 
   "syntax_highlight": {
     "title": "Editor-Syntaxhervorhebung",
+    "description": "Markdown-Syntax im Editor einfärben",
     "enable": "Syntaxhervorhebung aktivieren",
     "disable": "Syntaxhervorhebung deaktivieren"
+  },
+
+  "settings": {
+    "account": "Konto",
+    "logout": "Abmelden"
   },
 
   "homepage": {

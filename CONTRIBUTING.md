@@ -180,7 +180,7 @@ NoteDiscovery supports multiple languages through JSON locale files. Adding a ne
 - **Be consistent** - Use the same terminology throughout
 - **Match the tone** - NoteDiscovery uses friendly, concise language
 - **Preserve formatting** - Keep `\n` for newlines in multi-line strings
-- **Handle plurals simply** - We use `{{count}}` placeholders (e.g., "hace {{count}}m")
+- **Handle plurals simply** - It uses `{{count}}` placeholders (e.g., "hace {{count}}m")
 - **Test date formats** - Dates are formatted using the browser's `Intl` API with your locale code
 
 ### What Gets Translated
@@ -197,26 +197,6 @@ NoteDiscovery supports multiple languages through JSON locale files. Adding a ne
 - Technical terms: "Wikilinks", "Markdown", "HTML"
 - Keyboard shortcuts in tooltips: "Ctrl+Z", "Esc"
 - File extensions: ".md", ".json"
-
-### Locale File Structure
-
-Translations are grouped by functionality:
-
-```
-common.*        - Generic buttons (Save, Cancel, Delete)
-sidebar.*       - Sidebar panel labels and hints
-editor.*        - Editor placeholder, mode buttons, time strings
-notes.*         - Note-related prompts and errors
-folders.*       - Folder-related prompts and errors
-toolbar.*       - Toolbar button tooltips
-zen_mode.*      - Zen mode labels
-tags.*          - Tags panel
-graph.*         - Graph view labels
-templates.*     - Template modal
-images.*        - Image upload messages
-search.*        - Search navigation
-settings.*      - Settings panel labels (Theme, Language)
-```
 
 ## 📚 Contributing Documentation
 

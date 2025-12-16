@@ -139,8 +139,14 @@
     "title": "Templates",
     "select": "Select a template...",
     "prompt_name": "Enter note name:",
-    "no_templates": "No templates available",
-    "create_failed": "Failed to create note from template"
+    "no_templates": "No templates found. Create templates in the _templates folder.",
+    "create_failed": "Failed to create note from template",
+    "create_from_template": "Create from Template",
+    "select_template": "Select Template",
+    "choose_template": "Choose a template",
+    "note_name": "Note Name",
+    "available_placeholders": "Available placeholders",
+    "create_note": "Create Note"
   },
 
   "export": {
@@ -184,8 +190,14 @@
 
   "syntax_highlight": {
     "title": "Editor Syntax Highlight",
+    "description": "Colorize markdown syntax in editor",
     "enable": "Enable syntax highlighting",
     "disable": "Disable syntax highlighting"
+  },
+
+  "settings": {
+    "account": "Account",
+    "logout": "Logout"
   },
 
   "homepage": {
