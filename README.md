@@ -1,5 +1,12 @@
 # 📝 NoteDiscovery
 
+![GitHub Stars](https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat)
+![Build](https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml)
+![Latest Version](https://img.shields.io/github/v/tag/gamosoft/notediscovery)
+![License](https://img.shields.io/github/license/gamosoft/notediscovery)
+
+
+
 > Your Self-Hosted Knowledge Base
 
 🌐 **[Visit the official website](https://www.notediscovery.com)**
@@ -19,6 +26,14 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - **Knowledge workers** building a personal wiki or second brain
 - **Teams** looking for a self-hosted alternative to commercial apps
 - **Anyone** who values simplicity, speed, and ownership
+
+
+## 💖 Thanks for using NoteDiscovery!
+If this project has been useful to you, consider supporting its development, it truly makes a difference!
+
+<p align="center">
+  <a href="https://ko-fi.com/gamosoft"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
+</p>
 
 ## ✨ Why NoteDiscovery?
 
@@ -46,6 +61,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 🧮 **Math Support** - LaTeX/MathJax for beautiful equations
 - 📄 **HTML Export** - Share notes as standalone HTML files
 - 🕸️ **Graph View** - Interactive visualization of connected notes
+- ⭐ **Favorites** - Star your most-used notes for instant access
 
 ## 🚀 Quick Start
 
@@ -252,10 +268,6 @@ volumes:
 ```
 
 Then access them at `http://localhost:8000` - the docs will appear as a `docs/` folder in the file browser!
-
-## 💖 Support Development
-
-If you find NoteDiscovery useful, consider [☕ buying me a coffee](https://ko-fi.com/gamosoft) to help keep the project going. Every bit helps with new features, bug fixes, and improvements. Thank you!
 
 ## 🤝 Contributing
 
