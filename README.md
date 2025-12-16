@@ -32,7 +32,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 If this project has been useful to you, consider supporting its development, it truly makes a difference!
 
 <p align="center">
-  <a href="https://ko-fi.com/gamosoft"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
+  <a href="https://ko-fi.com/gamosoft" target="_blank" rel="noopener noreferrer"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
 </p>
 
 ## ✨ Why NoteDiscovery?
