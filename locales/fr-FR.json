@@ -121,6 +121,12 @@
     "filter_by": "Filtrer par {{tag}} ({{count}} notes)"
   },
 
+  "outline": {
+    "title": "Plan",
+    "no_headings": "Aucun titre trouvé",
+    "hint": "Ajoutez des titres avec la syntaxe #"
+  },
+
   "stats": {
     "words": "mots",
     "reading_time": "~{{minutes}}m de lecture",

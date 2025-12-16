@@ -111,6 +111,9 @@ function noteApp() {
         tagsExpanded: false,
         tagReloadTimeout: null, // For debouncing tag reloads
         
+        // Outline (TOC) state
+        outline: [], // [{level: 1, text: 'Heading', slug: 'heading'}, ...]
+        
         // Scroll sync state
         isScrolling: false,
         
@@ -382,6 +385,7 @@ function noteApp() {
                     this.currentNote = '';
                     this.noteContent = '';
                     this.currentNoteName = '';
+                    this.outline = [];
                     
                     // Restore homepage folder state if it was saved
                     if (e.state && e.state.homepageFolder !== undefined) {
@@ -1032,6 +1036,121 @@ function noteApp() {
             
             // Apply unified filtering
             this.applyFilters();
+        },
+        
+        // ========================================================================
+        // Outline (TOC) Methods
+        // ========================================================================
+        
+        // Extract headings from markdown content for the outline
+        extractOutline(content) {
+            if (!content) {
+                this.outline = [];
+                return;
+            }
+            
+            const headings = [];
+            const lines = content.split('\n');
+            const slugCounts = {}; // Track duplicate slugs
+            
+            // Skip frontmatter
+            let inFrontmatter = false;
+            let frontmatterEnded = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Handle frontmatter
+                if (i === 0 && line.trim() === '---') {
+                    inFrontmatter = true;
+                    continue;
+                }
+                if (inFrontmatter) {
+                    if (line.trim() === '---') {
+                        inFrontmatter = false;
+                        frontmatterEnded = true;
+                    }
+                    continue;
+                }
+                
+                // Match heading lines (# to ######)
+                const match = line.match(/^(#{1,6})\s+(.+)$/);
+                if (match) {
+                    const level = match[1].length;
+                    const text = match[2].trim();
+                    
+                    // Generate slug (GitHub-style)
+                    let slug = text
+                        .toLowerCase()
+                        .replace(/[^\w\s-]/g, '') // Remove special chars
+                        .replace(/\s+/g, '-')     // Spaces to dashes
+                        .replace(/-+/g, '-');     // Multiple dashes to single
+                    
+                    // Handle duplicate slugs
+                    if (slugCounts[slug] !== undefined) {
+                        slugCounts[slug]++;
+                        slug = `${slug}-${slugCounts[slug]}`;
+                    } else {
+                        slugCounts[slug] = 0;
+                    }
+                    
+                    headings.push({
+                        level,
+                        text,
+                        slug,
+                        line: i + 1 // 1-indexed line number
+                    });
+                }
+            }
+            
+            this.outline = headings;
+        },
+        
+        // Scroll to a heading in the editor or preview
+        scrollToHeading(heading) {
+            if (this.viewMode === 'preview' || this.viewMode === 'split') {
+                // In preview/split mode, scroll the preview pane
+                const preview = document.querySelector('.markdown-preview');
+                if (preview) {
+                    // Find the heading element by text content (more reliable than ID)
+                    const headingElements = preview.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    for (const el of headingElements) {
+                        if (el.textContent.trim() === heading.text) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            // Add a brief highlight effect
+                            el.style.transition = 'background-color 0.3s';
+                            el.style.backgroundColor = 'var(--accent-light)';
+                            setTimeout(() => {
+                                el.style.backgroundColor = '';
+                            }, 1000);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            if (this.viewMode === 'edit' || this.viewMode === 'split') {
+                // In edit/split mode, scroll the editor to the line
+                const textarea = document.querySelector('.editor-textarea');
+                if (textarea && heading.line) {
+                    const lines = textarea.value.split('\n');
+                    let charPos = 0;
+                    
+                    // Calculate character position of the heading line
+                    for (let i = 0; i < heading.line - 1 && i < lines.length; i++) {
+                        charPos += lines[i].length + 1; // +1 for newline
+                    }
+                    
+                    // Set cursor position and scroll
+                    textarea.focus();
+                    textarea.setSelectionRange(charPos, charPos);
+                    
+                    // Calculate scroll position (approximate)
+                    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+                    const scrollTop = (heading.line - 1) * lineHeight - textarea.clientHeight / 3;
+                    textarea.scrollTop = Math.max(0, scrollTop);
+                }
+            }
         },
         
         // Unified filtering logic combining tags and text search
@@ -2182,6 +2301,9 @@ function noteApp() {
                 this.currentImage = ''; // Clear image viewer when loading a note
                 this.lastSaved = false;
                 
+                // Extract outline for TOC panel
+                this.extractOutline(data.content);
+                
                 // Initialize undo/redo history for this note (with cursor at start)
                 this.undoHistory = [{ content: data.content, cursorPos: 0 }];
                 this.redoHistory = [];
@@ -2771,6 +2893,9 @@ function noteApp() {
             
             // Parse metadata in real-time
             this.parseMetadata();
+            
+            // Update outline (TOC) in real-time
+            this.extractOutline(this.noteContent);
             
             this.saveTimeout = setTimeout(() => {
                 this.saveNote();
@@ -4489,6 +4614,7 @@ function noteApp() {
             this.currentNoteName = '';
             this.noteContent = '';
             this.currentImage = '';
+            this.outline = [];
             
             // Invalidate cache to force recalculation
             this._homepageCache = {
@@ -4509,6 +4635,7 @@ function noteApp() {
             this.currentNoteName = '';
             this.noteContent = '';
             this.currentImage = '';
+            this.outline = [];
             this.mobileSidebarOpen = false;
             
             // Invalidate cache to force recalculation

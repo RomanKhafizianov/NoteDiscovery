@@ -121,6 +121,12 @@
     "filter_by": "Nach {{tag}} filtern ({{count}} Notizen)"
   },
 
+  "outline": {
+    "title": "Gliederung",
+    "no_headings": "Keine Überschriften gefunden",
+    "hint": "Überschriften mit # hinzufügen"
+  },
+
   "stats": {
     "words": "Wörter",
     "reading_time": "~{{minutes}}m Lesezeit",

@@ -121,6 +121,12 @@
     "filter_by": "Filtrar por {{tag}} ({{count}} notas)"
   },
 
+  "outline": {
+    "title": "Esquema",
+    "no_headings": "No se encontraron encabezados",
+    "hint": "Añade encabezados usando sintaxis #"
+  },
+
   "stats": {
     "words": "palabras",
     "reading_time": "~{{minutes}}m de lectura",

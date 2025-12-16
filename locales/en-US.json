@@ -121,6 +121,12 @@
     "filter_by": "Filter by {{tag}} ({{count}} notes)"
   },
 
+  "outline": {
+    "title": "Outline",
+    "no_headings": "No headings found",
+    "hint": "Add headings using # syntax"
+  },
+
   "stats": {
     "words": "words",
     "reading_time": "~{{minutes}}m read",
