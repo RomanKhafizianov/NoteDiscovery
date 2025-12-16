@@ -2064,42 +2064,79 @@ function noteApp() {
             // Prevent default navigation for internal links
             event.preventDefault();
             
-            // Remove any anchor from the href (e.g., "note.md#section" -> "note.md")
-            // Also decode URL encoding (e.g., "note%203.md" -> "note 3.md")
-            const notePath = decodeURIComponent(href.split('#')[0]);
+            // Parse href into note path and anchor (e.g., "note.md#section" -> notePath="note.md", anchor="section")
+            const decodedHref = decodeURIComponent(href);
+            const hashIndex = decodedHref.indexOf('#');
+            const notePath = hashIndex !== -1 ? decodedHref.substring(0, hashIndex) : decodedHref;
+            const anchor = hashIndex !== -1 ? decodedHref.substring(hashIndex + 1) : null;
             
-            // Skip if it's just an anchor link
+            // If it's just an anchor link (#heading), scroll within current note
+            if (!notePath && anchor) {
+                this.scrollToAnchor(anchor);
+                return;
+            }
+            
+            // Skip if no path
             if (!notePath) return;
             
             // Find the note by path (try exact match first, then with .md extension)
-            const note = this.notes.find(n => 
+            let targetNote = this.notes.find(n => 
                 n.path === notePath || 
                 n.path === notePath + '.md'
             );
-            if (note) {
-                this.loadNote(note.path);
-            } else {
+            
+            if (!targetNote) {
                 // Try to find by name (in case link uses just the note name without path)
-                const noteByName = this.notes.find(n => 
+                targetNote = this.notes.find(n => 
                     n.name === notePath || 
                     n.name === notePath + '.md' ||
-                    // Also match by filename at end of path (case-insensitive)
                     n.name.toLowerCase() === notePath.toLowerCase() ||
                     n.name.toLowerCase() === (notePath + '.md').toLowerCase()
                 );
-                if (noteByName) {
-                    this.loadNote(noteByName.path);
-                } else {
-                    // Last resort: case-insensitive path matching
-                    const noteByPathCI = this.notes.find(n => 
-                        n.path.toLowerCase() === notePath.toLowerCase() ||
-                        n.path.toLowerCase() === (notePath + '.md').toLowerCase()
-                    );
-                    if (noteByPathCI) {
-                        this.loadNote(noteByPathCI.path);
-                } else {
-                    alert(this.t('notes.not_found', { path: notePath }));
+            }
+            
+            if (!targetNote) {
+                // Last resort: case-insensitive path matching
+                targetNote = this.notes.find(n => 
+                    n.path.toLowerCase() === notePath.toLowerCase() ||
+                    n.path.toLowerCase() === (notePath + '.md').toLowerCase()
+                );
+            }
+            
+            if (targetNote) {
+                // Load the note, then scroll to anchor if present
+                this.loadNote(targetNote.path).then(() => {
+                    if (anchor) {
+                        // Small delay to ensure content is rendered
+                        setTimeout(() => this.scrollToAnchor(anchor), 100);
                     }
+                });
+            } else {
+                alert(this.t('notes.not_found', { path: notePath }));
+            }
+        },
+        
+        // Scroll to an anchor (heading) by slug - reuses outline data
+        scrollToAnchor(anchor) {
+            // Normalize the anchor (GitHub-style slug)
+            const targetSlug = anchor
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            
+            // Find matching heading in outline
+            const heading = this.outline.find(h => h.slug === targetSlug);
+            
+            if (heading) {
+                this.scrollToHeading(heading);
+            } else {
+                // Fallback: try to find heading by exact text match
+                const headingByText = this.outline.find(h => 
+                    h.text.toLowerCase().replace(/\s+/g, '-') === anchor.toLowerCase()
+                );
+                if (headingByText) {
+                    this.scrollToHeading(headingByText);
                 }
             }
         },
