@@ -217,6 +217,13 @@
     "note_plural": "notas",
     "folder_singular": "carpeta",
     "folder_plural": "carpetas"
+  },
+
+  "validation": {
+    "forbidden_chars": "El nombre contiene caracteres no permitidos: {{chars}}",
+    "reserved_name": "Este nombre está reservado por el sistema operativo.",
+    "invalid_dot": "El nombre no puede ser solo un punto.",
+    "trailing_dot_space": "El nombre no puede terminar con un punto o espacio."
   }
 }
 

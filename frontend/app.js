@@ -32,6 +32,96 @@ const ErrorHandler = {
     }
 };
 
+/**
+ * Centralized filename validation
+ * Supports Unicode characters (international text) but blocks dangerous filesystem characters.
+ * Does NOT silently modify filenames - validates and returns status.
+ */
+const FilenameValidator = {
+    // Characters that are forbidden in filenames across Windows/macOS/Linux
+    // Windows: \ / : * ? " < > |
+    // macOS: / :
+    // Linux: / \0
+    // Common set to block (including control characters)
+    FORBIDDEN_CHARS: /[\\/:*?"<>|\x00-\x1f]/,
+    
+    // For display purposes - human readable list
+    FORBIDDEN_CHARS_DISPLAY: '\\ / : * ? " < > |',
+    
+    /**
+     * Validate a filename (single segment, no path separators)
+     * @param {string} name - The filename to validate
+     * @returns {{ valid: boolean, error?: string, sanitized?: string }}
+     */
+    validateFilename(name) {
+        if (!name || typeof name !== 'string') {
+            return { valid: false, error: 'empty' };
+        }
+        
+        const trimmed = name.trim();
+        if (!trimmed) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        // Check for forbidden characters
+        if (this.FORBIDDEN_CHARS.test(trimmed)) {
+            return { 
+                valid: false, 
+                error: 'forbidden_chars',
+                forbiddenChars: this.FORBIDDEN_CHARS_DISPLAY
+            };
+        }
+        
+        // Check for reserved Windows names (case-insensitive)
+        const reservedNames = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i;
+        if (reservedNames.test(trimmed)) {
+            return { valid: false, error: 'reserved_name' };
+        }
+        
+        // Check for names starting/ending with dots or spaces (problematic on some systems)
+        if (trimmed.startsWith('.') && trimmed.length === 1) {
+            return { valid: false, error: 'invalid_dot' };
+        }
+        if (trimmed.endsWith('.') || trimmed.endsWith(' ')) {
+            return { valid: false, error: 'trailing_dot_space' };
+        }
+        
+        return { valid: true, sanitized: trimmed };
+    },
+    
+    /**
+     * Validate a path (may contain forward slashes for folder separators)
+     * @param {string} path - The path to validate
+     * @returns {{ valid: boolean, error?: string, sanitized?: string }}
+     */
+    validatePath(path) {
+        if (!path || typeof path !== 'string') {
+            return { valid: false, error: 'empty' };
+        }
+        
+        const trimmed = path.trim();
+        if (!trimmed) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        // Split by forward slash and validate each segment
+        const segments = trimmed.split('/').filter(s => s.length > 0);
+        if (segments.length === 0) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        for (const segment of segments) {
+            const result = this.validateFilename(segment);
+            if (!result.valid) {
+                return result;
+            }
+        }
+        
+        // Rebuild path without empty segments
+        return { valid: true, sanitized: segments.join('/') };
+    }
+};
+
 function noteApp() {
     return {
         // App state
@@ -806,6 +896,35 @@ function noteApp() {
             return value.replace(/\{\{(\w+)\}\}/g, (_, name) => params[name] ?? `{{${name}}}`);
         },
         
+        /**
+         * Get localized error message from FilenameValidator result
+         * @param {object} validation - The validation result from FilenameValidator
+         * @param {string} type - 'note' or 'folder'
+         * @returns {string} Localized error message
+         */
+        getValidationErrorMessage(validation, type = 'note') {
+            switch (validation.error) {
+                case 'empty':
+                    return type === 'note' 
+                        ? this.t('notes.empty_name') 
+                        : this.t('folders.invalid_name');
+                case 'forbidden_chars':
+                    return this.t('validation.forbidden_chars', { 
+                        chars: validation.forbiddenChars 
+                    });
+                case 'reserved_name':
+                    return this.t('validation.reserved_name');
+                case 'invalid_dot':
+                    return this.t('validation.invalid_dot');
+                case 'trailing_dot_space':
+                    return this.t('validation.trailing_dot_space');
+                default:
+                    return type === 'note' 
+                        ? this.t('notes.invalid_name') 
+                        : this.t('folders.invalid_name');
+            }
+        },
+        
         // Load available locales from backend
         async loadAvailableLocales() {
             try {
@@ -972,8 +1091,15 @@ function noteApp() {
             }
             
             try {
+                // Validate the note name
+                const validation = FilenameValidator.validateFilename(this.newTemplateNoteName);
+                if (!validation.valid) {
+                    alert(this.getValidationErrorMessage(validation, 'note'));
+                    return;
+                }
+                
                 // Determine the note path based on dropdown context
-                let notePath = this.newTemplateNoteName.trim();
+                let notePath = validation.sanitized;
                 if (!notePath.endsWith('.md')) {
                     notePath += '.md';
                 }
@@ -994,7 +1120,7 @@ function noteApp() {
                 // CRITICAL: Check if note already exists
                 const existingNote = this.notes.find(note => note.path === notePath);
                 if (existingNote) {
-                    alert(this.t('notes.already_exists', { name: this.newTemplateNoteName.trim() }));
+                    alert(this.t('notes.already_exists', { name: validation.sanitized }));
                     return;
                 }
                 
@@ -2707,23 +2833,29 @@ function noteApp() {
             const noteName = prompt(promptText);
             if (!noteName) return;
             
-            const sanitizedName = noteName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('notes.invalid_name'));
+            // Validate the name/path (may contain / for paths when no target folder)
+            const validation = targetFolder 
+                ? FilenameValidator.validateFilename(noteName)
+                : FilenameValidator.validatePath(noteName);
+            
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'note'));
                 return;
             }
             
+            const validatedName = validation.sanitized;
+            
             let notePath;
             if (targetFolder) {
-                notePath = `${targetFolder}/${sanitizedName}.md`;
+                notePath = `${targetFolder}/${validatedName}.md`;
             } else {
-                notePath = sanitizedName.endsWith('.md') ? sanitizedName : `${sanitizedName}.md`;
+                notePath = validatedName.endsWith('.md') ? validatedName : `${validatedName}.md`;
             }
             
             // CRITICAL: Check if note already exists
             const existingNote = this.notes.find(note => note.path === notePath);
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: sanitizedName }));
+                alert(this.t('notes.already_exists', { name: validatedName }));
                 return;
             }
             
@@ -2768,18 +2900,23 @@ function noteApp() {
             const folderName = prompt(promptText);
             if (!folderName) return;
             
-            const sanitizedName = folderName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('folders.invalid_name'));
+            // Validate the name/path (may contain / for paths when no target folder)
+            const validation = targetFolder 
+                ? FilenameValidator.validateFilename(folderName)
+                : FilenameValidator.validatePath(folderName);
+            
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'folder'));
                 return;
             }
             
-            const folderPath = targetFolder ? `${targetFolder}/${sanitizedName}` : sanitizedName;
+            const validatedName = validation.sanitized;
+            const folderPath = targetFolder ? `${targetFolder}/${validatedName}` : validatedName;
             
             // Check if folder already exists
             const existingFolder = this.allFolders.find(folder => folder === folderPath);
             if (existingFolder) {
-                alert(this.t('folders.already_exists', { name: sanitizedName }));
+                alert(this.t('folders.already_exists', { name: validatedName }));
                 return;
             }
             
@@ -2812,15 +2949,18 @@ function noteApp() {
             const newName = prompt(this.t('folders.prompt_rename', { name: currentName }), currentName);
             if (!newName || newName === currentName) return;
             
-            const sanitizedName = newName.trim().replace(/[^a-zA-Z0-9-_\s]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('folders.invalid_name'));
+            // Validate the new name (single segment, no path separators)
+            const validation = FilenameValidator.validateFilename(newName);
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'folder'));
                 return;
             }
             
+            const validatedName = validation.sanitized;
+            
             // Calculate new path
             const pathParts = folderPath.split('/');
-            pathParts[pathParts.length - 1] = sanitizedName;
+            pathParts[pathParts.length - 1] = validatedName;
             const newPath = pathParts.join('/');
             
             try {
@@ -3187,15 +3327,25 @@ function noteApp() {
                 return;
             }
             
+            // Validate the new name (single segment, no path separators)
+            const validation = FilenameValidator.validateFilename(newName);
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'note'));
+                // Reset the name in the UI
+                this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
+                return;
+            }
+            
+            const validatedName = validation.sanitized;
             const folder = oldPath.split('/').slice(0, -1).join('/');
-            const newPath = folder ? `${folder}/${newName}.md` : `${newName}.md`;
+            const newPath = folder ? `${folder}/${validatedName}.md` : `${validatedName}.md`;
             
             if (oldPath === newPath) return;
             
             // Check if a note with the new name already exists
             const existingNote = this.notes.find(n => n.path.toLowerCase() === newPath.toLowerCase());
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: newName }));
+                alert(this.t('notes.already_exists', { name: validatedName }));
                 // Reset the name in the UI
                 this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
                 return;

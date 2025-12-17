@@ -379,16 +379,35 @@ def create_note_metadata(notes_dir: str, note_path: str) -> Dict:
 
 def sanitize_filename(filename: str) -> str:
     """
-    Sanitize a filename by removing/replacing invalid characters.
-    Keeps only alphanumeric chars, dots, dashes, and underscores.
+    Sanitize a filename by removing/replacing dangerous filesystem characters.
+    Supports Unicode characters (international text) while blocking:
+    - Windows forbidden: \\ / : * ? " < > |
+    - Control characters (0x00-0x1f)
+    
+    Note: This is a safety net - the frontend validates before sending.
     """
+    if not filename:
+        return filename
+        
     # Get the extension first
     parts = filename.rsplit('.', 1)
     name = parts[0]
     ext = parts[1] if len(parts) > 1 else ''
     
-    # Remove/replace invalid characters
-    name = re.sub(r'[^a-zA-Z0-9_-]', '_', name)
+    # Remove dangerous characters (replace with underscore)
+    # Blocklist approach: only remove what's truly dangerous
+    # Pattern: backslash, forward slash, colon, asterisk, question mark, quotes, angle brackets, pipe, control chars
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', name)
+    
+    # Collapse multiple underscores
+    name = re.sub(r'_+', '_', name)
+    
+    # Strip leading/trailing underscores and spaces
+    name = name.strip('_ ')
+    
+    # Ensure we have something left
+    if not name:
+        name = 'unnamed'
     
     # Rejoin with extension
     return f"{name}.{ext}" if ext else name
