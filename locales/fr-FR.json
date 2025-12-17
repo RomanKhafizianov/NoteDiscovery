@@ -224,6 +224,10 @@
     "reserved_name": "Ce nom est réservé par le système d'exploitation.",
     "invalid_dot": "Le nom ne peut pas être juste un point.",
     "trailing_dot_space": "Le nom ne peut pas se terminer par un point ou un espace."
+  },
+
+  "support": {
+    "enjoying_demo": "Soutenez ce projet"
   }
 }
 

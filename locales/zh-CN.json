@@ -224,6 +224,10 @@
     "reserved_name": "此名称被操作系统保留。",
     "invalid_dot": "名称不能只是一个点。",
     "trailing_dot_space": "名称不能以点或空格结尾。"
+  },
+
+  "support": {
+    "enjoying_demo": "支持此项目"
   }
 }
 

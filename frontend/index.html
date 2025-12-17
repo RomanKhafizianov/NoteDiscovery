@@ -1733,7 +1733,22 @@
                         style="color: var(--accent-primary);"
                     >
                                     notediscovery.com
-                    </a>                    
+                    </a>
+                    <!-- Ko-fi support link (demo mode only) -->
+                    <template x-if="demoMode">
+                        <div class="mt-3">
+                            <a 
+                                href="https://ko-fi.com/gamosoft" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all hover:scale-105"
+                                style="background-color: #ff5e5b; color: white;"
+                            >
+                                <span>☕</span>
+                                <span x-text="t('support.enjoying_demo')"></span>
+                            </a>
+                        </div>
+                    </template>
                 </div>
             </div>
                     </div>

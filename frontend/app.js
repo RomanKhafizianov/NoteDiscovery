@@ -128,6 +128,7 @@ function noteApp() {
         appName: 'NoteDiscovery',
         appVersion: '0.0.0',
         authEnabled: false,
+        demoMode: false,
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -663,6 +664,7 @@ function noteApp() {
                 this.appName = config.name;
                 this.appVersion = config.version || '0.0.0';
                 this.authEnabled = config.authentication?.enabled || false;
+                this.demoMode = config.demoMode || false;
             } catch (error) {
                 console.error('Failed to load config:', error);
             }
