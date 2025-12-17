@@ -702,7 +702,7 @@
             <div class="screenshot-container">
                 <div class="carousel">
                     <div class="carousel-track" id="carouselTrack">
-                        <!-- Slide 1: Main Interface (Light) -->
+                        <!-- Slide 1: Main Interface -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
@@ -713,9 +713,10 @@
                                     </div>
                                     <span class="screenshot-title">Editor View • Main Interface</span>
                                 </div>
-                                <img src="carousel-1.jpg" alt="NoteDiscovery Editor - Light Theme" loading="lazy">
+                                <img src="carousel-1.jpg" alt="NoteDiscovery Main Interface" loading="lazy">
                             </div>
                         </div>
+                        <!-- Slide 2: Search -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
@@ -724,11 +725,12 @@
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
-                                    <span class="screenshot-title">Editor View • Search Notes</span>
+                                    <span class="screenshot-title">Smart Search • Find Anything Instantly</span>
                                 </div>
-                                <img src="carousel-2.jpg" alt="NoteDiscovery Editor - Dark Theme" loading="lazy">
+                                <img src="carousel-2.jpg" alt="NoteDiscovery Smart Search" loading="lazy">
                             </div>
                         </div>
+                        <!-- Slide 3: Tag Filter -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
@@ -737,11 +739,12 @@
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
-                                    <span class="screenshot-title">Graph View • Note Connections</span>
+                                    <span class="screenshot-title">Tag Filtering • Organize by Topics</span>
                                 </div>
-                                <img src="carousel-3.jpg" alt="NoteDiscovery Graph View" loading="lazy">
+                                <img src="carousel-3.jpg" alt="NoteDiscovery Tag Filtering" loading="lazy">
                             </div>
                         </div>
+                        <!-- Slide 4: Outline -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
@@ -750,9 +753,51 @@
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
-                                    <span class="screenshot-title">Frontmatter Metadata • Note Tag Search</span>
+                                    <span class="screenshot-title">Outline Panel • Navigate Headings</span>
                                 </div>
-                                <img src="carousel-4.jpg" alt="NoteDiscovery Mobile View" loading="lazy">
+                                <img src="carousel-4.jpg" alt="NoteDiscovery Outline Panel" loading="lazy">
+                            </div>
+                        </div>
+                        <!-- Slide 5: Card View -->
+                        <div class="carousel-slide">
+                            <div class="screenshot-frame">
+                                <div class="screenshot-window-bar">
+                                    <div class="screenshot-dots">
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                    </div>
+                                    <span class="screenshot-title">Card View • Visual Organization</span>
+                                </div>
+                                <img src="carousel-5.jpg" alt="NoteDiscovery Card View" loading="lazy">
+                            </div>
+                        </div>
+                        <!-- Slide 6: Graph View -->
+                        <div class="carousel-slide">
+                            <div class="screenshot-frame">
+                                <div class="screenshot-window-bar">
+                                    <div class="screenshot-dots">
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                    </div>
+                                    <span class="screenshot-title">Graph View • Visualize Connections</span>
+                                </div>
+                                <img src="carousel-6.jpg" alt="NoteDiscovery Graph View" loading="lazy">
+                            </div>
+                        </div>
+                        <!-- Slide 7: Mobile Support -->
+                        <div class="carousel-slide">
+                            <div class="screenshot-frame">
+                                <div class="screenshot-window-bar">
+                                    <div class="screenshot-dots">
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                        <div class="screenshot-dot"></div>
+                                    </div>
+                                    <span class="screenshot-title">Mobile Ready • Notes On The Go</span>
+                                </div>
+                                <img src="carousel-7.png" alt="NoteDiscovery Mobile Support" loading="lazy">
                             </div>
                         </div>
                     </div>
@@ -765,6 +810,9 @@
                         <button class="carousel-indicator" onclick="goToSlide(1)" aria-label="Slide 2"></button>
                         <button class="carousel-indicator" onclick="goToSlide(2)" aria-label="Slide 3"></button>
                         <button class="carousel-indicator" onclick="goToSlide(3)" aria-label="Slide 4"></button>
+                        <button class="carousel-indicator" onclick="goToSlide(4)" aria-label="Slide 5"></button>
+                        <button class="carousel-indicator" onclick="goToSlide(5)" aria-label="Slide 6"></button>
+                        <button class="carousel-indicator" onclick="goToSlide(6)" aria-label="Slide 7"></button>
                     </div>
                     <button class="carousel-btn" onclick="moveCarousel(1)" aria-label="Next screenshot">›</button>
                 </div>
@@ -1045,7 +1093,7 @@
 
         // Screenshot Carousel
         let currentSlide = 0;
-        const totalSlides = 4;
+        const totalSlides = 7;
         let autoPlayInterval;
 
         function updateCarousel() {
