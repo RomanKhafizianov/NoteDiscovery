@@ -118,6 +118,7 @@
     "title": "Oznake",
     "no_tags": "Ni najdenih oznak",
     "hint": "Dodajte oznake z YAML frontmatter",
+    "no_matches": "Noben zapis ne ustreza izbranim oznakam",
     "clear_all": "Počisti filtre oznak",
     "filter_by": "Filtriraj po {{tag}} ({{count}} zapiskov)"
   },

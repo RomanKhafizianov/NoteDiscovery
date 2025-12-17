@@ -1589,8 +1589,7 @@
                                             <span class="truncate block" x-text="note.name"></span>
                                         </div>
                                     </template>
-                                    <div x-show="searchResults.length === 0" class="px-3 py-4 text-center text-xs" style="color: var(--text-tertiary);">
-                                        No notes match selected tags
+                                    <div x-show="searchResults.length === 0" class="px-3 py-4 text-center text-xs" style="color: var(--text-tertiary);" x-text="t('tags.no_matches')">
                                     </div>
                                 </div>
                             </div>

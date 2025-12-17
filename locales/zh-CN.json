@@ -118,6 +118,7 @@
     "title": "标签",
     "no_tags": "未找到标签",
     "hint": "使用 YAML frontmatter 添加标签",
+    "no_matches": "没有笔记匹配所选标签",
     "clear_all": "清除所有标签过滤器",
     "filter_by": "按 {{tag}} 过滤 ({{count}} 条笔记)"
   },

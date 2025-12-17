@@ -118,6 +118,7 @@
     "title": "Tags",
     "no_tags": "No tags found",
     "hint": "Add tags using YAML frontmatter",
+    "no_matches": "No notes match selected tags",
     "clear_all": "Clear tag filters",
     "filter_by": "Filter by {{tag}} ({{count}} notes)"
   },
