@@ -32,12 +32,103 @@ const ErrorHandler = {
     }
 };
 
+/**
+ * Centralized filename validation
+ * Supports Unicode characters (international text) but blocks dangerous filesystem characters.
+ * Does NOT silently modify filenames - validates and returns status.
+ */
+const FilenameValidator = {
+    // Characters that are forbidden in filenames across Windows/macOS/Linux
+    // Windows: \ / : * ? " < > |
+    // macOS: / :
+    // Linux: / \0
+    // Common set to block (including control characters)
+    FORBIDDEN_CHARS: /[\\/:*?"<>|\x00-\x1f]/,
+    
+    // For display purposes - human readable list
+    FORBIDDEN_CHARS_DISPLAY: '\\ / : * ? " < > |',
+    
+    /**
+     * Validate a filename (single segment, no path separators)
+     * @param {string} name - The filename to validate
+     * @returns {{ valid: boolean, error?: string, sanitized?: string }}
+     */
+    validateFilename(name) {
+        if (!name || typeof name !== 'string') {
+            return { valid: false, error: 'empty' };
+        }
+        
+        const trimmed = name.trim();
+        if (!trimmed) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        // Check for forbidden characters
+        if (this.FORBIDDEN_CHARS.test(trimmed)) {
+            return { 
+                valid: false, 
+                error: 'forbidden_chars',
+                forbiddenChars: this.FORBIDDEN_CHARS_DISPLAY
+            };
+        }
+        
+        // Check for reserved Windows names (case-insensitive)
+        const reservedNames = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i;
+        if (reservedNames.test(trimmed)) {
+            return { valid: false, error: 'reserved_name' };
+        }
+        
+        // Check for names starting/ending with dots or spaces (problematic on some systems)
+        if (trimmed.startsWith('.') && trimmed.length === 1) {
+            return { valid: false, error: 'invalid_dot' };
+        }
+        if (trimmed.endsWith('.') || trimmed.endsWith(' ')) {
+            return { valid: false, error: 'trailing_dot_space' };
+        }
+        
+        return { valid: true, sanitized: trimmed };
+    },
+    
+    /**
+     * Validate a path (may contain forward slashes for folder separators)
+     * @param {string} path - The path to validate
+     * @returns {{ valid: boolean, error?: string, sanitized?: string }}
+     */
+    validatePath(path) {
+        if (!path || typeof path !== 'string') {
+            return { valid: false, error: 'empty' };
+        }
+        
+        const trimmed = path.trim();
+        if (!trimmed) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        // Split by forward slash and validate each segment
+        const segments = trimmed.split('/').filter(s => s.length > 0);
+        if (segments.length === 0) {
+            return { valid: false, error: 'empty' };
+        }
+        
+        for (const segment of segments) {
+            const result = this.validateFilename(segment);
+            if (!result.valid) {
+                return result;
+            }
+        }
+        
+        // Rebuild path without empty segments
+        return { valid: true, sanitized: segments.join('/') };
+    }
+};
+
 function noteApp() {
     return {
         // App state
         appName: 'NoteDiscovery',
         appVersion: '0.0.0',
         authEnabled: false,
+        demoMode: false,
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -110,6 +201,9 @@ function noteApp() {
         selectedTags: [],
         tagsExpanded: false,
         tagReloadTimeout: null, // For debouncing tag reloads
+        
+        // Outline (TOC) state
+        outline: [], // [{level: 1, text: 'Heading', slug: 'heading'}, ...]
         
         // Scroll sync state
         isScrolling: false,
@@ -382,6 +476,7 @@ function noteApp() {
                     this.currentNote = '';
                     this.noteContent = '';
                     this.currentNoteName = '';
+                    this.outline = [];
                     
                     // Restore homepage folder state if it was saved
                     if (e.state && e.state.homepageFolder !== undefined) {
@@ -569,6 +664,7 @@ function noteApp() {
                 this.appName = config.name;
                 this.appVersion = config.version || '0.0.0';
                 this.authEnabled = config.authentication?.enabled || false;
+                this.demoMode = config.demoMode || false;
             } catch (error) {
                 console.error('Failed to load config:', error);
             }
@@ -802,6 +898,35 @@ function noteApp() {
             return value.replace(/\{\{(\w+)\}\}/g, (_, name) => params[name] ?? `{{${name}}}`);
         },
         
+        /**
+         * Get localized error message from FilenameValidator result
+         * @param {object} validation - The validation result from FilenameValidator
+         * @param {string} type - 'note' or 'folder'
+         * @returns {string} Localized error message
+         */
+        getValidationErrorMessage(validation, type = 'note') {
+            switch (validation.error) {
+                case 'empty':
+                    return type === 'note' 
+                        ? this.t('notes.empty_name') 
+                        : this.t('folders.invalid_name');
+                case 'forbidden_chars':
+                    return this.t('validation.forbidden_chars', { 
+                        chars: validation.forbiddenChars 
+                    });
+                case 'reserved_name':
+                    return this.t('validation.reserved_name');
+                case 'invalid_dot':
+                    return this.t('validation.invalid_dot');
+                case 'trailing_dot_space':
+                    return this.t('validation.trailing_dot_space');
+                default:
+                    return type === 'note' 
+                        ? this.t('notes.invalid_name') 
+                        : this.t('folders.invalid_name');
+            }
+        },
+        
         // Load available locales from backend
         async loadAvailableLocales() {
             try {
@@ -968,8 +1093,15 @@ function noteApp() {
             }
             
             try {
+                // Validate the note name
+                const validation = FilenameValidator.validateFilename(this.newTemplateNoteName);
+                if (!validation.valid) {
+                    alert(this.getValidationErrorMessage(validation, 'note'));
+                    return;
+                }
+                
                 // Determine the note path based on dropdown context
-                let notePath = this.newTemplateNoteName.trim();
+                let notePath = validation.sanitized;
                 if (!notePath.endsWith('.md')) {
                     notePath += '.md';
                 }
@@ -990,7 +1122,7 @@ function noteApp() {
                 // CRITICAL: Check if note already exists
                 const existingNote = this.notes.find(note => note.path === notePath);
                 if (existingNote) {
-                    alert(this.t('notes.already_exists', { name: this.newTemplateNoteName.trim() }));
+                    alert(this.t('notes.already_exists', { name: validation.sanitized }));
                     return;
                 }
                 
@@ -1032,6 +1164,121 @@ function noteApp() {
             
             // Apply unified filtering
             this.applyFilters();
+        },
+        
+        // ========================================================================
+        // Outline (TOC) Methods
+        // ========================================================================
+        
+        // Extract headings from markdown content for the outline
+        extractOutline(content) {
+            if (!content) {
+                this.outline = [];
+                return;
+            }
+            
+            const headings = [];
+            const lines = content.split('\n');
+            const slugCounts = {}; // Track duplicate slugs
+            
+            // Skip frontmatter
+            let inFrontmatter = false;
+            let frontmatterEnded = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Handle frontmatter
+                if (i === 0 && line.trim() === '---') {
+                    inFrontmatter = true;
+                    continue;
+                }
+                if (inFrontmatter) {
+                    if (line.trim() === '---') {
+                        inFrontmatter = false;
+                        frontmatterEnded = true;
+                    }
+                    continue;
+                }
+                
+                // Match heading lines (# to ######)
+                const match = line.match(/^(#{1,6})\s+(.+)$/);
+                if (match) {
+                    const level = match[1].length;
+                    const text = match[2].trim();
+                    
+                    // Generate slug (GitHub-style)
+                    let slug = text
+                        .toLowerCase()
+                        .replace(/[^\w\s-]/g, '') // Remove special chars
+                        .replace(/\s+/g, '-')     // Spaces to dashes
+                        .replace(/-+/g, '-');     // Multiple dashes to single
+                    
+                    // Handle duplicate slugs
+                    if (slugCounts[slug] !== undefined) {
+                        slugCounts[slug]++;
+                        slug = `${slug}-${slugCounts[slug]}`;
+                    } else {
+                        slugCounts[slug] = 0;
+                    }
+                    
+                    headings.push({
+                        level,
+                        text,
+                        slug,
+                        line: i + 1 // 1-indexed line number
+                    });
+                }
+            }
+            
+            this.outline = headings;
+        },
+        
+        // Scroll to a heading in the editor or preview
+        scrollToHeading(heading) {
+            if (this.viewMode === 'preview' || this.viewMode === 'split') {
+                // In preview/split mode, scroll the preview pane
+                const preview = document.querySelector('.markdown-preview');
+                if (preview) {
+                    // Find the heading element by text content (more reliable than ID)
+                    const headingElements = preview.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    for (const el of headingElements) {
+                        if (el.textContent.trim() === heading.text) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            // Add a brief highlight effect
+                            el.style.transition = 'background-color 0.3s';
+                            el.style.backgroundColor = 'var(--accent-light)';
+                            setTimeout(() => {
+                                el.style.backgroundColor = '';
+                            }, 1000);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            if (this.viewMode === 'edit' || this.viewMode === 'split') {
+                // In edit/split mode, scroll the editor to the line
+                const textarea = document.querySelector('.editor-textarea');
+                if (textarea && heading.line) {
+                    const lines = textarea.value.split('\n');
+                    let charPos = 0;
+                    
+                    // Calculate character position of the heading line
+                    for (let i = 0; i < heading.line - 1 && i < lines.length; i++) {
+                        charPos += lines[i].length + 1; // +1 for newline
+                    }
+                    
+                    // Set cursor position and scroll
+                    textarea.focus();
+                    textarea.setSelectionRange(charPos, charPos);
+                    
+                    // Calculate scroll position (approximate)
+                    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+                    const scrollTop = (heading.line - 1) * lineHeight - textarea.clientHeight / 3;
+                    textarea.scrollTop = Math.max(0, scrollTop);
+                }
+            }
         },
         
         // Unified filtering logic combining tags and text search
@@ -1945,42 +2192,79 @@ function noteApp() {
             // Prevent default navigation for internal links
             event.preventDefault();
             
-            // Remove any anchor from the href (e.g., "note.md#section" -> "note.md")
-            // Also decode URL encoding (e.g., "note%203.md" -> "note 3.md")
-            const notePath = decodeURIComponent(href.split('#')[0]);
+            // Parse href into note path and anchor (e.g., "note.md#section" -> notePath="note.md", anchor="section")
+            const decodedHref = decodeURIComponent(href);
+            const hashIndex = decodedHref.indexOf('#');
+            const notePath = hashIndex !== -1 ? decodedHref.substring(0, hashIndex) : decodedHref;
+            const anchor = hashIndex !== -1 ? decodedHref.substring(hashIndex + 1) : null;
             
-            // Skip if it's just an anchor link
+            // If it's just an anchor link (#heading), scroll within current note
+            if (!notePath && anchor) {
+                this.scrollToAnchor(anchor);
+                return;
+            }
+            
+            // Skip if no path
             if (!notePath) return;
             
             // Find the note by path (try exact match first, then with .md extension)
-            const note = this.notes.find(n => 
+            let targetNote = this.notes.find(n => 
                 n.path === notePath || 
                 n.path === notePath + '.md'
             );
-            if (note) {
-                this.loadNote(note.path);
-            } else {
+            
+            if (!targetNote) {
                 // Try to find by name (in case link uses just the note name without path)
-                const noteByName = this.notes.find(n => 
+                targetNote = this.notes.find(n => 
                     n.name === notePath || 
                     n.name === notePath + '.md' ||
-                    // Also match by filename at end of path (case-insensitive)
                     n.name.toLowerCase() === notePath.toLowerCase() ||
                     n.name.toLowerCase() === (notePath + '.md').toLowerCase()
                 );
-                if (noteByName) {
-                    this.loadNote(noteByName.path);
-                } else {
-                    // Last resort: case-insensitive path matching
-                    const noteByPathCI = this.notes.find(n => 
-                        n.path.toLowerCase() === notePath.toLowerCase() ||
-                        n.path.toLowerCase() === (notePath + '.md').toLowerCase()
-                    );
-                    if (noteByPathCI) {
-                        this.loadNote(noteByPathCI.path);
-                } else {
-                    alert(this.t('notes.not_found', { path: notePath }));
+            }
+            
+            if (!targetNote) {
+                // Last resort: case-insensitive path matching
+                targetNote = this.notes.find(n => 
+                    n.path.toLowerCase() === notePath.toLowerCase() ||
+                    n.path.toLowerCase() === (notePath + '.md').toLowerCase()
+                );
+            }
+            
+            if (targetNote) {
+                // Load the note, then scroll to anchor if present
+                this.loadNote(targetNote.path).then(() => {
+                    if (anchor) {
+                        // Small delay to ensure content is rendered
+                        setTimeout(() => this.scrollToAnchor(anchor), 100);
                     }
+                });
+            } else {
+                alert(this.t('notes.not_found', { path: notePath }));
+            }
+        },
+        
+        // Scroll to an anchor (heading) by slug - reuses outline data
+        scrollToAnchor(anchor) {
+            // Normalize the anchor (GitHub-style slug)
+            const targetSlug = anchor
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            
+            // Find matching heading in outline
+            const heading = this.outline.find(h => h.slug === targetSlug);
+            
+            if (heading) {
+                this.scrollToHeading(heading);
+            } else {
+                // Fallback: try to find heading by exact text match
+                const headingByText = this.outline.find(h => 
+                    h.text.toLowerCase().replace(/\s+/g, '-') === anchor.toLowerCase()
+                );
+                if (headingByText) {
+                    this.scrollToHeading(headingByText);
                 }
             }
         },
@@ -2181,6 +2465,9 @@ function noteApp() {
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 this.currentImage = ''; // Clear image viewer when loading a note
                 this.lastSaved = false;
+                
+                // Extract outline for TOC panel
+                this.extractOutline(data.content);
                 
                 // Initialize undo/redo history for this note (with cursor at start)
                 this.undoHistory = [{ content: data.content, cursorPos: 0 }];
@@ -2548,23 +2835,29 @@ function noteApp() {
             const noteName = prompt(promptText);
             if (!noteName) return;
             
-            const sanitizedName = noteName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('notes.invalid_name'));
+            // Validate the name/path (may contain / for paths when no target folder)
+            const validation = targetFolder 
+                ? FilenameValidator.validateFilename(noteName)
+                : FilenameValidator.validatePath(noteName);
+            
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'note'));
                 return;
             }
             
+            const validatedName = validation.sanitized;
+            
             let notePath;
             if (targetFolder) {
-                notePath = `${targetFolder}/${sanitizedName}.md`;
+                notePath = `${targetFolder}/${validatedName}.md`;
             } else {
-                notePath = sanitizedName.endsWith('.md') ? sanitizedName : `${sanitizedName}.md`;
+                notePath = validatedName.endsWith('.md') ? validatedName : `${validatedName}.md`;
             }
             
             // CRITICAL: Check if note already exists
             const existingNote = this.notes.find(note => note.path === notePath);
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: sanitizedName }));
+                alert(this.t('notes.already_exists', { name: validatedName }));
                 return;
             }
             
@@ -2609,18 +2902,23 @@ function noteApp() {
             const folderName = prompt(promptText);
             if (!folderName) return;
             
-            const sanitizedName = folderName.trim().replace(/[^a-zA-Z0-9-_\s\/]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('folders.invalid_name'));
+            // Validate the name/path (may contain / for paths when no target folder)
+            const validation = targetFolder 
+                ? FilenameValidator.validateFilename(folderName)
+                : FilenameValidator.validatePath(folderName);
+            
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'folder'));
                 return;
             }
             
-            const folderPath = targetFolder ? `${targetFolder}/${sanitizedName}` : sanitizedName;
+            const validatedName = validation.sanitized;
+            const folderPath = targetFolder ? `${targetFolder}/${validatedName}` : validatedName;
             
             // Check if folder already exists
             const existingFolder = this.allFolders.find(folder => folder === folderPath);
             if (existingFolder) {
-                alert(this.t('folders.already_exists', { name: sanitizedName }));
+                alert(this.t('folders.already_exists', { name: validatedName }));
                 return;
             }
             
@@ -2653,15 +2951,18 @@ function noteApp() {
             const newName = prompt(this.t('folders.prompt_rename', { name: currentName }), currentName);
             if (!newName || newName === currentName) return;
             
-            const sanitizedName = newName.trim().replace(/[^a-zA-Z0-9-_\s]/g, '');
-            if (!sanitizedName) {
-                alert(this.t('folders.invalid_name'));
+            // Validate the new name (single segment, no path separators)
+            const validation = FilenameValidator.validateFilename(newName);
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'folder'));
                 return;
             }
             
+            const validatedName = validation.sanitized;
+            
             // Calculate new path
             const pathParts = folderPath.split('/');
-            pathParts[pathParts.length - 1] = sanitizedName;
+            pathParts[pathParts.length - 1] = validatedName;
             const newPath = pathParts.join('/');
             
             try {
@@ -2771,6 +3072,9 @@ function noteApp() {
             
             // Parse metadata in real-time
             this.parseMetadata();
+            
+            // Update outline (TOC) in real-time
+            this.extractOutline(this.noteContent);
             
             this.saveTimeout = setTimeout(() => {
                 this.saveNote();
@@ -3025,15 +3329,25 @@ function noteApp() {
                 return;
             }
             
+            // Validate the new name (single segment, no path separators)
+            const validation = FilenameValidator.validateFilename(newName);
+            if (!validation.valid) {
+                alert(this.getValidationErrorMessage(validation, 'note'));
+                // Reset the name in the UI
+                this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
+                return;
+            }
+            
+            const validatedName = validation.sanitized;
             const folder = oldPath.split('/').slice(0, -1).join('/');
-            const newPath = folder ? `${folder}/${newName}.md` : `${newName}.md`;
+            const newPath = folder ? `${folder}/${validatedName}.md` : `${validatedName}.md`;
             
             if (oldPath === newPath) return;
             
             // Check if a note with the new name already exists
             const existingNote = this.notes.find(n => n.path.toLowerCase() === newPath.toLowerCase());
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: newName }));
+                alert(this.t('notes.already_exists', { name: validatedName }));
                 // Reset the name in the UI
                 this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
                 return;
@@ -4489,6 +4803,7 @@ function noteApp() {
             this.currentNoteName = '';
             this.noteContent = '';
             this.currentImage = '';
+            this.outline = [];
             
             // Invalidate cache to force recalculation
             this._homepageCache = {
@@ -4509,6 +4824,7 @@ function noteApp() {
             this.currentNoteName = '';
             this.noteContent = '';
             this.currentImage = '';
+            this.outline = [];
             this.mobileSidebarOpen = false;
             
             // Invalidate cache to force recalculation

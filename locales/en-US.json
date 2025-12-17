@@ -121,6 +121,12 @@
     "filter_by": "Filter by {{tag}} ({{count}} notes)"
   },
 
+  "outline": {
+    "title": "Outline",
+    "no_headings": "No headings found",
+    "hint": "Add headings using # syntax"
+  },
+
   "stats": {
     "words": "words",
     "reading_time": "~{{minutes}}m read",
@@ -211,6 +217,17 @@
     "note_plural": "notes",
     "folder_singular": "folder",
     "folder_plural": "folders"
+  },
+
+  "validation": {
+    "forbidden_chars": "Name contains forbidden characters: {{chars}}",
+    "reserved_name": "This name is reserved by the operating system.",
+    "invalid_dot": "Name cannot be just a dot.",
+    "trailing_dot_space": "Name cannot end with a dot or space."
+  },
+
+  "support": {
+    "enjoying_demo": "Support this project"
   }
 }
 

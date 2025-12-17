@@ -121,6 +121,12 @@
     "filter_by": "Filtrer par {{tag}} ({{count}} notes)"
   },
 
+  "outline": {
+    "title": "Plan",
+    "no_headings": "Aucun titre trouvé",
+    "hint": "Ajoutez des titres avec la syntaxe #"
+  },
+
   "stats": {
     "words": "mots",
     "reading_time": "~{{minutes}}m de lecture",
@@ -211,6 +217,17 @@
     "note_plural": "notes",
     "folder_singular": "dossier",
     "folder_plural": "dossiers"
+  },
+
+  "validation": {
+    "forbidden_chars": "Le nom contient des caractères interdits : {{chars}}",
+    "reserved_name": "Ce nom est réservé par le système d'exploitation.",
+    "invalid_dot": "Le nom ne peut pas être juste un point.",
+    "trailing_dot_space": "Le nom ne peut pas se terminer par un point ou un espace."
+  },
+
+  "support": {
+    "enjoying_demo": "Soutenez ce projet"
   }
 }
 

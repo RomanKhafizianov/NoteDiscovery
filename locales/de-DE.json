@@ -121,6 +121,12 @@
     "filter_by": "Nach {{tag}} filtern ({{count}} Notizen)"
   },
 
+  "outline": {
+    "title": "Gliederung",
+    "no_headings": "Keine Überschriften gefunden",
+    "hint": "Überschriften mit # hinzufügen"
+  },
+
   "stats": {
     "words": "Wörter",
     "reading_time": "~{{minutes}}m Lesezeit",
@@ -211,6 +217,17 @@
     "note_plural": "Notizen",
     "folder_singular": "Ordner",
     "folder_plural": "Ordner"
+  },
+
+  "validation": {
+    "forbidden_chars": "Der Name enthält unzulässige Zeichen: {{chars}}",
+    "reserved_name": "Dieser Name ist vom Betriebssystem reserviert.",
+    "invalid_dot": "Der Name darf nicht nur ein Punkt sein.",
+    "trailing_dot_space": "Der Name darf nicht mit einem Punkt oder Leerzeichen enden."
+  },
+
+  "support": {
+    "enjoying_demo": "Unterstütze dieses Projekt"
   }
 }
 

@@ -121,6 +121,12 @@
     "filter_by": "按 {{tag}} 过滤 ({{count}} 条笔记)"
   },
 
+  "outline": {
+    "title": "大纲",
+    "no_headings": "未找到标题", 
+    "hint": "使用 # 语法添加标题"
+  },
+
   "stats": {
     "words": "字数",
     "reading_time": "~{{minutes}}分钟阅读",
@@ -211,6 +217,17 @@
     "note_plural": "笔记",
     "folder_singular": "文件夹",
     "folder_plural": "文件夹"
+  },
+
+  "validation": {
+    "forbidden_chars": "名称包含禁止的字符：{{chars}}",
+    "reserved_name": "此名称被操作系统保留。",
+    "invalid_dot": "名称不能只是一个点。",
+    "trailing_dot_space": "名称不能以点或空格结尾。"
+  },
+
+  "support": {
+    "enjoying_demo": "支持此项目"
   }
 }
 
