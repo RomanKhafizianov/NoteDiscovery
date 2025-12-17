@@ -117,6 +117,7 @@
   "tags": {
     "title": "Schlagwörter",
     "no_tags": "Keine Schlagwörter gefunden",
+    "hint": "Schlagwörter mit YAML-Frontmatter hinzufügen",
     "clear_all": "Schlagwort-Filter löschen",
     "filter_by": "Nach {{tag}} filtern ({{count}} Notizen)"
   },

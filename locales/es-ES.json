@@ -117,6 +117,7 @@
   "tags": {
     "title": "Etiquetas",
     "no_tags": "No se encontraron etiquetas",
+    "hint": "Añade etiquetas usando YAML frontmatter",
     "clear_all": "Limpiar filtros de etiquetas",
     "filter_by": "Filtrar por {{tag}} ({{count}} notas)"
   },
