@@ -1463,7 +1463,7 @@
                             class="flex items-center justify-between mt-1.5 px-2 py-0.5 rounded text-xs"
                             style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                         >
-                            <span x-text="`Match ${currentMatchIndex + 1} of ${totalMatches}`"></span>
+                            <span x-text="t('search.match_of', { current: currentMatchIndex + 1, total: totalMatches })"></span>
                             <div class="flex gap-1">
                                 <button @click="previousMatch()" class="px-2 py-1 rounded hover:bg-opacity-80" style="background-color: var(--bg-primary); color: var(--text-primary);" :title="t('search.previous')">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -1480,7 +1480,7 @@
                         <template x-if="searchQuery.trim() && searchResults.length > 0">
                             <div class="p-2">
                                 <div class="text-xs px-2 py-1 mb-1" style="color: var(--text-tertiary);">
-                                    <span x-text="`${searchResults.length} result${searchResults.length === 1 ? '' : 's'}`"></span>
+                                    <span x-text="searchResults.length + ' ' + t(searchResults.length === 1 ? 'search.result_singular' : 'search.result_plural')"></span>
                                 </div>
                                 <template x-for="note in searchResults" :key="note.path">
                                     <div 

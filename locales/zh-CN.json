@@ -183,7 +183,10 @@
   "search": {
     "previous": "上一个 (Shift+F3)",
     "next": "下一个 (F3)",
-    "matches": "{{current}} / {{total}}"
+    "matches": "{{current}} / {{total}}",
+    "match_of": "第 {{current}} 个，共 {{total}} 个",
+    "result_singular": "个结果",
+    "result_plural": "个结果"
   },
 
   "theme": {

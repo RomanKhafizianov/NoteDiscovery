@@ -183,7 +183,10 @@
   "search": {
     "previous": "Previous (Shift+F3)",
     "next": "Next (F3)",
-    "matches": "{{current}} of {{total}}"
+    "matches": "{{current}} of {{total}}",
+    "match_of": "Match {{current}} of {{total}}",
+    "result_singular": "result",
+    "result_plural": "results"
   },
 
   "theme": {
