@@ -121,6 +121,12 @@
     "filter_by": "按 {{tag}} 过滤 ({{count}} 条笔记)"
   },
 
+  "outline": {
+    "title": "大纲",
+    "no_headings": "未找到标题", 
+    "hint": "使用 # 语法添加标题"
+  },
+
   "stats": {
     "words": "字数",
     "reading_time": "~{{minutes}}分钟阅读",
