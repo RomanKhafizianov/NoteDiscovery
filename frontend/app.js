@@ -1182,9 +1182,9 @@ function noteApp() {
             const lines = content.split('\n');
             const slugCounts = {}; // Track duplicate slugs
             
-            // Skip frontmatter
+            // Skip frontmatter and code blocks
             let inFrontmatter = false;
-            let frontmatterEnded = false;
+            let inCodeBlock = false;
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -1197,8 +1197,16 @@ function noteApp() {
                 if (inFrontmatter) {
                     if (line.trim() === '---') {
                         inFrontmatter = false;
-                        frontmatterEnded = true;
                     }
+                    continue;
+                }
+                
+                // Handle fenced code blocks (``` or ~~~)
+                if (line.trim().startsWith('```') || line.trim().startsWith('~~~')) {
+                    inCodeBlock = !inCodeBlock;
+                    continue;
+                }
+                if (inCodeBlock) {
                     continue;
                 }
                 
