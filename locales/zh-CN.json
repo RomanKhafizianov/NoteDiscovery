@@ -224,6 +224,22 @@
     "folder_plural": "文件夹"
   },
 
+  "format": {
+    "bold": "粗体",
+    "italic": "斜体",
+    "strikethrough": "删除线",
+    "heading": "标题",
+    "link": "链接",
+    "image": "图片",
+    "code": "行内代码",
+    "codeblock": "代码块",
+    "quote": "引用",
+    "bullet_list": "无序列表",
+    "numbered_list": "有序列表",
+    "checkbox": "复选框",
+    "table": "表格"
+  },
+
   "validation": {
     "forbidden_chars": "名称包含禁止的字符：{{chars}}",
     "reserved_name": "此名称被操作系统保留。",

@@ -224,6 +224,22 @@
     "folder_plural": "dossiers"
   },
 
+  "format": {
+    "bold": "Gras",
+    "italic": "Italique",
+    "strikethrough": "Barré",
+    "heading": "Titre",
+    "link": "Lien",
+    "image": "Image",
+    "code": "Code en ligne",
+    "codeblock": "Bloc de code",
+    "quote": "Citation",
+    "bullet_list": "Liste à puces",
+    "numbered_list": "Liste numérotée",
+    "checkbox": "Case à cocher",
+    "table": "Tableau"
+  },
+
   "validation": {
     "forbidden_chars": "Le nom contient des caractères interdits : {{chars}}",
     "reserved_name": "Ce nom est réservé par le système d'exploitation.",

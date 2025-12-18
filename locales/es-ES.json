@@ -224,6 +224,22 @@
     "folder_plural": "carpetas"
   },
 
+  "format": {
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "strikethrough": "Tachado",
+    "heading": "Encabezado",
+    "link": "Enlace",
+    "image": "Imagen",
+    "code": "Código en línea",
+    "codeblock": "Bloque de código",
+    "quote": "Cita",
+    "bullet_list": "Lista con viñetas",
+    "numbered_list": "Lista numerada",
+    "checkbox": "Casilla de verificación",
+    "table": "Tabla"
+  },
+
   "validation": {
     "forbidden_chars": "El nombre contiene caracteres no permitidos: {{chars}}",
     "reserved_name": "Este nombre está reservado por el sistema operativo.",

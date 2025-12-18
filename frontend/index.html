@@ -718,6 +718,29 @@
             height: 20px;
         }
         
+        /* Markdown Formatting Toolbar */
+        .format-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+        }
+        .format-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .format-btn:active {
+            background-color: var(--accent-light);
+            color: var(--accent-primary);
+        }
+        
         .icon-rail-spacer {
             flex: 1;
         }
@@ -2208,6 +2231,51 @@
                             style="min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
                         >
+                            <!-- Markdown Formatting Toolbar -->
+                            <div class="flex items-center gap-1 px-2 py-1.5 border-b flex-shrink-0" style="background-color: var(--bg-secondary); border-color: var(--border-primary);">
+                                <button @click="formatText('bold')" class="format-btn" :title="t('format.bold') + ' (Ctrl+B)'">
+                                    <span class="font-bold">B</span>
+                                </button>
+                                <button @click="formatText('italic')" class="format-btn" :title="t('format.italic') + ' (Ctrl+I)'">
+                                    <span class="italic">I</span>
+                                </button>
+                                <button @click="formatText('strikethrough')" class="format-btn" :title="t('format.strikethrough')">
+                                    <span class="line-through">S</span>
+                                </button>
+                                <div class="w-px h-4 mx-1" style="background-color: var(--border-primary);"></div>
+                                <button @click="formatText('heading')" class="format-btn" :title="t('format.heading')">
+                                    <span class="font-bold text-xs">H</span>
+                                </button>
+                                <button @click="formatText('link')" class="format-btn" :title="t('format.link') + ' (Ctrl+K)'">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                </button>
+                                <button @click="formatText('image')" class="format-btn" :title="t('format.image')">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </button>
+                                <div class="w-px h-4 mx-1" style="background-color: var(--border-primary);"></div>
+                                <button @click="formatText('code')" class="format-btn" :title="t('format.code')">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                                </button>
+                                <button @click="formatText('codeblock')" class="format-btn" :title="t('format.codeblock')">
+                                    <span class="text-xs font-mono">{}</span>
+                                </button>
+                                <button @click="formatText('quote')" class="format-btn" :title="t('format.quote')">
+                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+                                </button>
+                                <div class="w-px h-4 mx-1" style="background-color: var(--border-primary);"></div>
+                                <button @click="formatText('bullet')" class="format-btn" :title="t('format.bullet_list')">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <button @click="formatText('numbered')" class="format-btn" :title="t('format.numbered_list')">
+                                    <span class="text-xs font-mono">1.</span>
+                                </button>
+                                <button @click="formatText('checkbox')" class="format-btn" :title="t('format.checkbox')">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </button>
+                                <button @click="formatText('table')" class="format-btn" :title="t('format.table') + ' (Ctrl+Alt+T)'">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </button>
+                            </div>
                             <div 
                                 class="editor-wrapper"
                                 :class="{'syntax-highlight': syntaxHighlightEnabled}"

@@ -3307,6 +3307,127 @@ function noteApp() {
             this.autoSave();
         },
         
+        // Format selected text or insert formatting at cursor
+        formatText(type) {
+            const editor = document.getElementById('note-editor');
+            if (!editor) return;
+            
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = this.noteContent.substring(start, end);
+            const beforeText = this.noteContent.substring(0, start);
+            const afterText = this.noteContent.substring(end);
+            
+            let replacement = '';
+            let cursorOffset = 0;
+            let selectLength = 0;
+            
+            // Check if at start of line for block-level elements
+            const atLineStart = beforeText.endsWith('\n') || beforeText === '';
+            const needsNewline = !atLineStart && ['heading', 'quote', 'bullet', 'numbered', 'checkbox', 'codeblock'].includes(type);
+            const prefix = needsNewline ? '\n' : '';
+            
+            switch (type) {
+                case 'bold':
+                    replacement = selectedText ? `**${selectedText}**` : '**bold**';
+                    cursorOffset = selectedText ? 0 : 2;
+                    selectLength = selectedText ? 0 : 4;
+                    break;
+                case 'italic':
+                    replacement = selectedText ? `*${selectedText}*` : '*italic*';
+                    cursorOffset = selectedText ? 0 : 1;
+                    selectLength = selectedText ? 0 : 6;
+                    break;
+                case 'strikethrough':
+                    replacement = selectedText ? `~~${selectedText}~~` : '~~strikethrough~~';
+                    cursorOffset = selectedText ? 0 : 2;
+                    selectLength = selectedText ? 0 : 13;
+                    break;
+                case 'heading':
+                    replacement = selectedText ? `${prefix}## ${selectedText}` : `${prefix}## Heading`;
+                    cursorOffset = selectedText ? 0 : prefix.length + 3;
+                    selectLength = selectedText ? 0 : 7;
+                    break;
+                case 'link':
+                    if (selectedText) {
+                        replacement = `[${selectedText}](url)`;
+                        cursorOffset = selectedText.length + 3;
+                        selectLength = 3;
+                    } else {
+                        replacement = '[link text](url)';
+                        cursorOffset = 1;
+                        selectLength = 9;
+                    }
+                    break;
+                case 'image':
+                    replacement = selectedText ? `![${selectedText}](image-url)` : '![alt text](image-url)';
+                    cursorOffset = selectedText ? 0 : 2;
+                    selectLength = selectedText ? 0 : 8;
+                    break;
+                case 'code':
+                    replacement = selectedText ? `\`${selectedText}\`` : '`code`';
+                    cursorOffset = selectedText ? 0 : 1;
+                    selectLength = selectedText ? 0 : 4;
+                    break;
+                case 'codeblock':
+                    replacement = selectedText ? `${prefix}\`\`\`\n${selectedText}\n\`\`\`` : `${prefix}\`\`\`\ncode\n\`\`\``;
+                    cursorOffset = selectedText ? 0 : prefix.length + 4;
+                    selectLength = selectedText ? 0 : 4;
+                    break;
+                case 'quote':
+                    if (selectedText) {
+                        replacement = prefix + selectedText.split('\n').map(line => `> ${line}`).join('\n');
+                    } else {
+                        replacement = `${prefix}> quote`;
+                        cursorOffset = prefix.length + 2;
+                        selectLength = 5;
+                    }
+                    break;
+                case 'bullet':
+                    if (selectedText) {
+                        replacement = prefix + selectedText.split('\n').map(line => `- ${line}`).join('\n');
+                    } else {
+                        replacement = `${prefix}- item`;
+                        cursorOffset = prefix.length + 2;
+                        selectLength = 4;
+                    }
+                    break;
+                case 'numbered':
+                    if (selectedText) {
+                        replacement = prefix + selectedText.split('\n').map((line, i) => `${i + 1}. ${line}`).join('\n');
+                    } else {
+                        replacement = `${prefix}1. item`;
+                        cursorOffset = prefix.length + 3;
+                        selectLength = 4;
+                    }
+                    break;
+                case 'checkbox':
+                    if (selectedText) {
+                        replacement = prefix + selectedText.split('\n').map(line => `- [ ] ${line}`).join('\n');
+                    } else {
+                        replacement = `${prefix}- [ ] task`;
+                        cursorOffset = prefix.length + 6;
+                        selectLength = 4;
+                    }
+                    break;
+                case 'table':
+                    this.insertTable();
+                    return;
+                default:
+                    return;
+            }
+            
+            this.noteContent = beforeText + replacement + afterText;
+            
+            this.$nextTick(() => {
+                const newStart = start + cursorOffset;
+                editor.setSelectionRange(newStart, newStart + selectLength);
+                editor.focus();
+            });
+            
+            this.autoSave();
+        },
+        
         // Save current note
         async saveNote() {
             if (!this.currentNote) return;

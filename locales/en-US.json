@@ -224,6 +224,22 @@
     "folder_plural": "folders"
   },
 
+  "format": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "strikethrough": "Strikethrough",
+    "heading": "Heading",
+    "link": "Link",
+    "image": "Image",
+    "code": "Inline code",
+    "codeblock": "Code block",
+    "quote": "Quote",
+    "bullet_list": "Bullet list",
+    "numbered_list": "Numbered list",
+    "checkbox": "Checkbox",
+    "table": "Table"
+  },
+
   "validation": {
     "forbidden_chars": "Name contains forbidden characters: {{chars}}",
     "reserved_name": "This name is reserved by the operating system.",

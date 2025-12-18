@@ -224,6 +224,22 @@
     "folder_plural": "Ordner"
   },
 
+  "format": {
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "strikethrough": "Durchgestrichen",
+    "heading": "Überschrift",
+    "link": "Link",
+    "image": "Bild",
+    "code": "Inline-Code",
+    "codeblock": "Codeblock",
+    "quote": "Zitat",
+    "bullet_list": "Aufzählungsliste",
+    "numbered_list": "Nummerierte Liste",
+    "checkbox": "Kontrollkästchen",
+    "table": "Tabelle"
+  },
+
   "validation": {
     "forbidden_chars": "Der Name enthält unzulässige Zeichen: {{chars}}",
     "reserved_name": "Dieser Name ist vom Betriebssystem reserviert.",

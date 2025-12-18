@@ -224,6 +224,22 @@
     "folder_plural": "mape"
   },
 
+  "format": {
+    "bold": "Krepko",
+    "italic": "Ležeče",
+    "strikethrough": "Prečrtano",
+    "heading": "Naslov",
+    "link": "Povezava",
+    "image": "Slika",
+    "code": "Vrstična koda",
+    "codeblock": "Blok kode",
+    "quote": "Citat",
+    "bullet_list": "Seznam z oznakami",
+    "numbered_list": "Oštevilčen seznam",
+    "checkbox": "Potrditveno polje",
+    "table": "Tabela"
+  },
+
   "validation": {
     "forbidden_chars": "Ime vsebuje prepovedane znake: {{chars}}",
     "reserved_name": "To ime je rezervirano s strani operacijskega sistema.",
