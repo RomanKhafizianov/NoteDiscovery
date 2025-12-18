@@ -56,8 +56,8 @@ Choose your environment:
 **Docker Users:**
 
 ```bash
-# Docker Compose
-docker-compose exec notediscovery python generate_password.py
+# Docker Compose with the GHCR compose file
+docker-compose -f docker-compose.ghcr.yml exec notediscovery python generate_password.py
 
 # Or with docker run
 docker exec -it notediscovery python generate_password.py
