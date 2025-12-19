@@ -80,6 +80,7 @@
     "invalid_name": "Neveljavno ime zapisa.",
     "empty_name": "Ime zapisa ne more biti prazno.",
     "not_found": "Zapisa ni mogoče najti: {{path}}",
+    "create_from_link": "Zapis \"{{path}}\" ne obstaja.\n\nAli ga želite ustvariti?",
     "no_content": "Ni vsebine za izvoz",
     "open_first": "Prosimo, najprej odprite zapis, preden naložite slike."
   },

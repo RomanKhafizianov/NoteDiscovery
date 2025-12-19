@@ -80,6 +80,7 @@
     "invalid_name": "Invalid note name.",
     "empty_name": "Note name cannot be empty.",
     "not_found": "Note not found: {{path}}",
+    "create_from_link": "Note \"{{path}}\" doesn't exist.\n\nWould you like to create it?",
     "no_content": "No note content to export",
     "open_first": "Please open a note first before uploading images."
   },

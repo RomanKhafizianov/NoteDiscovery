@@ -80,6 +80,7 @@
     "invalid_name": "无效的笔记名称。",
     "empty_name": "笔记名称不能为空。",
     "not_found": "未找到笔记：{{path}}",
+    "create_from_link": "笔记 \"{{path}}\" 不存在。\n\n是否要创建它？",
     "no_content": "没有可导出的笔记内容",
     "open_first": "请先打开一篇笔记，然后再上传图片。"
   },

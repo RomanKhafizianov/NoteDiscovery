@@ -80,6 +80,7 @@
     "invalid_name": "Nom de note invalide.",
     "empty_name": "Le nom de la note ne peut pas être vide.",
     "not_found": "Note introuvable : {{path}}",
+    "create_from_link": "La note \"{{path}}\" n'existe pas.\n\nVoulez-vous la créer ?",
     "no_content": "Aucun contenu à exporter",
     "open_first": "Veuillez d'abord ouvrir une note avant de télécharger des images."
   },

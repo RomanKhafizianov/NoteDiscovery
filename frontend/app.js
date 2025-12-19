@@ -2248,8 +2248,9 @@ function noteApp() {
                         setTimeout(() => this.scrollToAnchor(anchor), 100);
                     }
                 });
-            } else {
-                alert(this.t('notes.not_found', { path: notePath }));
+            } else if (confirm(this.t('notes.create_from_link', { path: notePath }))) {
+                // Note doesn't exist - create it (reuses createNote with duplicate check)
+                this.createNote(null, notePath);
             }
         },
         
@@ -2825,49 +2826,55 @@ function noteApp() {
         // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
         // =====================================================
         
-        async createNote(folderPath = null) {
-            // Use provided folder path, or dropdown target folder context, or homepage folder
-            // Note: Check dropdownTargetFolder !== null to distinguish between '' (root) and not set
-            let targetFolder;
-            if (folderPath !== null) {
-                targetFolder = folderPath;
-            } else if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
-                targetFolder = this.dropdownTargetFolder; // Can be '' for root or a folder path
-            } else {
-                targetFolder = this.selectedHomepageFolder || '';
-            }
-            this.closeDropdown();
-            
-            const promptText = targetFolder 
-                ? this.t('notes.prompt_name_in_folder', { folder: targetFolder })
-                : this.t('notes.prompt_name_with_path');
-            
-            const noteName = prompt(promptText);
-            if (!noteName) return;
-            
-            // Validate the name/path (may contain / for paths when no target folder)
-            const validation = targetFolder 
-                ? FilenameValidator.validateFilename(noteName)
-                : FilenameValidator.validatePath(noteName);
-            
-            if (!validation.valid) {
-                alert(this.getValidationErrorMessage(validation, 'note'));
-                return;
-            }
-            
-            const validatedName = validation.sanitized;
-            
+        async createNote(folderPath = null, directPath = null) {
             let notePath;
-            if (targetFolder) {
-                notePath = `${targetFolder}/${validatedName}.md`;
+            
+            if (directPath) {
+                // Direct path provided (e.g., from wiki link) - skip prompting
+                notePath = directPath.endsWith('.md') ? directPath : `${directPath}.md`;
             } else {
-                notePath = validatedName.endsWith('.md') ? validatedName : `${validatedName}.md`;
+                // Use provided folder path, or dropdown target folder context, or homepage folder
+                // Note: Check dropdownTargetFolder !== null to distinguish between '' (root) and not set
+                let targetFolder;
+                if (folderPath !== null) {
+                    targetFolder = folderPath;
+                } else if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
+                    targetFolder = this.dropdownTargetFolder; // Can be '' for root or a folder path
+                } else {
+                    targetFolder = this.selectedHomepageFolder || '';
+                }
+                this.closeDropdown();
+                
+                const promptText = targetFolder 
+                    ? this.t('notes.prompt_name_in_folder', { folder: targetFolder })
+                    : this.t('notes.prompt_name_with_path');
+                
+                const noteName = prompt(promptText);
+                if (!noteName) return;
+                
+                // Validate the name/path (may contain / for paths when no target folder)
+                const validation = targetFolder 
+                    ? FilenameValidator.validateFilename(noteName)
+                    : FilenameValidator.validatePath(noteName);
+                
+                if (!validation.valid) {
+                    alert(this.getValidationErrorMessage(validation, 'note'));
+                    return;
+                }
+                
+                const validatedName = validation.sanitized;
+                
+                if (targetFolder) {
+                    notePath = `${targetFolder}/${validatedName}.md`;
+                } else {
+                    notePath = validatedName.endsWith('.md') ? validatedName : `${validatedName}.md`;
+                }
             }
             
-            // CRITICAL: Check if note already exists
+            // CRITICAL: Check if note already exists (applies to both prompt and direct path)
             const existingNote = this.notes.find(note => note.path === notePath);
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: validatedName }));
+                alert(this.t('notes.already_exists', { name: notePath }));
                 return;
             }
             
@@ -2879,9 +2886,9 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    if (targetFolder) {
-                        this.expandedFolders.add(targetFolder);
-                    }
+                    // Expand parent folder if note is in a subfolder
+                    const folderPart = notePath.includes('/') ? notePath.substring(0, notePath.lastIndexOf('/')) : '';
+                    if (folderPart) this.expandedFolders.add(folderPart);
                     await this.loadNotes();
                     await this.loadNote(notePath);
                 } else {
