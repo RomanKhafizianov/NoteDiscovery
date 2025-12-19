@@ -2249,7 +2249,21 @@ function noteApp() {
                     }
                 });
             } else {
-                alert(this.t('notes.not_found', { path: notePath }));
+                // Note doesn't exist - offer to create it
+                if (confirm(this.t('notes.create_from_link', { path: notePath }))) {
+                    const newPath = notePath.endsWith('.md') ? notePath : `${notePath}.md`;
+                    fetch(`/api/notes/${newPath}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: '' })
+                    }).then(response => {
+                        if (response.ok) {
+                            const folderPath = newPath.includes('/') ? newPath.substring(0, newPath.lastIndexOf('/')) : '';
+                            if (folderPath) this.expandedFolders.add(folderPath);
+                            this.loadNotes().then(() => this.loadNote(newPath));
+                        }
+                    });
+                }
             }
         },
         

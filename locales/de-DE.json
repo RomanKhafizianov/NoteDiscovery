@@ -80,6 +80,7 @@
     "invalid_name": "Ungültiger Notizname.",
     "empty_name": "Der Notizname darf nicht leer sein.",
     "not_found": "Notiz nicht gefunden: {{path}}",
+    "create_from_link": "Notiz \"{{path}}\" existiert nicht.\n\nMöchten Sie sie erstellen?",
     "no_content": "Kein Inhalt zum Exportieren",
     "open_first": "Bitte öffne zuerst eine Notiz, bevor du Bilder hochlädst."
   },
