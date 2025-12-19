@@ -225,8 +225,8 @@ NoteDiscovery is designed for **self-hosted, private use**. Please keep these se
 - By default, the app listens on `0.0.0.0:8000` (all network interfaces)
 
 ### Authentication
-- **Password protection is ENABLED by default** with password: `admin`
-- ⚠️ **CHANGE THE DEFAULT PASSWORD IMMEDIATELY** if exposing to a network!
+- **Password protection is DISABLED by default** (default password: `admin`)
+- ⚠️ **ENABLE AUTHENTICATION AND CHANGE THE DEFAULT PASSWORD** if exposing to a network!
 - See **[AUTHENTICATION.md](documentation/AUTHENTICATION.md)** for complete setup instructions
 - To disable auth, set `authentication.enabled: false` in `config.yaml`
 - Change password with Docker: `docker-compose exec notediscovery python generate_password.py`

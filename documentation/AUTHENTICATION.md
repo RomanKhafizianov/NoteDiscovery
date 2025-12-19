@@ -25,7 +25,7 @@ NoteDiscovery includes a simple, secure authentication system for single-user de
 ## 🚀 Quick Setup
 
 **Default Configuration:**
-- Authentication is **enabled by default**
+- Authentication is **disabled by default**
 - Default password is `admin`
 - Default secret key is insecure
 
