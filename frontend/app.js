@@ -3801,7 +3801,14 @@ function noteApp() {
                         !src.startsWith('//') && !src.startsWith('/api/images/') &&
                         !src.startsWith('data:')) {
                         // URL-encode path segments to handle spaces and special characters
-                        const encodedPath = src.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                        // Decode first to avoid double-encoding if path already contains %XX sequences
+                        const encodedPath = src.split('/').map(segment => {
+                            try {
+                                return encodeURIComponent(decodeURIComponent(segment));
+                            } catch (e) {
+                                return encodeURIComponent(segment);
+                            }
+                        }).join('/');
                         img.setAttribute('src', `/api/images/${encodedPath}`);
                     }
                 }
