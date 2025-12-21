@@ -1043,6 +1043,7 @@
                 left: -100%;
                 top: 0;
                 height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for iOS Safari */
                 width: 80% !important;
                 max-width: 300px !important;
                 z-index: 1000;
@@ -1052,6 +1053,12 @@
             /* Show sidebar when open */
             .mobile-sidebar-open {
                 left: 0;
+            }
+            
+            /* Add bottom padding to scrollable sidebar content for tab bar */
+            .mobile-sidebar .overflow-y-auto {
+                padding-bottom: 70px !important;
+                padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
             }
             
             /* Mobile overlay */
@@ -2733,7 +2740,7 @@
     </div>
     
     <!-- Mobile Bottom Tabs -->
-    <nav class="mobile-bottom-tabs" style="display: none;" role="navigation" aria-label="Main navigation">
+    <nav class="mobile-bottom-tabs zen-hide" style="display: none;" role="navigation" aria-label="Main navigation">
         <button 
             class="mobile-bottom-tab"
             :class="{'active': activePanel === 'files'}"
