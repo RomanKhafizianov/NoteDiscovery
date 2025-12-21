@@ -160,6 +160,14 @@ The image includes bundled config, themes, plugins, and locales. To customize, y
 | `plugins/` | Custom plugins | ✅ Yes |
 | `locales/` | Translations | ✅ Yes |
 
+### Dashboard Integration
+
+<a href="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@master/svg/notediscovery.svg" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@master/svg/notediscovery.svg" alt="NoteDiscovery Icon" width="64" height="64">
+</a>
+
+An official icon for NoteDiscovery is now available on [Dashboard Icons](https://dashboardicons.com/icons/notediscovery)!  
+Use it in your self-hosted dashboards like Homepage, Homarr, Dashy, Heimdall, etc...
 
 ## 📚 Documentation
 
