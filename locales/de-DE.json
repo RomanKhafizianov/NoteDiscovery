@@ -6,7 +6,7 @@
   },
 
   "app": {
-    "tagline": "Deine Selbstgehostete Wissensdatenbank"
+    "tagline": "Deine selbstgehostete Wissensdatenbank"
   },
 
   "common": {
@@ -61,7 +61,7 @@
     "placeholder": "Schreibe in Markdown...",
     "drop_hint": "💡 Hier ablegen, um an Cursorposition einzufügen...",
     "mode_edit": "Bearbeiten",
-    "mode_split": "Teilen",
+    "mode_split": "Geteilt",
     "mode_preview": "Vorschau",
     "edited": "Bearbeitet {{time}}",
     "just_now": "gerade eben",
@@ -164,7 +164,7 @@
 
   "login": {
     "title": "Anmelden",
-    "tagline": "Deine Selbstgehostete Wissensdatenbank",
+    "tagline": "Deine selbstgehostete Wissensdatenbank",
     "password_placeholder": "Passwort eingeben",
     "unlock_button": "🔓 Entsperren",
     "footer": "🔒 Sicher & Selbstgehostet",
@@ -201,10 +201,10 @@
   },
 
   "syntax_highlight": {
-    "title": "Editor-Syntaxhervorhebung",
+    "title": "Syntax-Highlighting",
     "description": "Markdown-Syntax im Editor einfärben",
-    "enable": "Syntaxhervorhebung aktivieren",
-    "disable": "Syntaxhervorhebung deaktivieren"
+    "enable": "Syntax-Highlighting aktivieren",
+    "disable": "Syntax-Highlighting deaktivieren"
   },
 
   "settings": {
@@ -233,7 +233,7 @@
     "link": "Link",
     "image": "Bild",
     "code": "Inline-Code",
-    "codeblock": "Codeblock",
+    "codeblock": "Code-Block",
     "quote": "Zitat",
     "bullet_list": "Aufzählungsliste",
     "numbered_list": "Nummerierte Liste",
