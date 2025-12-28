@@ -40,7 +40,7 @@
     "clear_search": "Suche löschen",
     "drag_hint": "💡 Ziehen=Verschieben",
     "root_folder": "📂 Hauptordner",
-    "no_notes": "Noch keine Notizen. Erstelle deine erste Notiz!",
+    "no_notes": "Du hast noch keine Notizen. Erstelle deine erste!",
     "no_notes_yet": "Noch keine Notizen oder Ordner.",
     "create_first": "Erstelle deine erste Notiz oder Ordner!",
     "no_favorites": "Noch keine Favoriten",
@@ -58,7 +58,7 @@
   },
 
   "editor": {
-    "placeholder": "Beginne in Markdown zu schreiben...",
+    "placeholder": "Schreibe in Markdown...",
     "drop_hint": "💡 Hier ablegen, um an Cursorposition einzufügen...",
     "mode_edit": "Bearbeiten",
     "mode_split": "Teilen",
@@ -80,13 +80,13 @@
     "invalid_name": "Ungültiger Notizname.",
     "empty_name": "Der Notizname darf nicht leer sein.",
     "not_found": "Notiz nicht gefunden: {{path}}",
-    "create_from_link": "Notiz \"{{path}}\" existiert nicht.\n\nMöchten Sie sie erstellen?",
+    "create_from_link": "Notiz \"{{path}}\" existiert nicht.\n\nMöchtest du sie erstellen?",
     "no_content": "Kein Inhalt zum Exportieren",
     "open_first": "Bitte öffne zuerst eine Notiz, bevor du Bilder hochlädst."
   },
 
   "folders": {
-    "confirm_delete": "⚠️ WARNUNG ⚠️\n\nBist du sicher, dass du den Ordner \"{{name}}\" löschen möchtest?\n\nDies wird DAUERHAFT löschen:\n• Alle Notizen in diesem Ordner\n• Alle Unterordner und deren Inhalte\n\nDiese Aktion kann NICHT rückgängig gemacht werden!",
+    "confirm_delete": "⚠️ WARNUNG ⚠️\n\nBist du sicher, dass du den Ordner \"{{name}}\" löschen möchtest?\n\nDies LÖSCHT DAUERHAFT:\n• Alle Notizen in diesem Ordner\n• Alle Unterordner und deren Inhalte\n\nDiese Aktion kann NICHT rückgängig gemacht werden!",
     "already_exists": "Ein Ordner mit dem Namen \"{{name}}\" existiert bereits an diesem Ort.\nBitte wähle einen anderen Namen.",
     "prompt_name": "Ordnername eingeben:",
     "prompt_name_in_folder": "Unterordner in \"{{folder}}\" erstellen.\nOrdnername eingeben:",
@@ -116,11 +116,11 @@
   },
 
   "tags": {
-    "title": "Schlagwörter",
-    "no_tags": "Keine Schlagwörter gefunden",
-    "hint": "Schlagwörter mit YAML-Frontmatter hinzufügen",
-    "no_matches": "Keine Notizen entsprechen den ausgewählten Schlagwörtern",
-    "clear_all": "Schlagwort-Filter löschen",
+    "title": "Tags",
+    "no_tags": "Keine Tags gefunden",
+    "hint": "Tags mit YAML-Frontmatter hinzufügen",
+    "no_matches": "Keine Notizen entsprechen den ausgewählten Tags",
+    "clear_all": "Tag-Filter löschen",
     "filter_by": "Nach {{tag}} filtern ({{count}} Notizen)"
   },
 
@@ -132,7 +132,7 @@
 
   "stats": {
     "words": "Wörter",
-    "reading_time": "~{{minutes}}m Lesezeit",
+    "reading_time": "~{{minutes}} Min. Lesezeit",
     "links": "{{count}} Links",
     "click_details": "▼ Klicken für Details"
   },
