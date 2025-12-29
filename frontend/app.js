@@ -478,6 +478,7 @@ function noteApp() {
                     this.noteContent = '';
                     this.currentNoteName = '';
                     this.outline = [];
+                    document.title = 'NoteDiscovery';
                     
                     // Restore homepage folder state if it was saved
                     if (e.state && e.state.homepageFolder !== undefined) {
@@ -2147,6 +2148,10 @@ function noteApp() {
             this.currentImage = imagePath;
             this.viewMode = 'preview'; // Use preview mode to show image
             
+            // Update browser tab title for image
+            const imageName = imagePath.split('/').pop();
+            document.title = `${imageName} - NoteDiscovery`;
+            
             // Update browser URL
             if (updateHistory) {
                 // Encode each path segment to handle special characters
@@ -2461,6 +2466,7 @@ function noteApp() {
                         this.currentNote = '';
                         this.noteContent = '';
                         this.currentImage = '';
+                        document.title = 'NoteDiscovery';
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -2474,6 +2480,9 @@ function noteApp() {
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 this.currentImage = ''; // Clear image viewer when loading a note
+                
+                // Update browser tab title
+                document.title = `${this.currentNoteName} - NoteDiscovery`;
                 this.lastSaved = false;
                 
                 // Extract outline for TOC panel
@@ -3058,6 +3067,7 @@ function noteApp() {
                     if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
                         this.currentNote = '';
                         this.noteContent = '';
+                        document.title = 'NoteDiscovery';
                     }
                     
                     await this.loadNotes();
@@ -3551,6 +3561,7 @@ function noteApp() {
                         this.currentNoteName = '';
                         this._lastRenderedContent = ''; // Clear render cache
                         this._cachedRenderedHTML = '';
+                        document.title = 'NoteDiscovery';
                         // Redirect to root
                         window.history.replaceState({}, '', '/');
                     }
@@ -4946,6 +4957,7 @@ function noteApp() {
             this.noteContent = '';
             this.currentImage = '';
             this.outline = [];
+            document.title = 'NoteDiscovery';
             
             // Invalidate cache to force recalculation
             this._homepageCache = {
@@ -4968,6 +4980,7 @@ function noteApp() {
             this.currentImage = '';
             this.outline = [];
             this.mobileSidebarOpen = false;
+            document.title = 'NoteDiscovery';
             
             // Clear undo/redo history
             this.undoHistory = [];
