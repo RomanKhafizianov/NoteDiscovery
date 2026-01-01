@@ -11,6 +11,20 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="NoteDiscovery">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NoteDiscovery">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Theme color: initial value, updated dynamically by app.js when theme changes -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="msapplication-tap-highlight" content="no">
+    
     <!-- Tailwind CSS from CDN (v3.4.17) -->
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     
@@ -2816,6 +2830,21 @@
     </nav>
     
     <script src="/static/app.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
 
