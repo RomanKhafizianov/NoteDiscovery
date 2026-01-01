@@ -875,6 +875,15 @@ function noteApp() {
                 if (this.showGraph) {
                     setTimeout(() => this.initGraph(), 300);
                 }
+                
+                // Update PWA theme-color meta tag to match current theme
+                const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+                if (themeColorMeta) {
+                    // Get the accent color from CSS variables
+                    const accentColor = getComputedStyle(document.documentElement)
+                        .getPropertyValue('--accent-primary').trim() || '#667eea';
+                    themeColorMeta.setAttribute('content', accentColor);
+                }
             } catch (error) {
                 console.error('Failed to load theme:', error);
             }
