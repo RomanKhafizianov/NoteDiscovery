@@ -9,6 +9,12 @@ import os
 import subprocess
 from pathlib import Path
 
+try:
+    import colorama
+    colorama.just_fix_windows_console()
+except ImportError:
+    colorama = None
+
 def main():
     print("🚀 Starting NoteDiscovery...\n")
     
