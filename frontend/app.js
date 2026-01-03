@@ -3746,7 +3746,23 @@ function noteApp() {
             
             // Convert Obsidian-style wikilinks: [[note]] or [[note|display text]]
             // Must be done before marked.parse() to avoid conflicts with markdown syntax
+            // BUT we need to protect code blocks first to avoid converting [[text]] inside code
             const self = this; // Reference for closure
+            
+            // Step 1: Temporarily replace code blocks and inline code with placeholders
+            const codeBlocks = [];
+            // Protect fenced code blocks (```...```)
+            contentToRender = contentToRender.replace(/```[\s\S]*?```/g, (match) => {
+                codeBlocks.push(match);
+                return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
+            });
+            // Protect inline code (`...`)
+            contentToRender = contentToRender.replace(/`[^`]+`/g, (match) => {
+                codeBlocks.push(match);
+                return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
+            });
+            
+            // Step 2: Convert wiki links (now safe from code blocks)
             contentToRender = contentToRender.replace(
                 /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
                 (match, target, displayText) => {
@@ -3768,6 +3784,11 @@ function noteApp() {
                     return `<a href="${safeHref}"${brokenClass} data-wikilink="true">${safeText}</a>`;
                 }
             );
+            
+            // Step 3: Restore code blocks
+            contentToRender = contentToRender.replace(/\x00CODEBLOCK(\d+)\x00/g, (match, index) => {
+                return codeBlocks[parseInt(index)];
+            });
             
             // Configure marked with syntax highlighting
             marked.setOptions({
