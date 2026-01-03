@@ -3909,22 +3909,35 @@ function noteApp() {
         
         // Add copy button to code block
         addCopyButtonToCodeBlock(preElement) {
-            // Create copy button
+            // Extract language from code element class (e.g., "language-toml" -> "TOML")
+            const codeElement = preElement.querySelector('code');
+            let language = '';
+            if (codeElement && codeElement.className) {
+                const match = codeElement.className.match(/language-(\w+)/);
+                if (match) {
+                    const langMap = {
+                        'js': 'JavaScript', 'ts': 'TypeScript', 'py': 'Python',
+                        'rb': 'Ruby', 'cs': 'C#', 'cpp': 'C++', 'sh': 'Shell',
+                        'bash': 'Bash', 'zsh': 'Zsh', 'yml': 'YAML', 'md': 'Markdown'
+                    };
+                    const rawLang = match[1].toLowerCase();
+                    language = langMap[rawLang] || match[1].toUpperCase();
+                }
+            }
+            
+            // Create copy button with language label
             const button = document.createElement('button');
             button.className = 'copy-code-button';
-            button.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            `;
-            button.title = 'Copy to clipboard';
+            const displayText = language || this.t('common.copy_to_clipboard').split(' ')[0]; // Use first word as fallback
+            button.innerHTML = `<span>${displayText}</span>`;
+            button.dataset.originalText = displayText; // Store for restore after copy
+            button.title = this.t('common.copy_to_clipboard');
             
             // Style the button
             button.style.position = 'absolute';
             button.style.top = '8px';
             button.style.right = '8px';
-            button.style.padding = '6px';
+            button.style.padding = '4px 10px';
             button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
             button.style.border = 'none';
             button.style.borderRadius = '4px';
@@ -3936,6 +3949,11 @@ function noteApp() {
             button.style.alignItems = 'center';
             button.style.justifyContent = 'center';
             button.style.zIndex = '10';
+            button.style.fontSize = '11px';
+            button.style.fontWeight = '600';
+            button.style.fontFamily = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
+            button.style.textTransform = 'uppercase';
+            button.style.letterSpacing = '0.5px';
             
             // Style the pre element to be relative
             preElement.style.position = 'relative';
@@ -3959,28 +3977,23 @@ function noteApp() {
                 
                 const code = codeElement.textContent;
                 
+                const originalText = button.dataset.originalText;
+                const copiedText = this.t('common.copied');
+                const copyTitle = this.t('common.copy_to_clipboard');
+                
                 try {
                     await navigator.clipboard.writeText(code);
                     
-                    // Visual feedback - change icon to checkmark
-                    button.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    `;
+                    // Visual feedback - show localized "Copied!"
+                    button.innerHTML = `<span>${copiedText}</span>`;
                     button.style.backgroundColor = 'rgba(34, 197, 94, 0.8)';
-                    button.title = 'Copied!';
+                    button.title = copiedText;
                     
                     // Reset after 2 seconds
                     setTimeout(() => {
-                        button.innerHTML = `
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        `;
+                        button.innerHTML = `<span>${originalText}</span>`;
                         button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-                        button.title = 'Copy to clipboard';
+                        button.title = copyTitle;
                     }, 2000);
                 } catch (err) {
                     console.error('Failed to copy code:', err);
@@ -3995,19 +4008,10 @@ function noteApp() {
                     
                     try {
                         document.execCommand('copy');
-                        button.innerHTML = `
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        `;
+                        button.innerHTML = `<span>${copiedText}</span>`;
                         button.style.backgroundColor = 'rgba(34, 197, 94, 0.8)';
                         setTimeout(() => {
-                            button.innerHTML = `
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            `;
+                            button.innerHTML = `<span>${originalText}</span>`;
                             button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
                         }, 2000);
                     } catch (fallbackErr) {

@@ -23,7 +23,8 @@
     "loading": "Laden...",
     "saved": "✓ Gespeichert",
     "saving": "Speichern...",
-    "copied": "✓ Kopiert!",
+    "copied": "Kopiert!",
+    "copy_to_clipboard": "In Zwischenablage kopieren",
     "failed": "{{action}} fehlgeschlagen. Bitte versuche es erneut."
   },
 

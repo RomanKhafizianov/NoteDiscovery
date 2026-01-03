@@ -23,7 +23,8 @@
     "loading": "Cargando...",
     "saved": "✓ Guardado",
     "saving": "Guardando...",
-    "copied": "✓ ¡Copiado!",
+    "copied": "¡Copiado!",
+    "copy_to_clipboard": "Copiar al portapapeles",
     "failed": "Error al {{action}}. Por favor, inténtalo de nuevo."
   },
 
