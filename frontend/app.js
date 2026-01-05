@@ -164,6 +164,10 @@ function noteApp() {
             byEndPath: new Map(),        // '/filename' and '/filename.md' -> true
         },
         
+        // Image lookup map for O(1) image wikilink resolution (built on loadNotes)
+        // Maps image filename (case-insensitive) -> full path
+        _imageLookup: new Map(),
+        
         // Preview rendering debounce
         _previewDebounceTimeout: null,
         _lastRenderedContent: '',
@@ -1004,12 +1008,25 @@ function noteApp() {
             this._noteLookup.byName.clear();
             this._noteLookup.byNameLower.clear();
             this._noteLookup.byEndPath.clear();
+            this._imageLookup.clear();
             
             for (const note of this.notes) {
                 const path = note.path;
                 const pathLower = path.toLowerCase();
                 const name = note.name;
                 const nameLower = name.toLowerCase();
+                
+                // Handle images separately - build image lookup map
+                if (note.type === 'image') {
+                    // Map filename (case-insensitive) to full path
+                    // First match wins if there are duplicates
+                    if (!this._imageLookup.has(nameLower)) {
+                        this._imageLookup.set(nameLower, path);
+                    }
+                    continue;
+                }
+                
+                // Notes only from here
                 const nameWithoutMd = name.replace(/\.md$/i, '');
                 const nameWithoutMdLower = nameWithoutMd.toLowerCase();
                 
@@ -1044,6 +1061,13 @@ function noteApp() {
                 this._noteLookup.byEndPath.has('/' + targetLower) ||
                 this._noteLookup.byEndPath.has('/' + targetLower + '.md')
             );
+        },
+        
+        // Resolve image wikilink to full path (O(1) lookup)
+        // Returns the full path if found, null otherwise
+        resolveImageWikilink(imageName) {
+            const nameLower = imageName.toLowerCase();
+            return this._imageLookup.get(nameLower) || null;
         },
         
         // Load all tags
@@ -1994,10 +2018,9 @@ function noteApp() {
             
             let link;
             if (isImage) {
-                // For images, insert image markdown
-                const filename = notePath.split('/').pop().replace(/\.[^/.]+$/, ''); // Remove extension
-                // Use relative path (not /api/images/) for portability
-                link = `![${filename}](${notePath})`;
+                // For images, use wiki-style link (resolves by filename, never breaks)
+                const filename = notePath.split('/').pop();
+                link = `![[${filename}]]`;
             } else {
                 // For notes, insert note link
                 const noteName = notePath.split('/').pop().replace('.md', '');
@@ -2084,11 +2107,21 @@ function noteApp() {
             }
         },
         
-        // Insert image markdown at cursor position
+        // Insert image markdown at cursor position using wiki-style syntax
+        // This ensures image links don't break when notes are moved
         insertImageMarkdown(imagePath, altText, cursorPos) {
-            const filename = altText.replace(/\.[^/.]+$/, ''); // Remove extension
-            // Use relative path (not /api/images/) for portability
-            const markdown = `![${filename}](${imagePath})`;
+            // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
+            const filename = imagePath.split('/').pop();
+            
+            // Use wiki-style image link: ![[filename.png]] or ![[filename.png|alt text]]
+            // The alt text is optional - only add if different from filename
+            const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+            const altWithoutExt = altText.replace(/\.[^/.]+$/, '');
+            
+            // If alt text is meaningful (not just "pasted-image"), include it
+            const markdown = (altWithoutExt && altWithoutExt !== filenameWithoutExt && !altWithoutExt.startsWith('pasted-image'))
+                ? `![[${filename}|${altWithoutExt}]]`
+                : `![[${filename}]]`;
             
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
@@ -2098,7 +2131,7 @@ function noteApp() {
             // Trigger autosave
             this.autoSave();
             
-            // Reload notes to show the new image in sidebar
+            // Reload notes to show the new image in sidebar and update lookup maps
             this.loadNotes();
         },
         
@@ -3763,7 +3796,38 @@ function noteApp() {
                 return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
             });
             
-            // Step 2: Convert wiki links (now safe from code blocks)
+            // Step 2: Convert image wikilinks FIRST: ![[image.png]] or ![[image.png|alt text]]
+            // Must be before note wikilinks to prevent [[image.png]] from being matched first
+            contentToRender = contentToRender.replace(
+                /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+                (match, imageName, altText) => {
+                    const filename = imageName.trim();
+                    const alt = altText ? altText.trim() : filename.replace(/\.[^/.]+$/, '');
+                    
+                    // Resolve image path using O(1) lookup
+                    const imagePath = self.resolveImageWikilink(filename);
+                    
+                    if (imagePath) {
+                        // URL-encode path segments for the API
+                        const encodedPath = imagePath.split('/').map(segment => {
+                            try {
+                                return encodeURIComponent(decodeURIComponent(segment));
+                            } catch (e) {
+                                return encodeURIComponent(segment);
+                            }
+                        }).join('/');
+                        
+                        const safeAlt = alt.replace(/"/g, '&quot;');
+                        return `<img src="/api/images/${encodedPath}" alt="${safeAlt}" title="${safeAlt}">`;
+                    }
+                    
+                    // Image not found - return broken image indicator
+                    const safeFilename = filename.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `<span class="wikilink-broken" title="Image not found">🖼️ ${safeFilename}</span>`;
+                }
+            );
+            
+            // Step 2b: Convert note wikilinks: [[note]] or [[note|display text]]
             contentToRender = contentToRender.replace(
                 /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
                 (match, target, displayText) => {
