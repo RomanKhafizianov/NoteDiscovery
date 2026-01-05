@@ -164,6 +164,10 @@ function noteApp() {
             byEndPath: new Map(),        // '/filename' and '/filename.md' -> true
         },
         
+        // Image lookup map for O(1) image wikilink resolution (built on loadNotes)
+        // Maps image filename (case-insensitive) -> full path
+        _imageLookup: new Map(),
+        
         // Preview rendering debounce
         _previewDebounceTimeout: null,
         _lastRenderedContent: '',
@@ -454,6 +458,7 @@ function noteApp() {
             // Set initial homepage state ONLY if we're actually on the homepage
             if (window.location.pathname === '/') {
                 window.history.replaceState({ homepageFolder: '' }, '', '/');
+                document.title = this.appName;
             }
             
             // Listen for browser back/forward navigation
@@ -478,7 +483,7 @@ function noteApp() {
                     this.noteContent = '';
                     this.currentNoteName = '';
                     this.outline = [];
-                    document.title = 'NoteDiscovery';
+                    document.title = this.appName;
                     
                     // Restore homepage folder state if it was saved
                     if (e.state && e.state.homepageFolder !== undefined) {
@@ -1003,12 +1008,25 @@ function noteApp() {
             this._noteLookup.byName.clear();
             this._noteLookup.byNameLower.clear();
             this._noteLookup.byEndPath.clear();
+            this._imageLookup.clear();
             
             for (const note of this.notes) {
                 const path = note.path;
                 const pathLower = path.toLowerCase();
                 const name = note.name;
                 const nameLower = name.toLowerCase();
+                
+                // Handle images separately - build image lookup map
+                if (note.type === 'image') {
+                    // Map filename (case-insensitive) to full path
+                    // First match wins if there are duplicates
+                    if (!this._imageLookup.has(nameLower)) {
+                        this._imageLookup.set(nameLower, path);
+                    }
+                    continue;
+                }
+                
+                // Notes only from here
                 const nameWithoutMd = name.replace(/\.md$/i, '');
                 const nameWithoutMdLower = nameWithoutMd.toLowerCase();
                 
@@ -1043,6 +1061,13 @@ function noteApp() {
                 this._noteLookup.byEndPath.has('/' + targetLower) ||
                 this._noteLookup.byEndPath.has('/' + targetLower + '.md')
             );
+        },
+        
+        // Resolve image wikilink to full path (O(1) lookup)
+        // Returns the full path if found, null otherwise
+        resolveImageWikilink(imageName) {
+            const nameLower = imageName.toLowerCase();
+            return this._imageLookup.get(nameLower) || null;
         },
         
         // Load all tags
@@ -1993,10 +2018,9 @@ function noteApp() {
             
             let link;
             if (isImage) {
-                // For images, insert image markdown
-                const filename = notePath.split('/').pop().replace(/\.[^/.]+$/, ''); // Remove extension
-                // Use relative path (not /api/images/) for portability
-                link = `![${filename}](${notePath})`;
+                // For images, use wiki-style link (resolves by filename, never breaks)
+                const filename = notePath.split('/').pop();
+                link = `![[${filename}]]`;
             } else {
                 // For notes, insert note link
                 const noteName = notePath.split('/').pop().replace('.md', '');
@@ -2083,11 +2107,21 @@ function noteApp() {
             }
         },
         
-        // Insert image markdown at cursor position
+        // Insert image markdown at cursor position using wiki-style syntax
+        // This ensures image links don't break when notes are moved
         insertImageMarkdown(imagePath, altText, cursorPos) {
-            const filename = altText.replace(/\.[^/.]+$/, ''); // Remove extension
-            // Use relative path (not /api/images/) for portability
-            const markdown = `![${filename}](${imagePath})`;
+            // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
+            const filename = imagePath.split('/').pop();
+            
+            // Use wiki-style image link: ![[filename.png]] or ![[filename.png|alt text]]
+            // The alt text is optional - only add if different from filename
+            const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+            const altWithoutExt = altText.replace(/\.[^/.]+$/, '');
+            
+            // If alt text is meaningful (not just "pasted-image"), include it
+            const markdown = (altWithoutExt && altWithoutExt !== filenameWithoutExt && !altWithoutExt.startsWith('pasted-image'))
+                ? `![[${filename}|${altWithoutExt}]]`
+                : `![[${filename}]]`;
             
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
@@ -2097,7 +2131,7 @@ function noteApp() {
             // Trigger autosave
             this.autoSave();
             
-            // Reload notes to show the new image in sidebar
+            // Reload notes to show the new image in sidebar and update lookup maps
             this.loadNotes();
         },
         
@@ -2159,7 +2193,7 @@ function noteApp() {
             
             // Update browser tab title for image
             const imageName = imagePath.split('/').pop();
-            document.title = `${imageName} - NoteDiscovery`;
+            document.title = `${imageName} - ${this.appName}`;
             
             // Update browser URL
             if (updateHistory) {
@@ -2475,7 +2509,7 @@ function noteApp() {
                         this.currentNote = '';
                         this.noteContent = '';
                         this.currentImage = '';
-                        document.title = 'NoteDiscovery';
+                        document.title = this.appName;
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -2491,7 +2525,7 @@ function noteApp() {
                 this.currentImage = ''; // Clear image viewer when loading a note
                 
                 // Update browser tab title
-                document.title = `${this.currentNoteName} - NoteDiscovery`;
+                document.title = `${this.currentNoteName} - ${this.appName}`;
                 this.lastSaved = false;
                 
                 // Extract outline for TOC panel
@@ -3076,7 +3110,7 @@ function noteApp() {
                     if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
                         this.currentNote = '';
                         this.noteContent = '';
-                        document.title = 'NoteDiscovery';
+                        document.title = this.appName;
                     }
                     
                     await this.loadNotes();
@@ -3570,7 +3604,7 @@ function noteApp() {
                         this.currentNoteName = '';
                         this._lastRenderedContent = ''; // Clear render cache
                         this._cachedRenderedHTML = '';
-                        document.title = 'NoteDiscovery';
+                        document.title = this.appName;
                         // Redirect to root
                         window.history.replaceState({}, '', '/');
                     }
@@ -3746,7 +3780,54 @@ function noteApp() {
             
             // Convert Obsidian-style wikilinks: [[note]] or [[note|display text]]
             // Must be done before marked.parse() to avoid conflicts with markdown syntax
+            // BUT we need to protect code blocks first to avoid converting [[text]] inside code
             const self = this; // Reference for closure
+            
+            // Step 1: Temporarily replace code blocks and inline code with placeholders
+            const codeBlocks = [];
+            // Protect fenced code blocks (```...```)
+            contentToRender = contentToRender.replace(/```[\s\S]*?```/g, (match) => {
+                codeBlocks.push(match);
+                return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
+            });
+            // Protect inline code (`...`)
+            contentToRender = contentToRender.replace(/`[^`]+`/g, (match) => {
+                codeBlocks.push(match);
+                return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
+            });
+            
+            // Step 2: Convert image wikilinks FIRST: ![[image.png]] or ![[image.png|alt text]]
+            // Must be before note wikilinks to prevent [[image.png]] from being matched first
+            contentToRender = contentToRender.replace(
+                /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+                (match, imageName, altText) => {
+                    const filename = imageName.trim();
+                    const alt = altText ? altText.trim() : filename.replace(/\.[^/.]+$/, '');
+                    
+                    // Resolve image path using O(1) lookup
+                    const imagePath = self.resolveImageWikilink(filename);
+                    
+                    if (imagePath) {
+                        // URL-encode path segments for the API
+                        const encodedPath = imagePath.split('/').map(segment => {
+                            try {
+                                return encodeURIComponent(decodeURIComponent(segment));
+                            } catch (e) {
+                                return encodeURIComponent(segment);
+                            }
+                        }).join('/');
+                        
+                        const safeAlt = alt.replace(/"/g, '&quot;');
+                        return `<img src="/api/images/${encodedPath}" alt="${safeAlt}" title="${safeAlt}">`;
+                    }
+                    
+                    // Image not found - return broken image indicator
+                    const safeFilename = filename.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `<span class="wikilink-broken" title="Image not found">🖼️ ${safeFilename}</span>`;
+                }
+            );
+            
+            // Step 2b: Convert note wikilinks: [[note]] or [[note|display text]]
             contentToRender = contentToRender.replace(
                 /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
                 (match, target, displayText) => {
@@ -3768,6 +3849,11 @@ function noteApp() {
                     return `<a href="${safeHref}"${brokenClass} data-wikilink="true">${safeText}</a>`;
                 }
             );
+            
+            // Step 3: Restore code blocks
+            contentToRender = contentToRender.replace(/\x00CODEBLOCK(\d+)\x00/g, (match, index) => {
+                return codeBlocks[parseInt(index)];
+            });
             
             // Configure marked with syntax highlighting
             marked.setOptions({
@@ -3888,22 +3974,35 @@ function noteApp() {
         
         // Add copy button to code block
         addCopyButtonToCodeBlock(preElement) {
-            // Create copy button
+            // Extract language from code element class (e.g., "language-toml" -> "TOML")
+            const codeElement = preElement.querySelector('code');
+            let language = '';
+            if (codeElement && codeElement.className) {
+                const match = codeElement.className.match(/language-(\w+)/);
+                if (match) {
+                    const langMap = {
+                        'js': 'JavaScript', 'ts': 'TypeScript', 'py': 'Python',
+                        'rb': 'Ruby', 'cs': 'C#', 'cpp': 'C++', 'sh': 'Shell',
+                        'bash': 'Bash', 'zsh': 'Zsh', 'yml': 'YAML', 'md': 'Markdown'
+                    };
+                    const rawLang = match[1].toLowerCase();
+                    language = langMap[rawLang] || match[1].toUpperCase();
+                }
+            }
+            
+            // Create copy button with language label
             const button = document.createElement('button');
             button.className = 'copy-code-button';
-            button.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            `;
-            button.title = 'Copy to clipboard';
+            const displayText = language || this.t('common.copy_to_clipboard').split(' ')[0]; // Use first word as fallback
+            button.innerHTML = `<span>${displayText}</span>`;
+            button.dataset.originalText = displayText; // Store for restore after copy
+            button.title = this.t('common.copy_to_clipboard');
             
             // Style the button
             button.style.position = 'absolute';
             button.style.top = '8px';
             button.style.right = '8px';
-            button.style.padding = '6px';
+            button.style.padding = '4px 10px';
             button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
             button.style.border = 'none';
             button.style.borderRadius = '4px';
@@ -3915,6 +4014,11 @@ function noteApp() {
             button.style.alignItems = 'center';
             button.style.justifyContent = 'center';
             button.style.zIndex = '10';
+            button.style.fontSize = '11px';
+            button.style.fontWeight = '600';
+            button.style.fontFamily = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
+            button.style.textTransform = 'uppercase';
+            button.style.letterSpacing = '0.5px';
             
             // Style the pre element to be relative
             preElement.style.position = 'relative';
@@ -3938,28 +4042,23 @@ function noteApp() {
                 
                 const code = codeElement.textContent;
                 
+                const originalText = button.dataset.originalText;
+                const copiedText = this.t('common.copied');
+                const copyTitle = this.t('common.copy_to_clipboard');
+                
                 try {
                     await navigator.clipboard.writeText(code);
                     
-                    // Visual feedback - change icon to checkmark
-                    button.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    `;
+                    // Visual feedback - show localized "Copied!"
+                    button.innerHTML = `<span>${copiedText}</span>`;
                     button.style.backgroundColor = 'rgba(34, 197, 94, 0.8)';
-                    button.title = 'Copied!';
+                    button.title = copiedText;
                     
                     // Reset after 2 seconds
                     setTimeout(() => {
-                        button.innerHTML = `
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        `;
+                        button.innerHTML = `<span>${originalText}</span>`;
                         button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-                        button.title = 'Copy to clipboard';
+                        button.title = copyTitle;
                     }, 2000);
                 } catch (err) {
                     console.error('Failed to copy code:', err);
@@ -3974,19 +4073,10 @@ function noteApp() {
                     
                     try {
                         document.execCommand('copy');
-                        button.innerHTML = `
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        `;
+                        button.innerHTML = `<span>${copiedText}</span>`;
                         button.style.backgroundColor = 'rgba(34, 197, 94, 0.8)';
                         setTimeout(() => {
-                            button.innerHTML = `
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            `;
+                            button.innerHTML = `<span>${originalText}</span>`;
                             button.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
                         }, 2000);
                     } catch (fallbackErr) {
@@ -4966,7 +5056,7 @@ function noteApp() {
             this.noteContent = '';
             this.currentImage = '';
             this.outline = [];
-            document.title = 'NoteDiscovery';
+            document.title = this.appName;
             
             // Invalidate cache to force recalculation
             this._homepageCache = {
@@ -4989,7 +5079,7 @@ function noteApp() {
             this.currentImage = '';
             this.outline = [];
             this.mobileSidebarOpen = false;
-            document.title = 'NoteDiscovery';
+            document.title = this.appName;
             
             // Clear undo/redo history
             this.undoHistory = [];

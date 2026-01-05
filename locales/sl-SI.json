@@ -23,7 +23,8 @@
     "loading": "Nalaganje...",
     "saved": "✓ Shranjeno",
     "saving": "Shranjevanje...",
-    "copied": "✓ Kopirano!",
+    "copied": "Kopirano!",
+    "copy_to_clipboard": "Kopiraj v odložišče",
     "failed": "Napaka pri {{action}}. Prosimo, poskusite znova."
   },
 

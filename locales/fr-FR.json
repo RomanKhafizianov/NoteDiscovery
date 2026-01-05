@@ -23,7 +23,8 @@
     "loading": "Chargement...",
     "saved": "✓ Enregistré",
     "saving": "Enregistrement...",
-    "copied": "✓ Copié !",
+    "copied": "Copié !",
+    "copy_to_clipboard": "Copier dans le presse-papiers",
     "failed": "Échec de {{action}}. Veuillez réessayer."
   },
 

@@ -269,7 +269,9 @@ async def login_page(request: Request, error: str = None):
     async with aiofiles.open(login_path, 'r', encoding='utf-8') as f:
         content = await f.read()
     
-    # No server-side manipulation needed - frontend handles error display via URL params
+    # Inject app name throughout the login page
+    app_name = config['app']['name']
+    content = content.replace('NoteDiscovery', app_name)
     
     return content
 
@@ -319,15 +321,6 @@ pages_router = APIRouter(
 # ============================================================================
 # Application Routes (with auth via router dependencies)
 # ============================================================================
-
-@pages_router.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    """Serve the main application page"""
-    index_path = static_path / "index.html"
-    async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
-        content = await f.read()
-    return content
-
 
 @api_router.get("")
 async def api_documentation():
@@ -1252,20 +1245,22 @@ async def health_check():
 # Catch-all route for SPA (Single Page Application) routing
 # This allows URLs like /folder/note to work for direct navigation
 @pages_router.get("/{full_path:path}", response_class=HTMLResponse)
+@limiter.limit("120/minute")
 async def catch_all(full_path: str, request: Request):
     """
-    Serve index.html for all non-API routes.
+    Serve index.html for all non-API routes (including root /).
     This enables client-side routing (e.g., /folder/note)
     """
     # Skip if it's an API route or static file (shouldn't reach here, but just in case)
     if full_path.startswith('api/') or full_path.startswith('static/'):
         raise HTTPException(status_code=404, detail="Not found")
     
-    # Serve index.html for all other routes
+    # Serve index.html with app name injected
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
-    return content
+    app_name = config['app']['name']
+    return content.replace('<title>NoteDiscovery</title>', f'<title>{app_name}</title>')
 
 
 # ============================================================================
