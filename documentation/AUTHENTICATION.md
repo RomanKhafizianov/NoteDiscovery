@@ -49,9 +49,54 @@ For **local testing only**, you can use the default configuration:
 
 For any deployment exposed to a network, follow these steps:
 
-### Step 1: Generate a Password Hash
+---
 
-Choose your environment:
+## Password Configuration Options
+
+NoteDiscovery supports two ways to set passwords:
+
+| Method | Best For | Security |
+|--------|----------|----------|
+| **Plain text password** | Docker, PikaPods, easy deployment | Password is hashed at startup |
+| **Pre-hashed password** | Advanced users, extra security | You control the hashing |
+
+Both methods are secure - the plain text option simply hashes the password when the app starts.
+
+---
+
+### Option A: Plain Text Password (Recommended for Docker/PikaPods)
+
+The easiest approach - just set your password directly:
+
+**Via Environment Variable:**
+```bash
+# Docker run
+docker run -e AUTHENTICATION_ENABLED=true \
+           -e AUTHENTICATION_PASSWORD=your_secure_password \
+           ...
+
+# Docker Compose (.env file)
+AUTHENTICATION_ENABLED=true
+AUTHENTICATION_PASSWORD=your_secure_password
+```
+
+**Via config.yaml:**
+```yaml
+authentication:
+  enabled: true
+  password: "your_secure_password"
+  secret_key: "your_generated_secret_key_here"
+```
+
+The password is automatically hashed with bcrypt when the app starts.
+
+---
+
+### Option B: Pre-Hashed Password (Advanced)
+
+For users who prefer to hash passwords themselves:
+
+#### Step 1: Generate a Password Hash
 
 **Docker Users:**
 
@@ -81,7 +126,7 @@ The script will:
 
 **Copy the hash** - you'll need it for Step 3.
 
-### Step 2: Generate a Secret Key
+#### Step 2: Generate a Secret Key
 
 Generate a random secret key for session encryption:
 
@@ -100,7 +145,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 **Copy the key** - you'll need it for Step 3.
 
-### Step 3: Update `config.yaml`
+#### Step 3: Update `config.yaml`
 
 Edit your `config.yaml` and update the authentication section:
 
@@ -119,7 +164,9 @@ authentication:
   session_max_age: 604800
 ```
 
-### Step 4: Restart the Application
+---
+
+### Restart the Application
 
 ```bash
 # If running locally
@@ -132,11 +179,11 @@ docker-compose restart
 docker restart notediscovery
 ```
 
-### Step 5: Test Login
+### Test Login
 
 Navigate to `http://localhost:8000` and you'll be redirected to the login page.
 
-Enter the password you chose in Step 2.
+Enter the password you configured.
 
 ---
 

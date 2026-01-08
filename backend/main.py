@@ -67,10 +67,34 @@ if 'AUTHENTICATION_ENABLED' in os.environ:
 else:
     print(f"🔐 Authentication {'ENABLED' if config.get('authentication', {}).get('enabled', False) else 'DISABLED'} (from config.yaml)")
 
-# Allow password hash to be set via environment variable (useful for demos)
-if 'AUTHENTICATION_PASSWORD_HASH' in os.environ:
+# Password configuration priority:
+# 1. AUTHENTICATION_PASSWORD env var (plain text, hashed at startup)
+# 2. AUTHENTICATION_PASSWORD_HASH env var (pre-hashed)
+# 3. authentication.password in config.yaml (plain text, hashed at startup)
+# 4. authentication.password_hash in config.yaml (pre-hashed)
+# Default password is "admin" if nothing is configured
+if 'AUTHENTICATION_PASSWORD' in os.environ:
+    # Plain text password from env var - hash it
+    plain_password = os.getenv('AUTHENTICATION_PASSWORD')
+    config['authentication']['password_hash'] = bcrypt.hashpw(
+        plain_password.encode('utf-8'), 
+        bcrypt.gensalt()
+    ).decode('utf-8')
+    print("🔑 Password loaded from AUTHENTICATION_PASSWORD env var (hashed at startup)")
+elif 'AUTHENTICATION_PASSWORD_HASH' in os.environ:
+    # Pre-hashed password from env var
     config['authentication']['password_hash'] = os.getenv('AUTHENTICATION_PASSWORD_HASH')
     print("🔑 Password hash loaded from AUTHENTICATION_PASSWORD_HASH env var")
+elif config.get('authentication', {}).get('password'):
+    # Plain text password from config.yaml - hash it
+    plain_password = config['authentication']['password']
+    config['authentication']['password_hash'] = bcrypt.hashpw(
+        plain_password.encode('utf-8'), 
+        bcrypt.gensalt()
+    ).decode('utf-8')
+    # Clear the plain text password from config for security
+    del config['authentication']['password']
+    print("🔑 Password loaded from config.yaml (hashed at startup)")
 
 # Allow secret key to be set via environment variable (for session security)
 if 'AUTHENTICATION_SECRET_KEY' in os.environ:

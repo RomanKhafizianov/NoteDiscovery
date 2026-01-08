@@ -17,8 +17,21 @@ NoteDiscovery supports environment variables to override configuration settings,
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `AUTHENTICATION_ENABLED` | boolean | `config.yaml` | Enable/disable authentication |
-| `AUTHENTICATION_PASSWORD_HASH` | string | `config.yaml` | Bcrypt password hash |
+| `AUTHENTICATION_PASSWORD` | string | `admin` | Plain text password (hashed automatically at startup) |
+| `AUTHENTICATION_PASSWORD_HASH` | string | - | Pre-hashed bcrypt password (for advanced users) |
 | `AUTHENTICATION_SECRET_KEY` | string | `config.yaml` | Session secret key (for session security) |
+
+> **Password Priority:** `AUTHENTICATION_PASSWORD` takes precedence over `AUTHENTICATION_PASSWORD_HASH`. If both are set, the plain text password is used.
+
+#### Example: Setting password via environment variable
+
+```bash
+# Docker
+docker run -e AUTHENTICATION_ENABLED=true -e AUTHENTICATION_PASSWORD=mysecretpassword ...
+
+# Docker Compose (in .env file or docker-compose.yml)
+AUTHENTICATION_PASSWORD=mysecretpassword
+```
 
 ### Demo Mode
 
