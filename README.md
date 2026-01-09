@@ -169,7 +169,9 @@ pip install -r requirements.txt
 python run.py
 ```
 
-> 💡 **Tip:** You'll need to activate the virtual environment (`source venv/bin/activate`) each time you open a new terminal before running the app.
+> ⚠️ **Warning**
+>
+> *You'll need to activate the virtual environment (source venv/bin/activate) each time you open a new terminal before running the app*
 
 ### Advanced Docker Setup
 
