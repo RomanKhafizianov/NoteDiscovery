@@ -318,12 +318,32 @@ Full immersive distraction-free writing experience:
 - **Easy exit** - Press `Esc`, click exit button, or use shortcut again
 - **State preserved** - Returns to your previous view mode on exit
 
+## 📱 Progressive Web App (PWA)
+
+NoteDiscovery can be installed as a standalone app on your device:
+
+- **Install as app** - Add to home screen on mobile, or install via browser on desktop
+- **Standalone mode** - Runs without browser chrome for a native app feel
+
+### How to Install
+- **Desktop (Chrome/Edge)**: Click the install icon in the address bar, or Menu → "Install NoteDiscovery"
+- **Android**: Chrome Menu → "Add to Home Screen"
+- **iOS**: Safari Share → "Add to Home Screen"
+
+## 🌍 Internationalization
+
+- **Multiple languages** - English, Spanish, German, French built-in
+- **Easy to add** - Drop JSON files in `locales/` folder
+- **Instant switch** - Change language in Settings without reload
+- **Community translations** - Contributions welcome!
+
 ## 🚀 Performance
 
 - **Instant loading** - No lag, no loading spinners
 - **Efficient caching** - Smart local storage
 - **Minimal resources** - Runs on modest hardware
 - **No bloat** - Focused on what matters
+- **Lightweight** - No heavy frameworks
 
 ---
 
