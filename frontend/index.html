@@ -1154,6 +1154,16 @@
                 display: none !important;
             }
         }
+        
+        /* Responsive homepage cards */
+        .homepage-card {
+            min-height: 70px;
+        }
+        @media (min-width: 640px) {
+            .homepage-card {
+                min-height: 140px;
+            }
+        }
     </style>
 </head>
 <body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);" :class="{'zen-mode-active': zenMode}">
@@ -1972,20 +1982,20 @@
                             
                             <!-- Folders and Notes Grid -->
                             <template x-if="homepageNotes().length > 0 || homepageFolders().length > 0">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
                                     <!-- Folders First -->
                                     <template x-for="folder in homepageFolders()" :key="folder.path">
                                         <div 
                                             @click="goToHomepageFolder(folder.path)"
-                                            class="p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
-                                            style="background-color: var(--bg-secondary); border-color: var(--accent-primary); min-height: 140px; display: flex; flex-direction: column; border-width: 2px; position: relative;"
+                                            class="homepage-card p-2 sm:p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
+                                            style="background-color: var(--bg-secondary); border-color: var(--accent-primary); display: flex; flex-direction: column; border-width: 2px; position: relative;"
                                             onmouseover="this.style.borderColor='var(--accent-hover)'; this.style.transform='translateY(-2px)'; this.querySelector('.card-delete-btn').style.opacity='1';"
                                             onmouseout="this.style.borderColor='var(--accent-primary)'; this.style.transform='translateY(0)'; this.querySelector('.card-delete-btn').style.opacity='0';"
                                         >
                                             <!-- Delete Button -->
                                             <button 
                                                 @click.stop="deleteFolder(folder.path, folder.name)"
-                                                class="card-delete-btn"
+                                                class="card-delete-btn hidden sm:block"
                                                 style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s; color: var(--error); padding: 4px; border-radius: 4px; background-color: var(--bg-secondary);"
                                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                                 onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
@@ -1997,17 +2007,17 @@
                                             </button>
                                             
                                             <!-- Folder Icon -->
-                                            <div class="mb-2 flex items-center gap-2">
-                                                <svg class="w-6 h-6" style="color: var(--accent-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                                                <svg class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" style="color: var(--accent-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
                                                 </svg>
-                                                <h3 class="font-semibold text-base" style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;" x-text="folder.name"></h3>
+                                                <h3 class="font-semibold text-sm sm:text-base" style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="folder.name"></h3>
                                             </div>
                                             
                                             <!-- Folder Metadata -->
-                                            <div class="flex items-center justify-between text-xs mt-auto pt-2" style="color: var(--text-tertiary);">
+                                            <div class="flex items-center justify-between text-xs mt-auto pt-1 sm:pt-2" style="color: var(--text-tertiary);">
                                                 <span x-text="folder.noteCount + ' ' + (folder.noteCount === 1 ? t('homepage.note_singular') : t('homepage.note_plural'))"></span>
-                                                <svg class="w-4 h-4" style="color: var(--accent-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4 hidden sm:block" style="color: var(--accent-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                                 </svg>
                                             </div>
@@ -2018,15 +2028,15 @@
                                     <template x-for="note in homepageNotes().slice(0, HOMEPAGE_MAX_NOTES)" :key="note.path">
                                         <div 
                                             @click="openItem(note.path, note.type)"
-                                            class="p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
-                                            style="background-color: var(--bg-secondary); border-color: var(--border-primary); min-height: 140px; display: flex; flex-direction: column; position: relative;"
+                                            class="homepage-card p-2 sm:p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg"
+                                            style="background-color: var(--bg-secondary); border-color: var(--border-primary); display: flex; flex-direction: column; position: relative;"
                                             onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.transform='translateY(-2px)'; this.querySelector('.card-delete-btn').style.opacity='1';"
                                             onmouseout="this.style.borderColor='var(--border-primary)'; this.style.transform='translateY(0)'; this.querySelector('.card-delete-btn').style.opacity='0';"
                                         >
                                             <!-- Delete Button -->
                                             <button 
                                                 @click.stop="note.type === 'image' ? deleteImage(note.path) : deleteNote(note.path, note.name)"
-                                                class="card-delete-btn"
+                                                class="card-delete-btn hidden sm:block"
                                                 style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s; color: var(--error); padding: 4px; border-radius: 4px; background-color: var(--bg-secondary);"
                                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                                 onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
@@ -2038,12 +2048,12 @@
                                             </button>
                                             
                                             <!-- Note Title -->
-                                            <h3 class="font-semibold text-base mb-2" style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;" x-text="note.name"></h3>
+                                            <h3 class="font-semibold text-sm sm:text-base mb-1 sm:mb-2" style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="note.name"></h3>
                                             
                                             <!-- Metadata -->
-                                            <div class="flex items-center justify-between text-xs mt-auto pt-2" style="color: var(--text-tertiary);">
+                                            <div class="flex items-center justify-between text-xs mt-auto pt-1 sm:pt-2" style="color: var(--text-tertiary);">
                                                 <span x-text="formatDate(note.modified)"></span>
-                                                <span x-text="formatSize(note.size)"></span>
+                                                <span class="hidden sm:inline" x-text="formatSize(note.size)"></span>
                                             </div>
                                         </div>
                                     </template>
@@ -2763,18 +2773,22 @@
     <nav class="mobile-bottom-tabs zen-hide" style="display: none;" role="navigation" aria-label="Main navigation">
         <button 
             class="mobile-bottom-tab"
-            :class="{'active': activePanel === 'files'}"
-            @click="activePanel = 'files'; mobileSidebarOpen = true;"
+            :class="{'active': activePanel === 'files' && (mobileSidebarOpen || (!currentNote && !currentImage && !showGraph))}"
+            @click="mobileFilesTabClick()"
             :aria-label="t('sidebar.files')"
         >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <!-- Show home icon when viewing content, folder icon when on homepage -->
+            <svg x-show="currentNote || currentImage || showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            <svg x-show="!currentNote && !currentImage && !showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
             </svg>
-            <span x-text="t('sidebar.files')"></span>
+            <span x-text="(currentNote || currentImage || showGraph) ? t('homepage.title') : t('sidebar.files')"></span>
         </button>
         <button 
             class="mobile-bottom-tab relative"
-            :class="{'active': activePanel === 'search'}"
+            :class="{'active': activePanel === 'search' && mobileSidebarOpen}"
             @click="activePanel = 'search'; mobileSidebarOpen = true;"
             :aria-label="t('sidebar.search')"
         >
@@ -2793,7 +2807,7 @@
         </button>
         <button 
             class="mobile-bottom-tab relative"
-            :class="{'active': activePanel === 'tags'}"
+            :class="{'active': activePanel === 'tags' && mobileSidebarOpen}"
             @click="activePanel = 'tags'; mobileSidebarOpen = true;"
             :aria-label="t('tags.title')"
         >
@@ -2823,7 +2837,7 @@
         </button>
         <button 
             class="mobile-bottom-tab"
-            :class="{'active': activePanel === 'settings'}"
+            :class="{'active': activePanel === 'settings' && mobileSidebarOpen}"
             @click="activePanel = 'settings'; mobileSidebarOpen = true;"
             :aria-label="t('sidebar.settings')"
         >

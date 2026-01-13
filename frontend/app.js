@@ -5105,6 +5105,18 @@ function noteApp() {
             window.history.pushState({ homepageFolder: '' }, '', '/');
         },
         
+        // Mobile files/home tab - context-aware behavior
+        mobileFilesTabClick() {
+            if (this.currentNote || this.currentImage || this.showGraph) {
+                // Viewing content → go home
+                this.goHome();
+            } else {
+                // On homepage → toggle files sidebar
+                this.activePanel = 'files';
+                this.mobileSidebarOpen = !this.mobileSidebarOpen;
+            }
+        },
+        
         // ==================== GRAPH VIEW ====================
         
         // Initialize the graph visualization
