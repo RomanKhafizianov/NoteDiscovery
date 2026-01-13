@@ -1,0 +1,255 @@
+{
+  "_meta": {
+    "code": "ja-JP",
+    "name": "日本語",
+    "flag": "🇯🇵"
+  },
+
+  "app": {
+    "tagline": "セルフホスト型ナレッジベース"
+  },
+
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "rename": "名前変更",
+    "create": "作成",
+    "close": "閉じる",
+    "yes": "✓ はい",
+    "no": "✗ いいえ",
+    "ok": "OK",
+    "error": "エラー",
+    "loading": "読み込み中...",
+    "saved": "✓ 保存済み",
+    "saving": "保存中...",
+    "copied": "コピーしました！",
+    "copy_to_clipboard": "クリップボードにコピー",
+    "failed": "{{action}}に失敗しました。もう一度お試しください。"
+  },
+
+  "sidebar": {
+    "title": "ファイル",
+    "favorites_title": "お気に入り",
+    "folders_and_notes": "フォルダとノート",
+    "new_button": "+ 新規",
+    "new_note": "新規ノート",
+    "new_folder": "新規フォルダ",
+    "new_from_template": "テンプレートから作成",
+    "search_placeholder": "ノートを検索...",
+    "search_hint": "ノートを検索",
+    "clear_search": "検索をクリア",
+    "drag_hint": "💡 ドラッグで移動",
+    "root_folder": "📂 ルートフォルダ",
+    "no_notes": "ノートがありません。最初のノートを作成しましょう！",
+    "no_notes_yet": "ノートやフォルダがありません。",
+    "create_first": "最初のノートまたはフォルダを作成しましょう！",
+    "no_favorites": "お気に入りがありません",
+    "no_results": "結果が見つかりません",
+    "expand_all": "すべて展開",
+    "collapse_all": "すべて折りたたむ",
+    "toggle_sidebar": "サイドバー切替",
+    "go_to_homepage": "ホームへ",
+    "files": "ファイル",
+    "search": "検索",
+    "search_title": "検索",
+    "settings": "設定",
+    "settings_title": "設定",
+    "filtered_notes": "フィルター済みノート"
+  },
+
+  "editor": {
+    "placeholder": "マークダウンで書き始める...",
+    "drop_hint": "💡 ここにドロップしてカーソル位置に挿入...",
+    "mode_edit": "編集",
+    "mode_split": "分割",
+    "mode_preview": "プレビュー",
+    "edited": "{{time}}に編集",
+    "just_now": "たった今",
+    "minutes_ago": "{{count}}分前",
+    "hours_ago": "{{count}}時間前",
+    "days_ago": "{{count}}日前"
+  },
+
+  "notes": {
+    "confirm_delete": "「{{name}}」を削除しますか？",
+    "already_exists": "「{{name}}」という名前のノートは既に存在します。\n別の名前を選択してください。",
+    "prompt_name": "ノート名を入力:",
+    "prompt_name_in_folder": "「{{folder}}」にノートを作成します。\nノート名を入力:",
+    "prompt_name_with_path": "ノート名を入力（フォルダ/名前も可）:",
+    "prompt_rename": "新しい名前を入力:",
+    "invalid_name": "無効なノート名です。",
+    "empty_name": "ノート名は空にできません。",
+    "not_found": "ノートが見つかりません: {{path}}",
+    "create_from_link": "ノート「{{path}}」は存在しません。\n\n作成しますか？",
+    "no_content": "エクスポートするノートの内容がありません",
+    "open_first": "画像をアップロードする前にノートを開いてください。"
+  },
+
+  "folders": {
+    "confirm_delete": "⚠️ 警告 ⚠️\n\n本当にフォルダ「{{name}}」を削除しますか？\n\n以下が完全に削除されます:\n• このフォルダ内のすべてのノート\n• すべてのサブフォルダとその内容\n\nこの操作は元に戻せません！",
+    "already_exists": "「{{name}}」という名前のフォルダは既に存在します。\n別の名前を選択してください。",
+    "prompt_name": "フォルダ名を入力:",
+    "prompt_name_in_folder": "「{{folder}}」にサブフォルダを作成します。\nフォルダ名を入力:",
+    "prompt_name_with_path": "新規フォルダを作成します。\nフォルダパスを入力（例：「プロジェクト」または「仕事/2025」）:",
+    "prompt_rename": "フォルダ「{{name}}」の新しい名前:",
+    "invalid_name": "無効なフォルダ名です。",
+    "cannot_move_into_self": "フォルダを自身またはそのサブフォルダに移動できません。",
+    "empty": "空"
+  },
+
+  "toolbar": {
+    "undo": "元に戻す (Ctrl+Z)",
+    "redo": "やり直す (Ctrl+Y)",
+    "delete_note": "ノートを削除",
+    "delete_image": "画像を削除",
+    "export_html": "HTMLとしてエクスポート",
+    "copy_link": "リンクをクリップボードにコピー",
+    "add_favorite": "お気に入りに追加",
+    "remove_favorite": "お気に入りから削除"
+  },
+
+  "zen_mode": {
+    "title": "集中モード",
+    "tooltip": "集中モード (Ctrl+Alt+Z)",
+    "exit": "集中モードを終了",
+    "exit_hint": "集中モードを終了 (Esc)"
+  },
+
+  "tags": {
+    "title": "タグ",
+    "no_tags": "タグが見つかりません",
+    "hint": "YAMLフロントマターでタグを追加",
+    "no_matches": "選択したタグに一致するノートがありません",
+    "clear_all": "タグフィルターをクリア",
+    "filter_by": "{{tag}}でフィルター（{{count}}件）"
+  },
+
+  "outline": {
+    "title": "アウトライン",
+    "no_headings": "見出しが見つかりません",
+    "hint": "# 記法で見出しを追加"
+  },
+
+  "stats": {
+    "words": "語",
+    "reading_time": "約{{minutes}}分で読了",
+    "links": "{{count}}件のリンク",
+    "click_details": "▼ 詳細を表示"
+  },
+
+  "graph": {
+    "title": "グラフ",
+    "empty": "表示する接続がありません",
+    "markdown_links": "マークダウンリンク",
+    "click_hint": "クリック: 選択 • ダブルクリック: 開く"
+  },
+
+  "templates": {
+    "title": "テンプレート",
+    "select": "テンプレートを選択...",
+    "prompt_name": "ノート名を入力:",
+    "no_templates": "テンプレートが見つかりません。_templatesフォルダにテンプレートを作成してください。",
+    "create_failed": "テンプレートからのノート作成に失敗しました",
+    "create_from_template": "テンプレートから作成",
+    "select_template": "テンプレートを選択",
+    "choose_template": "テンプレートを選択",
+    "note_name": "ノート名",
+    "available_placeholders": "利用可能なプレースホルダー",
+    "create_note": "ノートを作成"
+  },
+
+  "export": {
+    "failed": "HTMLエクスポートに失敗しました: {{error}}"
+  },
+
+  "login": {
+    "title": "ログイン",
+    "tagline": "セルフホスト型ナレッジベース",
+    "password_placeholder": "パスワードを入力",
+    "unlock_button": "🔓 ロック解除",
+    "footer": "🔒 安全なセルフホスト",
+    "error_incorrect_password": "パスワードが正しくありません。もう一度お試しください。"
+  },
+
+  "images": {
+    "confirm_delete": "画像「{{name}}」を削除しますか？",
+    "upload_failed": "画像のアップロードに失敗しました",
+    "no_valid_files": "有効な画像ファイルが見つかりません。対応形式: JPG, PNG, GIF, WEBP",
+    "formats": "JPG, PNG, GIF, WebP対応（最大10MB）"
+  },
+
+  "move": {
+    "failed_note": "ノートの移動に失敗しました。",
+    "failed_folder": "フォルダの移動に失敗しました。"
+  },
+
+  "search": {
+    "previous": "前へ (Shift+F3)",
+    "next": "次へ (F3)",
+    "matches": "{{current}} / {{total}}",
+    "match_of": "{{total}}件中{{current}}件目",
+    "result_singular": "件",
+    "result_plural": "件"
+  },
+
+  "theme": {
+    "title": "テーマ"
+  },
+
+  "language": {
+    "title": "言語"
+  },
+
+  "syntax_highlight": {
+    "title": "エディタのシンタックスハイライト",
+    "description": "エディタでマークダウン構文を色分け表示",
+    "enable": "シンタックスハイライトを有効化",
+    "disable": "シンタックスハイライトを無効化"
+  },
+
+  "settings": {
+    "account": "アカウント",
+    "logout": "ログアウト"
+  },
+
+  "homepage": {
+    "title": "ホーム",
+    "welcome": "NoteDiscoveryへようこそ",
+    "get_started": "何かを作成して始めましょう",
+    "no_notes_title": "ノートがありません",
+    "no_notes_desc": "最初のノートまたはフォルダを作成",
+    "folder_empty": "このフォルダは空です",
+    "note_singular": "ノート",
+    "note_plural": "ノート",
+    "folder_singular": "フォルダ",
+    "folder_plural": "フォルダ"
+  },
+
+  "format": {
+    "bold": "太字",
+    "italic": "斜体",
+    "strikethrough": "取り消し線",
+    "heading": "見出し",
+    "link": "リンク",
+    "image": "画像",
+    "code": "インラインコード",
+    "codeblock": "コードブロック",
+    "quote": "引用",
+    "bullet_list": "箇条書き",
+    "numbered_list": "番号付きリスト",
+    "checkbox": "チェックボックス",
+    "table": "表"
+  },
+
+  "validation": {
+    "forbidden_chars": "名前に使用できない文字が含まれています: {{chars}}",
+    "reserved_name": "この名前はオペレーティングシステムで予約されています。",
+    "invalid_dot": "名前をドットだけにすることはできません。",
+    "trailing_dot_space": "名前の末尾にドットやスペースは使用できません。"
+  },
+
+  "support": {
+    "enjoying_demo": "このプロジェクトを支援"
+  }
+}
