@@ -251,6 +251,11 @@
 
   "support": {
     "enjoying_demo": "Support this project"
+  },
+
+  "demo": {
+    "title": "DEMO MODE",
+    "warning": "Contents reset daily. Changes may be overwritten by other users."
   }
 }
 

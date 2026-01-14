@@ -251,6 +251,11 @@
 
   "support": {
     "enjoying_demo": "Soutenez ce projet"
+  },
+
+  "demo": {
+    "title": "MODE DÉMO",
+    "warning": "Le contenu est réinitialisé quotidiennement. Les modifications peuvent être écrasées par d'autres utilisateurs."
   }
 }
 

@@ -251,5 +251,10 @@
 
   "support": {
     "enjoying_demo": "Podprite ta projekt"
+  },
+
+  "demo": {
+    "title": "DEMO NAČIN",
+    "warning": "Vsebina se dnevno ponastavi. Spremembe lahko prepišejo drugi uporabniki."
   }
 }
