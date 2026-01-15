@@ -44,6 +44,17 @@ from .utils import (
 )
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
+from .share import (
+    create_share_token,
+    get_share_token,
+    get_share_info,
+    revoke_share_token,
+    get_note_by_token,
+    delete_token_for_note,
+    update_token_path,
+    get_all_shared_paths,
+)
+from .export import generate_export_html, embed_images_as_base64, convert_wikilinks_to_html, strip_frontmatter
 
 # Load configuration
 config_path = Path(__file__).parent.parent / "config.yaml"
@@ -715,6 +726,9 @@ async def move_note_endpoint(request: Request, data: dict):
         if not success:
             raise HTTPException(status_code=400, detail=error_msg or "Failed to move note")
         
+        # Update share token path if note was shared
+        update_token_path(config['storage']['notes_dir'], old_path, new_path)
+        
         # Run plugin hooks
         plugin_manager.run_hook('on_note_save', note_path=new_path, content='')
         
@@ -1041,6 +1055,9 @@ async def remove_note(request: Request, note_path: str):
         if not success:
             raise HTTPException(status_code=404, detail="Note not found")
         
+        # Clean up any share token for this note
+        delete_token_for_note(config['storage']['notes_dir'], note_path)
+        
         # Run plugin hooks
         plugin_manager.run_hook('on_note_delete', note_path=note_path)
         
@@ -1256,6 +1273,195 @@ async def toggle_plugin(request: Request, plugin_name: str, enabled: dict):
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to toggle plugin"))
 
 
+# ============================================================================
+# Share Token Endpoints (authenticated)
+# ============================================================================
+
+@api_router.post("/share/{note_path:path}")
+@limiter.limit("30/minute")
+async def create_share(request: Request, note_path: str, data: dict = None):
+    """
+    Create a share token for a note.
+    Returns the share URL that can be accessed without authentication.
+    Optionally accepts { "theme": "theme-name" } to set the display theme.
+    """
+    try:
+        notes_dir = config['storage']['notes_dir']
+        
+        # Get theme from request body (default to light)
+        theme = "light"
+        if data and isinstance(data, dict):
+            theme = data.get('theme', 'light')
+        
+        # Add .md extension if not present
+        if not note_path.endswith('.md'):
+            note_path = f"{note_path}.md"
+        
+        # Check if note exists
+        content = get_note_content(notes_dir, note_path)
+        if content is None:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Create or get existing token (with theme)
+        token = create_share_token(notes_dir, note_path, theme)
+        if not token:
+            raise HTTPException(status_code=500, detail="Failed to create share token")
+        
+        # Build share URL
+        base_url = str(request.base_url).rstrip('/')
+        share_url = f"{base_url}/share/{token}"
+        
+        return {
+            "success": True,
+            "token": token,
+            "url": share_url,
+            "path": note_path,
+            "theme": theme
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to create share"))
+
+
+@api_router.get("/share/{note_path:path}")
+async def get_share_status(note_path: str, request: Request):
+    """
+    Get the share status for a note.
+    Returns whether the note is shared and its share URL if so.
+    """
+    try:
+        notes_dir = config['storage']['notes_dir']
+        
+        # Add .md extension if not present
+        if not note_path.endswith('.md'):
+            note_path = f"{note_path}.md"
+        
+        # Get share info
+        info = get_share_info(notes_dir, note_path)
+        
+        if info.get('shared'):
+            base_url = str(request.base_url).rstrip('/')
+            info['url'] = f"{base_url}/share/{info['token']}"
+        
+        return info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to get share status"))
+
+
+@api_router.get("/shared-notes")
+async def list_shared_notes():
+    """
+    Get a list of all currently shared note paths.
+    Used for displaying share indicators in the UI.
+    """
+    try:
+        notes_dir = config['storage']['notes_dir']
+        shared_paths = get_all_shared_paths(notes_dir)
+        return {"paths": shared_paths}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to get shared notes"))
+
+
+@api_router.delete("/share/{note_path:path}")
+@limiter.limit("30/minute")
+async def delete_share(request: Request, note_path: str):
+    """
+    Revoke sharing for a note (delete the share token).
+    """
+    try:
+        notes_dir = config['storage']['notes_dir']
+        
+        # Add .md extension if not present
+        if not note_path.endswith('.md'):
+            note_path = f"{note_path}.md"
+        
+        # Revoke token
+        success = revoke_share_token(notes_dir, note_path)
+        
+        return {
+            "success": success,
+            "message": "Share revoked" if success else "Note was not shared"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to revoke share"))
+
+
+# ============================================================================
+# Public Share Endpoint (no authentication required)
+# ============================================================================
+
+@app.get("/share/{token}", response_class=HTMLResponse)
+@limiter.limit("60/minute")
+async def view_shared_note(request: Request, token: str):
+    """
+    View a shared note by its token.
+    No authentication required - anyone with the token can view.
+    """
+    try:
+        notes_dir = Path(config['storage']['notes_dir'])
+        
+        # Look up note by token (returns dict with path and theme)
+        share_info = get_note_by_token(str(notes_dir), token)
+        if not share_info:
+            raise HTTPException(status_code=404, detail="Shared note not found or link expired")
+        
+        note_path = share_info['path']
+        theme = share_info.get('theme', 'light')
+        
+        # Read note content
+        content = get_note_content(str(notes_dir), note_path)
+        if content is None:
+            # Note was deleted but token still exists - clean up
+            delete_token_for_note(str(notes_dir), note_path)
+            raise HTTPException(status_code=404, detail="Note no longer exists")
+        
+        # Strip YAML frontmatter (like the preview does)
+        content = strip_frontmatter(content)
+        
+        # Get note folder for resolving relative image paths
+        note_file_path = notes_dir / note_path
+        note_folder = note_file_path.parent
+        
+        # Embed images as base64
+        content_with_images = embed_images_as_base64(content, note_folder, notes_dir)
+        
+        # Convert wikilinks to decorative HTML links
+        content_with_links = convert_wikilinks_to_html(content_with_images)
+        
+        # Use the theme that was set when sharing
+        themes_dir = Path(__file__).parent.parent / "themes"
+        theme_css = get_theme_css(str(themes_dir), theme)
+        if not theme_css:
+            theme_css = get_theme_css(str(themes_dir), "light")
+            theme = "light"
+        
+        # Strip data-theme selector
+        theme_css = theme_css.replace(f':root[data-theme="{theme}"]', ':root')
+        theme_css = theme_css.replace(':root[data-theme="light"]', ':root')
+        theme_css = theme_css.replace(':root[data-theme="dark"]', ':root')
+        
+        # Determine if dark theme
+        is_dark = 'dark' in theme.lower() or theme in ['dracula', 'nord', 'monokai', 'cobalt2', 'gruvbox-dark']
+        
+        # Get note title
+        title = Path(note_path).stem
+        
+        # Generate HTML
+        html_content = generate_export_html(
+            title=title,
+            content=content_with_links,
+            theme_css=theme_css,
+            is_dark=is_dark
+        )
+        
+        return HTMLResponse(content=html_content)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load shared note"))
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -1305,4 +1511,3 @@ if __name__ == "__main__":
         port=config['server']['port'],
         reload=config['server']['reload']
     )
-

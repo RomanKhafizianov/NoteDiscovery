@@ -255,6 +255,13 @@ function noteApp() {
         selectedTemplate: '',
         newTemplateNoteName: '',
         
+        // Share state
+        showShareModal: false,
+        shareInfo: null,
+        shareLoading: false,
+        shareLinkCopied: false,
+        _sharedNotePaths: new Set(),  // O(1) lookup for shared note indicators
+        
         // Homepage state
         selectedHomepageFolder: '',
         _homepageCache: {
@@ -442,6 +449,7 @@ function noteApp() {
             // Note: Translations are preloaded synchronously before Alpine init (see index.html)
             // loadLocale() is only called when user changes language from settings
             await this.loadNotes();
+            await this.loadSharedNotePaths();
             await this.loadTemplates();
             await this.checkStatsPlugin();
             this.loadSidebarWidth();
@@ -483,6 +491,7 @@ function noteApp() {
                     this.noteContent = '';
                     this.currentNoteName = '';
                     this.outline = [];
+                    this.shareInfo = null; // Reset share info
                     document.title = this.appName;
                     
                     // Restore homepage folder state if it was saved
@@ -1792,7 +1801,9 @@ function noteApp() {
                         const isCurrentImage = this.currentImage === note.path;
                         const isCurrent = isImage ? isCurrentImage : isCurrentNote;
                         
-                        // Different icon for images
+                        // Different icon for images, share icon for shared notes
+                        const isShared = !isImage && this.isNoteShared(note.path);
+                        const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
                         const icon = isImage ? '🖼️' : '';
                         
                         // Escape paths for use in native event handlers
@@ -1818,7 +1829,7 @@ function noteApp() {
                                 onmouseover="if('${escapedNotePath}' !== window.$root.currentNote && '${escapedNotePath}' !== window.$root.currentImage) this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="if('${escapedNotePath}' !== window.$root.currentNote && '${escapedNotePath}' !== window.$root.currentImage) this.style.backgroundColor='transparent'"
                             >
-                                <span class="truncate" style="display: block; padding-right: 30px;">${icon}${icon ? ' ' : ''}${note.name}</span>
+                                <span class="truncate" style="display: block; padding-right: 30px;">${shareIcon}${icon}${icon ? ' ' : ''}${note.name}</span>
                                 <button 
                                     onclick="${deleteHandler}"
                                     class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
@@ -2197,6 +2208,7 @@ function noteApp() {
             this.currentNoteName = '';
             this.noteContent = '';
             this.currentImage = imagePath;
+            this.shareInfo = null; // Reset share info
             this.viewMode = 'preview'; // Use preview mode to show image
             
             // Update browser tab title for image
@@ -2531,6 +2543,7 @@ function noteApp() {
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 this.currentImage = ''; // Clear image viewer when loading a note
+                this.shareInfo = null; // Reset share info for new note
                 
                 // Update browser tab title
                 document.title = `${this.currentNoteName} - ${this.appName}`;
@@ -5002,6 +5015,140 @@ function noteApp() {
             setTimeout(() => {
                 this.linkCopied = false;
             }, 1500);
+        },
+        
+        // ============================================================================
+        // Share Functions
+        // ============================================================================
+        
+        // Load list of shared note paths (for visual indicators)
+        async loadSharedNotePaths() {
+            try {
+                const response = await fetch('/api/shared-notes');
+                if (response.ok) {
+                    const data = await response.json();
+                    this._sharedNotePaths = new Set(data.paths || []);
+                }
+            } catch (error) {
+                console.error('Failed to load shared note paths:', error);
+                this._sharedNotePaths = new Set();
+            }
+        },
+        
+        // Check if a note is currently shared (O(1) lookup)
+        isNoteShared(notePath) {
+            return this._sharedNotePaths.has(notePath);
+        },
+        
+        // Open share modal and fetch current share status
+        async openShareModal() {
+            if (!this.currentNote) return;
+            
+            this.showShareModal = true;
+            this.shareLoading = true;
+            this.shareInfo = null;
+            
+            try {
+                const notePath = this.currentNote.replace('.md', '');
+                const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const response = await fetch(`/api/share/${encodedPath}`);
+                
+                if (response.ok) {
+                    this.shareInfo = await response.json();
+                } else {
+                    this.shareInfo = { shared: false };
+                }
+            } catch (error) {
+                console.error('Failed to get share status:', error);
+                this.shareInfo = { shared: false };
+            } finally {
+                this.shareLoading = false;
+            }
+        },
+        
+        // Create a share link for the current note (with current theme)
+        async createShareLink() {
+            if (!this.currentNote) return;
+            
+            this.shareLoading = true;
+            
+            try {
+                const notePath = this.currentNote.replace('.md', '');
+                const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const response = await fetch(`/api/share/${encodedPath}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: this.currentTheme || 'light' })
+                });
+                
+                if (response.ok) {
+                    this.shareInfo = await response.json();
+                    this.shareInfo.shared = true;
+                    // Update the shared paths set
+                    this._sharedNotePaths.add(this.currentNote);
+                } else {
+                    const error = await response.json();
+                    alert(this.t('share.error_creating', { error: error.detail || 'Unknown error' }));
+                }
+            } catch (error) {
+                console.error('Failed to create share link:', error);
+                alert(this.t('share.error_creating', { error: error.message }));
+            } finally {
+                this.shareLoading = false;
+            }
+        },
+        
+        // Copy share link to clipboard
+        async copyShareLink() {
+            if (!this.shareInfo?.url) return;
+            
+            try {
+                await navigator.clipboard.writeText(this.shareInfo.url);
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = this.shareInfo.url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            
+            this.shareLinkCopied = true;
+            setTimeout(() => {
+                this.shareLinkCopied = false;
+            }, 2000);
+        },
+        
+        // Revoke share link
+        async revokeShareLink() {
+            if (!this.currentNote) return;
+            
+            if (!confirm(this.t('share.confirm_revoke'))) return;
+            
+            this.shareLoading = true;
+            
+            try {
+                const notePath = this.currentNote.replace('.md', '');
+                const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const response = await fetch(`/api/share/${encodedPath}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    this.shareInfo = { shared: false };
+                    // Update the shared paths set
+                    this._sharedNotePaths.delete(this.currentNote);
+                } else {
+                    const error = await response.json();
+                    alert(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }));
+                }
+            } catch (error) {
+                console.error('Failed to revoke share link:', error);
+                alert(this.t('share.error_revoking', { error: error.message }));
+            } finally {
+                this.shareLoading = false;
+            }
         },
         
         // Toggle Zen Mode (full immersive writing experience)

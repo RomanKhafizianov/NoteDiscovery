@@ -116,6 +116,19 @@
     "exit_hint": "Zen-Modus beenden (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "Notiz teilen",
+    "modal_title": "Notiz teilen",
+    "not_shared_description": "Diese Notiz ist derzeit nicht geteilt. Erstellen Sie einen Link, um sie mit anderen zu teilen.",
+    "shared_description": "Jeder mit diesem Link kann diese Notiz sehen:",
+    "create_link": "Freigabelink erstellen",
+    "copy": "Kopieren",
+    "stop_sharing": "Freigabe beenden",
+    "confirm_revoke": "Sind Sie sicher, dass Sie die Freigabe dieser Notiz beenden möchten? Der Freigabelink funktioniert dann nicht mehr.",
+    "error_creating": "Fehler beim Erstellen des Freigabelinks: {{error}}",
+    "error_revoking": "Fehler beim Widerrufen des Freigabelinks: {{error}}"
+  },
+
   "tags": {
     "title": "Tags",
     "no_tags": "Keine Tags gefunden",

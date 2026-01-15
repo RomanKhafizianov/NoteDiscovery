@@ -116,6 +116,19 @@
     "exit_hint": "Esci dalla Modalità Zen (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "Condividi nota",
+    "modal_title": "Condividi Nota",
+    "not_shared_description": "Questa nota non è attualmente condivisa. Crea un link per condividerla con chiunque.",
+    "shared_description": "Chiunque abbia questo link può vedere questa nota:",
+    "create_link": "Crea link di condivisione",
+    "copy": "Copia",
+    "stop_sharing": "Interrompi condivisione",
+    "confirm_revoke": "Sei sicuro di voler interrompere la condivisione di questa nota? Il link non funzionerà più.",
+    "error_creating": "Impossibile creare il link: {{error}}",
+    "error_revoking": "Impossibile revocare il link: {{error}}"
+  },
+
   "tags": {
     "title": "Tag",
     "no_tags": "Nessun tag trovato",
