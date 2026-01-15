@@ -12,7 +12,8 @@
 - **Copy code blocks** - One-click copy button on hover
 - **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax (see [MATHJAX.md](MATHJAX.md))
 - **Mermaid diagrams** - Create flowcharts, sequence diagrams, and more (see [MERMAID.md](MERMAID.md))
-- **HTML Export** - Export notes as standalone HTML files
+- **HTML Export** - Export notes as standalone HTML files with embedded images
+- **Public Sharing** - Share notes via token-based URLs without requiring authentication (see [SHARING.md](SHARING.md))
 
 ### Image Support
 - **Drag & drop upload** - Drop images from your file system directly into the editor
