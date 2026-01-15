@@ -116,6 +116,19 @@
     "exit_hint": "退出禅模式 (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "分享笔记",
+    "modal_title": "分享笔记",
+    "not_shared_description": "此笔记当前未分享。创建链接以与任何人分享。",
+    "shared_description": "任何拥有此链接的人都可以查看此笔记：",
+    "create_link": "创建分享链接",
+    "copy": "复制",
+    "stop_sharing": "停止分享",
+    "confirm_revoke": "您确定要停止分享此笔记吗？分享链接将不再有效。",
+    "error_creating": "创建分享链接失败：{{error}}",
+    "error_revoking": "撤销分享链接失败：{{error}}"
+  },
+
   "tags": {
     "title": "标签",
     "no_tags": "未找到标签",

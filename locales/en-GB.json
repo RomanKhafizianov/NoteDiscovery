@@ -116,6 +116,19 @@
     "exit_hint": "Exit Zen Mode (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "Share note",
+    "modal_title": "Share Note",
+    "not_shared_description": "This note is not currently shared. Create a link to share it with anyone.",
+    "shared_description": "Anyone with this link can view this note:",
+    "create_link": "Create Share Link",
+    "copy": "Copy",
+    "stop_sharing": "Stop Sharing",
+    "confirm_revoke": "Are you sure you want to stop sharing this note? The share link will no longer work.",
+    "error_creating": "Failed to create share link: {{error}}",
+    "error_revoking": "Failed to revoke share link: {{error}}"
+  },
+
   "tags": {
     "title": "Tags",
     "no_tags": "No tags found",

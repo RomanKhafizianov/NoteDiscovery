@@ -116,6 +116,19 @@
     "exit_hint": "Quitter le Mode Zen (Échap)"
   },
 
+  "share": {
+    "button_tooltip": "Partager la note",
+    "modal_title": "Partager la Note",
+    "not_shared_description": "Cette note n'est pas partagée actuellement. Créez un lien pour la partager avec n'importe qui.",
+    "shared_description": "Toute personne disposant de ce lien peut voir cette note :",
+    "create_link": "Créer un lien de partage",
+    "copy": "Copier",
+    "stop_sharing": "Arrêter le partage",
+    "confirm_revoke": "Êtes-vous sûr de vouloir arrêter le partage de cette note ? Le lien ne fonctionnera plus.",
+    "error_creating": "Échec de la création du lien : {{error}}",
+    "error_revoking": "Échec de la révocation du lien : {{error}}"
+  },
+
   "tags": {
     "title": "Étiquettes",
     "no_tags": "Aucune étiquette trouvée",

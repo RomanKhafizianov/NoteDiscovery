@@ -116,6 +116,19 @@
     "exit_hint": "Salir del Modo Zen (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "Compartir nota",
+    "modal_title": "Compartir Nota",
+    "not_shared_description": "Esta nota no está compartida actualmente. Crea un enlace para compartirla con cualquiera.",
+    "shared_description": "Cualquiera con este enlace puede ver esta nota:",
+    "create_link": "Crear enlace para compartir",
+    "copy": "Copiar",
+    "stop_sharing": "Dejar de compartir",
+    "confirm_revoke": "¿Estás seguro de que quieres dejar de compartir esta nota? El enlace dejará de funcionar.",
+    "error_creating": "Error al crear el enlace: {{error}}",
+    "error_revoking": "Error al revocar el enlace: {{error}}"
+  },
+
   "tags": {
     "title": "Etiquetas",
     "no_tags": "No se encontraron etiquetas",

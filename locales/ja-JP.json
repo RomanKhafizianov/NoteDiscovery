@@ -116,6 +116,19 @@
     "exit_hint": "集中モードを終了 (Esc)"
   },
 
+  "share": {
+    "button_tooltip": "ノートを共有",
+    "modal_title": "ノートを共有",
+    "not_shared_description": "このノートは現在共有されていません。リンクを作成して誰とでも共有できます。",
+    "shared_description": "このリンクを持っている人は誰でもこのノートを閲覧できます：",
+    "create_link": "共有リンクを作成",
+    "copy": "コピー",
+    "stop_sharing": "共有を停止",
+    "confirm_revoke": "このノートの共有を停止してもよろしいですか？共有リンクは機能しなくなります。",
+    "error_creating": "共有リンクの作成に失敗しました: {{error}}",
+    "error_revoking": "共有リンクの取り消しに失敗しました: {{error}}"
+  },
+
   "tags": {
     "title": "タグ",
     "no_tags": "タグが見つかりません",

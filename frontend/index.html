@@ -2242,6 +2242,21 @@
                                     </svg>
                                 </button>
                                 <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
+                                <!-- Share button -->
+                                <button 
+                                    @click="openShareModal()"
+                                    class="p-2 transition hover:bg-opacity-80"
+                                    :title="t('share.button_tooltip')"
+                                    style="color: var(--text-secondary);"
+                                    @mouseenter="$el.style.backgroundColor = 'var(--bg-secondary)'"
+                                    @mouseleave="$el.style.backgroundColor = 'transparent'"
+                                >
+                                    <!-- Share/Globe icon -->
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                    </svg>
+                                </button>
+                                <div style="width: 1px; height: 20px; background-color: var(--border-primary);"></div>
                                 <button 
                                     @click="toggleZenMode()"
                                     class="p-2 transition"
@@ -2763,6 +2778,101 @@
                     onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                     onmouseout="this.style.backgroundColor='var(--bg-tertiary)'"
                     x-text="t('common.cancel')"
+                >
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Share Modal -->
+    <div x-show="showShareModal" 
+         @click.self="showShareModal = false"
+         @keydown.escape.window="showShareModal && (showShareModal = false)"
+         class="fixed inset-0 flex items-center justify-center"
+         style="background-color: rgba(0, 0, 0, 0.5); z-index: 1100;"
+         x-cloak>
+        <div class="rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+             style="background-color: var(--bg-secondary); color: var(--text-primary);"
+             @click.stop>
+            
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                </svg>
+                <span x-text="t('share.modal_title')"></span>
+            </h2>
+            
+            <!-- Loading state -->
+            <div x-show="shareLoading" class="text-center py-4">
+                <span x-text="t('common.loading')"></span>
+            </div>
+            
+            <!-- Not shared state -->
+            <div x-show="!shareLoading && !shareInfo?.shared">
+                <p class="mb-4 text-sm" style="color: var(--text-secondary);" x-text="t('share.not_shared_description')"></p>
+                <button 
+                    @click="createShareLink()"
+                    class="w-full px-4 py-2 rounded font-medium text-white transition-colors"
+                    style="background-color: var(--accent-primary);"
+                    onmouseover="this.style.backgroundColor='var(--accent-hover)'"
+                    onmouseout="this.style.backgroundColor='var(--accent-primary)'"
+                    x-text="t('share.create_link')"
+                >
+                </button>
+            </div>
+            
+            <!-- Shared state -->
+            <div x-show="!shareLoading && shareInfo?.shared">
+                <p class="mb-2 text-sm" style="color: var(--text-secondary);" x-text="t('share.shared_description')"></p>
+                
+                <!-- Share URL -->
+                <div class="flex gap-2 mb-4">
+                    <input 
+                        type="text"
+                        :value="shareInfo?.url || ''"
+                        readonly
+                        class="flex-1 px-3 py-2 rounded border text-sm"
+                        style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
+                        @click="$el.select()"
+                    />
+                    <button 
+                        @click="copyShareLink()"
+                        class="px-3 py-2 rounded font-medium text-white transition-colors flex items-center gap-1"
+                        :style="shareLinkCopied ? 'background-color: var(--success, #22c55e);' : 'background-color: var(--accent-primary);'"
+                        onmouseover="if(!this.classList.contains('copied')) this.style.backgroundColor='var(--accent-hover)'"
+                        onmouseout="if(!this.classList.contains('copied')) this.style.backgroundColor='var(--accent-primary)'"
+                    >
+                        <svg x-show="!shareLinkCopied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                        </svg>
+                        <svg x-show="shareLinkCopied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span x-text="shareLinkCopied ? t('common.copied') : t('share.copy')"></span>
+                    </button>
+                </div>
+                
+                <!-- Revoke sharing -->
+                <button 
+                    @click="revokeShareLink()"
+                    class="w-full px-4 py-2 rounded font-medium transition-colors"
+                    style="background-color: transparent; color: var(--error); border: 1px solid var(--error);"
+                    onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'"
+                    onmouseout="this.style.backgroundColor='transparent'"
+                    x-text="t('share.stop_sharing')"
+                >
+                </button>
+            </div>
+            
+            <!-- Close button -->
+            <div class="mt-4 pt-4 border-t" style="border-color: var(--border-primary);">
+                <button 
+                    @click="showShareModal = false"
+                    class="w-full px-4 py-2 rounded font-medium transition-colors"
+                    style="background-color: var(--bg-tertiary); color: var(--text-primary);"
+                    onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                    onmouseout="this.style.backgroundColor='var(--bg-tertiary)'"
+                    x-text="t('common.close')"
                 >
                 </button>
             </div>
