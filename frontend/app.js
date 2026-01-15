@@ -2142,7 +2142,7 @@ function noteApp() {
                 try {
                     const imagePath = await this.uploadImage(file, this.currentNote);
                     if (imagePath) {
-                        this.insertImageMarkdown(imagePath, file.name, cursorPos);
+                        await this.insertImageMarkdown(imagePath, file.name, cursorPos);
                     }
                 } catch (error) {
                     ErrorHandler.handle(`upload image ${file.name}`, error);
@@ -2176,7 +2176,7 @@ function noteApp() {
         
         // Insert image markdown at cursor position using wiki-style syntax
         // This ensures image links don't break when notes are moved
-        insertImageMarkdown(imagePath, altText, cursorPos) {
+        async insertImageMarkdown(imagePath, altText, cursorPos) {
             // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
             const filename = imagePath.split('/').pop();
             
@@ -2190,6 +2190,9 @@ function noteApp() {
                 ? `![[${filename}|${altWithoutExt}]]`
                 : `![[${filename}]]`;
             
+            // Reload notes FIRST to update image lookup maps before preview renders
+            await this.loadNotes();
+            
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
             
@@ -2197,9 +2200,6 @@ function noteApp() {
             
             // Trigger autosave
             this.autoSave();
-            
-            // Reload notes to show the new image in sidebar and update lookup maps
-            this.loadNotes();
         },
         
         // Handle paste event for clipboard images
@@ -2228,7 +2228,7 @@ function noteApp() {
                             
                             const imagePath = await this.uploadImage(file, this.currentNote);
                             if (imagePath) {
-                                this.insertImageMarkdown(imagePath, filename, cursorPos);
+                                await this.insertImageMarkdown(imagePath, filename, cursorPos);
                             }
                         } catch (error) {
                             ErrorHandler.handle('paste image', error);
