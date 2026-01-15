@@ -430,6 +430,75 @@ Creates a new note from a template with placeholder replacement.
 
 ---
 
+## 🔗 Sharing
+
+Share notes publicly without requiring authentication.
+
+### Create Share Link
+```http
+POST /api/share/{note_path}
+Content-Type: application/json
+
+{
+  "theme": "dracula"
+}
+```
+Creates a share token for the note. The `theme` is optional (defaults to "light").
+
+**Response:**
+```json
+{
+  "success": true,
+  "token": "LRFEo86oSVeJ3Gju",
+  "url": "http://localhost:8000/share/LRFEo86oSVeJ3Gju",
+  "note_path": "folder/note.md"
+}
+```
+
+### Get Share Status
+```http
+GET /api/share/{note_path}
+```
+Check if a note is currently shared.
+
+**Response:**
+```json
+{
+  "shared": true,
+  "token": "LRFEo86oSVeJ3Gju",
+  "url": "http://localhost:8000/share/LRFEo86oSVeJ3Gju",
+  "theme": "dracula",
+  "created": "2026-01-15T10:30:00+00:00"
+}
+```
+
+### Revoke Share
+```http
+DELETE /api/share/{note_path}
+```
+Removes public access to the note.
+
+### List Shared Notes
+```http
+GET /api/shared-notes
+```
+Returns paths of all currently shared notes.
+
+**Response:**
+```json
+{
+  "paths": ["folder/note.md", "another.md"]
+}
+```
+
+### View Shared Note (Public)
+```http
+GET /share/{token}
+```
+Public endpoint - no authentication required. Returns the note as a standalone HTML page with the theme set when sharing was created.
+
+---
+
 ## 📝 Response Format
 
 All endpoints return JSON responses:

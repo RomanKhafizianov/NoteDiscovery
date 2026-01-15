@@ -1325,7 +1325,8 @@ async def create_share(request: Request, note_path: str, data: dict = None):
 
 
 @api_router.get("/share/{note_path:path}")
-async def get_share_status(note_path: str, request: Request):
+@limiter.limit("120/minute")
+async def get_share_status(request: Request, note_path: str):
     """
     Get the share status for a note.
     Returns whether the note is shared and its share URL if so.
@@ -1350,7 +1351,8 @@ async def get_share_status(note_path: str, request: Request):
 
 
 @api_router.get("/shared-notes")
-async def list_shared_notes():
+@limiter.limit("60/minute")
+async def list_shared_notes(request: Request):
     """
     Get a list of all currently shared note paths.
     Used for displaying share indicators in the UI.
