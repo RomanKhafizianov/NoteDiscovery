@@ -5120,26 +5120,12 @@ function noteApp() {
         
         // Scroll selected item into view in quick switcher
         scrollQuickSwitcherIntoView() {
-            const container = document.getElementById('quickSwitcherResults');
-            if (!container) return;
-            
-            // Get all result items (skip the "no results" template)
-            const items = container.querySelectorAll('[data-quick-switcher-item]');
-            const selectedItem = items[this.quickSwitcherIndex];
-            
-            if (selectedItem) {
-                // Calculate if we need to scroll
-                const containerRect = container.getBoundingClientRect();
-                const itemRect = selectedItem.getBoundingClientRect();
-                
-                if (itemRect.top < containerRect.top) {
-                    // Item is above visible area
-                    container.scrollTop -= (containerRect.top - itemRect.top);
-                } else if (itemRect.bottom > containerRect.bottom) {
-                    // Item is below visible area
-                    container.scrollTop += (itemRect.bottom - containerRect.bottom);
+            this.$nextTick(() => {
+                const items = document.querySelectorAll('[data-quick-switcher-item]');
+                if (items[this.quickSwitcherIndex]) {
+                    items[this.quickSwitcherIndex].scrollIntoView({ block: 'nearest' });
                 }
-            }
+            });
         },
         
         // Select note from quick switcher by click
