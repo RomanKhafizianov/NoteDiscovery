@@ -129,6 +129,15 @@
     "error_revoking": "共有リンクの取り消しに失敗しました: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "ノートを検索...",
+    "no_results": "結果なし",
+    "recent_hint": "最近のノートを表示中。入力して全て検索。",
+    "navigate": "移動",
+    "open": "開く",
+    "close": "閉じる"
+  },
+
   "tags": {
     "title": "タグ",
     "no_tags": "タグが見つかりません",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "このプロジェクトを支援"
+    "enjoying_demo": "このプロジェクトを支援",
+    "deploy_own": "自分のインスタンスをデプロイ"
   },
 
   "demo": {

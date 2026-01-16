@@ -129,6 +129,15 @@
     "error_revoking": "Impossibile revocare il link: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Cerca note...",
+    "no_results": "Nessun risultato",
+    "recent_hint": "Note recenti. Digita per cercare tutte.",
+    "navigate": "naviga",
+    "open": "apri",
+    "close": "chiudi"
+  },
+
   "tags": {
     "title": "Tag",
     "no_tags": "Nessun tag trovato",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Supporta questo progetto"
+    "enjoying_demo": "Supporta questo progetto",
+    "deploy_own": "Crea la tua istanza"
   },
 
   "demo": {

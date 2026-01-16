@@ -129,6 +129,15 @@
     "error_revoking": "Fehler beim Widerrufen des Freigabelinks: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Notizen suchen...",
+    "no_results": "Keine Ergebnisse",
+    "recent_hint": "Zeigt aktuelle Notizen. Tippen zum Suchen.",
+    "navigate": "navigieren",
+    "open": "öffnen",
+    "close": "schließen"
+  },
+
   "tags": {
     "title": "Tags",
     "no_tags": "Keine Tags gefunden",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Unterstütze dieses Projekt"
+    "enjoying_demo": "Unterstütze dieses Projekt",
+    "deploy_own": "Eigene Instanz bereitstellen"
   },
 
   "demo": {

@@ -129,6 +129,15 @@
     "error_revoking": "Échec de la révocation du lien : {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Rechercher des notes...",
+    "no_results": "Aucun résultat",
+    "recent_hint": "Notes récentes. Tapez pour tout rechercher.",
+    "navigate": "naviguer",
+    "open": "ouvrir",
+    "close": "fermer"
+  },
+
   "tags": {
     "title": "Étiquettes",
     "no_tags": "Aucune étiquette trouvée",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Soutenez ce projet"
+    "enjoying_demo": "Soutenez ce projet",
+    "deploy_own": "Déployez votre propre instance"
   },
 
   "demo": {

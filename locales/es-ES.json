@@ -129,6 +129,15 @@
     "error_revoking": "Error al revocar el enlace: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Escribe para buscar notas...",
+    "no_results": "Sin resultados",
+    "recent_hint": "Mostrando notas recientes. Escribe para buscar todas.",
+    "navigate": "navegar",
+    "open": "abrir",
+    "close": "cerrar"
+  },
+
   "tags": {
     "title": "Etiquetas",
     "no_tags": "No se encontraron etiquetas",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Apoya este proyecto"
+    "enjoying_demo": "Apoya este proyecto",
+    "deploy_own": "Despliega tu propia instancia"
   },
 
   "demo": {

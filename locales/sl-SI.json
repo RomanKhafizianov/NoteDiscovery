@@ -129,6 +129,15 @@
     "error_revoking": "Napaka pri preklicu povezave: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Išči beležke...",
+    "no_results": "Ni rezultatov",
+    "recent_hint": "Prikaz nedavnih beležk. Vnesite za iskanje.",
+    "navigate": "navigiraj",
+    "open": "odpri",
+    "close": "zapri"
+  },
+
   "tags": {
     "title": "Oznake",
     "no_tags": "Ni najdenih oznak",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Podprite ta projekt"
+    "enjoying_demo": "Podprite ta projekt",
+    "deploy_own": "Namestite svojo instanco"
   },
 
   "demo": {

@@ -129,6 +129,15 @@
     "error_revoking": "撤销分享链接失败：{{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "搜索笔记...",
+    "no_results": "无匹配结果",
+    "recent_hint": "显示最近笔记。输入以搜索全部。",
+    "navigate": "导航",
+    "open": "打开",
+    "close": "关闭"
+  },
+
   "tags": {
     "title": "标签",
     "no_tags": "未找到标签",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "支持此项目"
+    "enjoying_demo": "支持此项目",
+    "deploy_own": "部署您自己的实例"
   },
 
   "demo": {

@@ -9,10 +9,6 @@
 
 > Your Self-Hosted Knowledge Base
 
-🌐 **[Visit the official website](https://www.notediscovery.com)**
-
-🚀 **[Try the Live Demo](https://gamosoft-notediscovery-demo.hf.space)** — *Contents reset daily, for demonstration purposes only*
-
 ## What is NoteDiscovery?
 
 NoteDiscovery is a **lightweight, self-hosted note-taking application** that puts you in complete control of your knowledge base. Write, organize, and discover your notes with a beautiful, modern interface—all running on your own server.
@@ -27,13 +23,20 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - **Teams** looking for a self-hosted alternative to commercial apps
 - **Anyone** who values simplicity, speed, and ownership
 
-
-## 💖 Thanks for using NoteDiscovery!
-If this project has been useful to you, consider supporting its development, it truly makes a difference!
+---
 
 <p align="center">
-  <a href="https://ko-fi.com/gamosoft" target="_blank" rel="noopener noreferrer"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
+  <a href="https://www.notediscovery.com"><img src="docs/website-button.svg" alt="Official Website"></a>
+  &nbsp;&nbsp;
+  <a href="https://gamosoft-notediscovery-demo.hf.space"><img src="docs/demo-button.svg" alt="Try Live Demo"></a>
 </p>
+<p align="center">
+  <a href="https://www.pikapods.com/pods?run=notediscovery"><img src="https://www.pikapods.com/static/run-button.svg" alt="Run on PikaPods"></a>
+  &nbsp;&nbsp;
+  <a href="https://ko-fi.com/gamosoft"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
+</p>
+
+---
 
 ## ✨ Why NoteDiscovery?
 

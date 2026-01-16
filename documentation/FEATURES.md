@@ -286,6 +286,7 @@ date: {{date}}
 
 | Windows/Linux | Mac | Action |
 |---------------|-----|--------|
+| `Ctrl+Alt+P` | `Cmd+Option+P` | Quick Switcher (jump to any note) |
 | `Ctrl+S` | `Cmd+S` | Save note |
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
@@ -304,8 +305,10 @@ date: {{date}}
 |---------------|-----|--------|--------|
 | `Ctrl+B` | `Cmd+B` | Bold | `**text**` |
 | `Ctrl+I` | `Cmd+I` | Italic | `*text*` |
-| `Ctrl+K` | `Cmd+K` | Insert link | `[text](url)` |
+| `Ctrl+K` | `Cmd+K` | Insert link (in editor) | `[text](url)` |
 | `Ctrl+Alt+T` | `Cmd+Option+T` | Insert table | 3x3 table placeholder |
+
+> **Tip:** Use `Ctrl+Alt+P` to quickly jump to any note from anywhere in the app.
 
 ## 🧘 Zen Mode
 

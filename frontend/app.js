@@ -262,6 +262,12 @@ function noteApp() {
         shareLinkCopied: false,
         _sharedNotePaths: new Set(),  // O(1) lookup for shared note indicators
         
+        // Quick Switcher state (Ctrl+Alt+P)
+        showQuickSwitcher: false,
+        quickSwitcherQuery: '',
+        quickSwitcherIndex: 0,
+        quickSwitcherResults: [],
+        
         // Homepage state
         selectedHomepageFolder: '',
         _homepageCache: {
@@ -567,6 +573,13 @@ function noteApp() {
                     if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
                         e.preventDefault();
                         this.saveNote();
+                    }
+                    
+                    // Ctrl/Cmd + Alt + P for Quick Switcher
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyP') {
+                        e.preventDefault();
+                        this.openQuickSwitcher();
+                        return;
                     }
                     
                     // Ctrl/Cmd + Alt/Option + N for new note
@@ -1985,21 +1998,52 @@ function noteApp() {
             event.preventDefault();
             this.dropTarget = 'editor';
             
-            // Update cursor position as user drags over text
+            // Focus the textarea
             const textarea = event.target;
-            const textLength = textarea.value.length;
+            if (textarea.tagName !== 'TEXTAREA') return;
             
-            // Calculate approximate cursor position based on mouse position
-            // This gives a rough idea of where the link will be inserted
             textarea.focus();
             
-            // Try to set cursor at click position (works in most browsers)
-            if (textarea.setSelectionRange && document.caretPositionFromPoint) {
-                const pos = document.caretPositionFromPoint(event.clientX, event.clientY);
-                if (pos && pos.offsetNode === textarea) {
-                    textarea.setSelectionRange(pos.offset, pos.offset);
-                }
+            // Calculate cursor position from mouse coordinates
+            const pos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
+            if (pos >= 0) {
+                textarea.setSelectionRange(pos, pos);
             }
+        },
+        
+        // Calculate textarea cursor position from mouse coordinates
+        getTextareaCursorFromPoint(textarea, x, y) {
+            const rect = textarea.getBoundingClientRect();
+            const style = window.getComputedStyle(textarea);
+            const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
+            const paddingTop = parseFloat(style.paddingTop) || 0;
+            const paddingLeft = parseFloat(style.paddingLeft) || 0;
+            
+            // Calculate which line we're on
+            const relativeY = y - rect.top - paddingTop + textarea.scrollTop;
+            const lineIndex = Math.max(0, Math.floor(relativeY / lineHeight));
+            
+            // Split content into lines
+            const lines = textarea.value.split('\n');
+            
+            // Find the character position at the start of this line
+            let charPos = 0;
+            for (let i = 0; i < Math.min(lineIndex, lines.length); i++) {
+                charPos += lines[i].length + 1; // +1 for newline
+            }
+            
+            // If we're beyond the last line, position at end
+            if (lineIndex >= lines.length) {
+                return textarea.value.length;
+            }
+            
+            // Approximate character position within the line based on X coordinate
+            const relativeX = x - rect.left - paddingLeft;
+            const charWidth = parseFloat(style.fontSize) * 0.6; // Approximate for monospace
+            const charInLine = Math.max(0, Math.floor(relativeX / charWidth));
+            const lineLength = lines[lineIndex]?.length || 0;
+            
+            return charPos + Math.min(charInLine, lineLength);
         },
         
         // Handle dragenter on editor
@@ -2047,9 +2091,11 @@ function noteApp() {
                 link = `[${noteName}](${encodedPath})`;
             }
             
-            // Insert at cursor position
+            // Insert at drop position
             const textarea = event.target;
-            const cursorPos = textarea.selectionStart || 0;
+            // Recalculate position from drop coordinates for accuracy
+            let cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
+            if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
             
@@ -2087,14 +2133,16 @@ function noteApp() {
             }
             
             const textarea = event.target;
-            const cursorPos = textarea.selectionStart || 0;
+            // Calculate cursor position from drop coordinates
+            let cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
+            if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
             
             // Upload each image
             for (const file of imageFiles) {
                 try {
                     const imagePath = await this.uploadImage(file, this.currentNote);
                     if (imagePath) {
-                        this.insertImageMarkdown(imagePath, file.name, cursorPos);
+                        await this.insertImageMarkdown(imagePath, file.name, cursorPos);
                     }
                 } catch (error) {
                     ErrorHandler.handle(`upload image ${file.name}`, error);
@@ -2128,7 +2176,7 @@ function noteApp() {
         
         // Insert image markdown at cursor position using wiki-style syntax
         // This ensures image links don't break when notes are moved
-        insertImageMarkdown(imagePath, altText, cursorPos) {
+        async insertImageMarkdown(imagePath, altText, cursorPos) {
             // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
             const filename = imagePath.split('/').pop();
             
@@ -2142,6 +2190,9 @@ function noteApp() {
                 ? `![[${filename}|${altWithoutExt}]]`
                 : `![[${filename}]]`;
             
+            // Reload notes FIRST to update image lookup maps before preview renders
+            await this.loadNotes();
+            
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
             
@@ -2149,9 +2200,6 @@ function noteApp() {
             
             // Trigger autosave
             this.autoSave();
-            
-            // Reload notes to show the new image in sidebar and update lookup maps
-            this.loadNotes();
         },
         
         // Handle paste event for clipboard images
@@ -2180,7 +2228,7 @@ function noteApp() {
                             
                             const imagePath = await this.uploadImage(file, this.currentNote);
                             if (imagePath) {
-                                this.insertImageMarkdown(imagePath, filename, cursorPos);
+                                await this.insertImageMarkdown(imagePath, filename, cursorPos);
                             }
                         } catch (error) {
                             ErrorHandler.handle('paste image', error);
@@ -5038,6 +5086,87 @@ function noteApp() {
         // Check if a note is currently shared (O(1) lookup)
         isNoteShared(notePath) {
             return this._sharedNotePaths.has(notePath);
+        },
+        
+        // ============================================
+        // Quick Switcher (Ctrl+Alt+P)
+        // ============================================
+        
+        openQuickSwitcher() {
+            this.showQuickSwitcher = true;
+            this.quickSwitcherQuery = '';
+            this.quickSwitcherIndex = 0;
+            // Populate initial results
+            this.quickSwitcherResults = (this.allNotes || []).slice(0, 10);
+            // Focus the input after the modal renders
+            this.$nextTick(() => {
+                const input = document.getElementById('quickSwitcherInput');
+                if (input) input.focus();
+            });
+        },
+        
+        closeQuickSwitcher() {
+            this.showQuickSwitcher = false;
+            this.quickSwitcherQuery = '';
+            this.quickSwitcherIndex = 0;
+        },
+        
+        // Filter notes for quick switcher based on query
+        filterQuickSwitcher(query) {
+            // Only include actual notes, not images
+            const notes = (this.notes || []).filter(n => n.type === 'note');
+            if (!query || !query.trim()) {
+                // Show recent notes when no query
+                return notes.slice(0, 10);
+            }
+            const q = query.toLowerCase();
+            return notes
+                .filter(n => 
+                    n.name.toLowerCase().includes(q) || 
+                    n.path.toLowerCase().includes(q)
+                )
+                .slice(0, 10);
+        },
+        
+        // Handle keyboard navigation in quick switcher
+        handleQuickSwitcherKeydown(e) {
+            const results = this.quickSwitcherResults;
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.quickSwitcherIndex = Math.min(this.quickSwitcherIndex + 1, results.length - 1);
+                this.scrollQuickSwitcherIntoView();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.quickSwitcherIndex = Math.max(this.quickSwitcherIndex - 1, 0);
+                this.scrollQuickSwitcherIntoView();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const note = results[this.quickSwitcherIndex];
+                if (note) {
+                    this.loadNote(note.path);
+                    this.closeQuickSwitcher();
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.closeQuickSwitcher();
+            }
+        },
+        
+        // Scroll selected item into view in quick switcher
+        scrollQuickSwitcherIntoView() {
+            this.$nextTick(() => {
+                const items = document.querySelectorAll('[data-quick-switcher-item]');
+                if (items[this.quickSwitcherIndex]) {
+                    items[this.quickSwitcherIndex].scrollIntoView({ block: 'nearest' });
+                }
+            });
+        },
+        
+        // Select note from quick switcher by click
+        selectQuickSwitcherNote(note) {
+            this.loadNote(note.path);
+            this.closeQuickSwitcher();
         },
         
         // Open share modal and fetch current share status

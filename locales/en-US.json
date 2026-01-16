@@ -129,6 +129,15 @@
     "error_revoking": "Failed to revoke share link: {{error}}"
   },
 
+  "quick_switcher": {
+    "placeholder": "Type to search notes...",
+    "no_results": "No matching notes",
+    "recent_hint": "Showing recent notes. Type to search all.",
+    "navigate": "navigate",
+    "open": "open",
+    "close": "close"
+  },
+
   "tags": {
     "title": "Tags",
     "no_tags": "No tags found",
@@ -263,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Support this project"
+    "enjoying_demo": "Support this project",
+    "deploy_own": "Deploy your own instance"
   },
 
   "demo": {
