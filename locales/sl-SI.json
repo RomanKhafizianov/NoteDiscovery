@@ -272,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Podprite ta projekt"
+    "enjoying_demo": "Podprite ta projekt",
+    "deploy_own": "Namestite svojo instanco"
   },
 
   "demo": {

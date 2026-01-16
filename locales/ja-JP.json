@@ -272,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "このプロジェクトを支援"
+    "enjoying_demo": "このプロジェクトを支援",
+    "deploy_own": "自分のインスタンスをデプロイ"
   },
 
   "demo": {

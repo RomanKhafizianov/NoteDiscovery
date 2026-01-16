@@ -272,7 +272,8 @@
   },
 
   "support": {
-    "enjoying_demo": "Support this project"
+    "enjoying_demo": "Support this project",
+    "deploy_own": "Deploy your own instance"
   },
 
   "demo": {
