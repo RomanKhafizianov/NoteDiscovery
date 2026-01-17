@@ -1722,35 +1722,107 @@ function noteApp() {
             this.folderTree = tree;
         },
         
-        // Helper to escape strings for use in inline JavaScript handlers
-        // Uses JSON.stringify for backslashes/control chars, plus single-quote escaping
-        // since our handlers use single-quoted strings: onclick="fn('${escaped}')"
-        escapeForInlineHandler(str) {
-            return JSON.stringify(str).slice(1, -1).replace(/'/g, "\\'");
+        // =====================================================================
+        // DATA-ATTRIBUTE BASED HANDLERS
+        // These read path/name/type from data-* attributes, avoiding JS escaping issues
+        // =====================================================================
+        
+        // Escape strings for HTML attributes (simpler than JS escaping)
+        escapeHtmlAttr(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         },
         
+        // Folder handlers - read from dataset
+        handleFolderClick(el) {
+            this.toggleFolder(el.dataset.path);
+        },
+        handleFolderDragStart(el, event) {
+            this.onFolderDragStart(el.dataset.path, event);
+        },
+        handleFolderDragOver(el, event) {
+            event.preventDefault();
+            this.dragOverFolder = el.dataset.path;
+            el.classList.add('drag-over');
+        },
+        handleFolderDragLeave(el) {
+            this.dragOverFolder = null;
+            el.classList.remove('drag-over');
+        },
+        handleFolderDrop(el, event) {
+            event.stopPropagation();
+            el.classList.remove('drag-over');
+            this.onFolderDrop(el.dataset.path);
+        },
+        handleNewItemClick(el, event) {
+            event.stopPropagation();
+            this.dropdownTargetFolder = el.dataset.path;
+            this.toggleNewDropdown(event);
+        },
+        handleRenameFolderClick(el, event) {
+            event.stopPropagation();
+            this.renameFolder(el.dataset.path, el.dataset.name);
+        },
+        handleDeleteFolderClick(el, event) {
+            event.stopPropagation();
+            this.deleteFolder(el.dataset.path, el.dataset.name);
+        },
+        
+        // Item (note/image) handlers - read from dataset
+        handleItemClick(el) {
+            this.openItem(el.dataset.path, el.dataset.type);
+        },
+        handleItemDragStart(el, event) {
+            this.onNoteDragStart(el.dataset.path, event);
+        },
+        handleItemHover(el, isEnter) {
+            const path = el.dataset.path;
+            if (path !== this.currentNote && path !== this.currentImage) {
+                el.style.backgroundColor = isEnter ? 'var(--bg-hover)' : 'transparent';
+            }
+        },
+        handleDeleteItemClick(el, event) {
+            event.stopPropagation();
+            if (el.dataset.type === 'image') {
+                this.deleteImage(el.dataset.path);
+            } else {
+                this.deleteNote(el.dataset.path, el.dataset.name);
+            }
+        },
+        
+        // =====================================================================
+        // FOLDER TREE RENDERING
+        // =====================================================================
+        
         // Render folder recursively (helper for deep nesting)
+        // Uses data-* attributes to store path/name, avoiding JS string escaping issues
         renderFolderRecursive(folder, level = 0, isTopLevel = false) {
             if (!folder) return '';
             
             let html = '';
             const isExpanded = this.expandedFolders.has(folder.path);
+            const esc = (s) => this.escapeHtmlAttr(s); // Shorthand for HTML escaping
             
             // Render this folder's header
-            // Note: Using native event handlers (ondragstart, onclick, etc.) instead of Alpine directives
+            // Note: Using native event handlers with data-* attributes instead of Alpine directives
             // because x-html doesn't process Alpine directives in dynamically generated content
-            const escapedPath = this.escapeForInlineHandler(folder.path);
             html += `
                 <div>
                     <div 
+                        data-path="${esc(folder.path)}"
+                        data-name="${esc(folder.name)}"
                         draggable="true"
-                        ondragstart="window.$root.onFolderDragStart('${escapedPath}', event)"
+                        ondragstart="window.$root.handleFolderDragStart(this, event)"
                         ondragend="window.$root.onFolderDragEnd()"
-                        ondragover="event.preventDefault(); window.$root.dragOverFolder = '${escapedPath}'; this.classList.add('drag-over')"
-                        ondragenter="event.preventDefault(); window.$root.dragOverFolder = '${escapedPath}'; this.classList.add('drag-over')"
-                        ondragleave="window.$root.dragOverFolder = null; this.classList.remove('drag-over')"
-                        ondrop="event.stopPropagation(); this.classList.remove('drag-over'); window.$root.onFolderDrop('${escapedPath}')"
-                        onclick="window.$root.toggleFolder('${escapedPath}')"
+                        ondragover="window.$root.handleFolderDragOver(this, event)"
+                        ondragenter="window.$root.handleFolderDragOver(this, event)"
+                        ondragleave="window.$root.handleFolderDragLeave(this)"
+                        ondrop="window.$root.handleFolderDrop(this, event)"
+                        onclick="window.$root.handleFolderClick(this)"
                         onmouseover="if(!window.$root.draggedNote && !window.$root.draggedFolder) this.style.backgroundColor='var(--bg-hover)'"
                         onmouseout="if(!window.$root.draggedNote && !window.$root.draggedFolder) this.style.backgroundColor='transparent'"
                         class="folder-item px-2 py-1 text-sm relative"
@@ -1766,25 +1838,30 @@ function noteApp() {
                                 </svg>
                             </button>
                             <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
-                                <span>${folder.name}</span>
+                                <span>${esc(folder.name)}</span>
                                 ${folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0) ? `<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(${this.t('folders.empty')})</span>` : ''}
                             </span>
                         </div>
                         <div class="hover-buttons flex gap-1 transition-opacity absolute right-2 top-1/2 transform -translate-y-1/2" style="opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent, var(--bg-hover) 20%, var(--bg-hover)); padding-left: 20px;" onclick="event.stopPropagation()">
                             <button 
-                                onclick="event.stopPropagation(); window.$root.dropdownTargetFolder = '${escapedPath}'; window.$root.toggleNewDropdown(event)"
+                                data-path="${esc(folder.path)}"
+                                onclick="window.$root.handleNewItemClick(this, event)"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="Add item here"
                             >+</button>
                             <button 
-                                onclick="event.stopPropagation(); window.$root.renameFolder('${escapedPath}', '${this.escapeForInlineHandler(folder.name)}')"
+                                data-path="${esc(folder.path)}"
+                                data-name="${esc(folder.name)}"
+                                onclick="window.$root.handleRenameFolderClick(this, event)"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="Rename folder"
                             >✏️</button>
                             <button 
-                                onclick="event.stopPropagation(); window.$root.deleteFolder('${escapedPath}', '${this.escapeForInlineHandler(folder.name)}')"
+                                data-path="${esc(folder.path)}"
+                                data-name="${esc(folder.name)}"
+                                onclick="window.$root.handleDeleteFolderClick(this, event)"
                                 class="px-1 py-0.5 text-xs rounded hover:brightness-110"
                                 style="color: var(--error);"
                                 title="Delete folder"
@@ -1826,32 +1903,26 @@ function noteApp() {
                         const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
                         const icon = isImage ? '🖼️' : '';
                         
-                        // Escape paths for use in native event handlers
-                        const escapedNotePath = this.escapeForInlineHandler(note.path);
-                        const escapedNoteName = this.escapeForInlineHandler(note.name);
-                        
-                        // Click handler
-                        const clickHandler = `window.$root.openItem('${escapedNotePath}', '${note.type}')`; 
-                        
-                        // Delete handler
-                        const deleteHandler = isImage
-                            ? `event.stopPropagation(); window.$root.deleteImage('${escapedNotePath}')`
-                            : `event.stopPropagation(); window.$root.deleteNote('${escapedNotePath}', '${escapedNoteName}')`; 
-                        
                         html += `
                             <div 
+                                data-path="${esc(note.path)}"
+                                data-name="${esc(note.name)}"
+                                data-type="${note.type}"
                                 draggable="true"
-                                ondragstart="window.$root.onNoteDragStart('${escapedNotePath}', event)"
+                                ondragstart="window.$root.handleItemDragStart(this, event)"
                                 ondragend="window.$root.onNoteDragEnd()"
-                                onclick="${clickHandler}"
+                                onclick="window.$root.handleItemClick(this)"
                                 class="note-item px-2 py-1 text-sm relative"
                                 style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isImage ? 'opacity: 0.85;' : ''} cursor: pointer;"
-                                onmouseover="if('${escapedNotePath}' !== window.$root.currentNote && '${escapedNotePath}' !== window.$root.currentImage) this.style.backgroundColor='var(--bg-hover)'"
-                                onmouseout="if('${escapedNotePath}' !== window.$root.currentNote && '${escapedNotePath}' !== window.$root.currentImage) this.style.backgroundColor='transparent'"
+                                onmouseover="window.$root.handleItemHover(this, true)"
+                                onmouseout="window.$root.handleItemHover(this, false)"
                             >
-                                <span class="truncate" style="display: block; padding-right: 30px;">${shareIcon}${icon}${icon ? ' ' : ''}${note.name}</span>
+                                <span class="truncate" style="display: block; padding-right: 30px;">${shareIcon}${icon}${icon ? ' ' : ''}${esc(note.name)}</span>
                                 <button 
-                                    onclick="${deleteHandler}"
+                                    data-path="${esc(note.path)}"
+                                    data-name="${esc(note.name)}"
+                                    data-type="${note.type}"
+                                    onclick="window.$root.handleDeleteItemClick(this, event)"
                                     class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                                     style="opacity: 0; color: var(--error);"
                                     title="${isImage ? 'Delete image' : 'Delete note'}"
