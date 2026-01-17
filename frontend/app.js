@@ -1722,6 +1722,13 @@ function noteApp() {
             this.folderTree = tree;
         },
         
+        // Helper to escape strings for use in inline JavaScript handlers
+        // Uses JSON.stringify for backslashes/control chars, plus single-quote escaping
+        // since our handlers use single-quoted strings: onclick="fn('${escaped}')"
+        escapeForInlineHandler(str) {
+            return JSON.stringify(str).slice(1, -1).replace(/'/g, "\\'");
+        },
+        
         // Render folder recursively (helper for deep nesting)
         renderFolderRecursive(folder, level = 0, isTopLevel = false) {
             if (!folder) return '';
@@ -1732,7 +1739,7 @@ function noteApp() {
             // Render this folder's header
             // Note: Using native event handlers (ondragstart, onclick, etc.) instead of Alpine directives
             // because x-html doesn't process Alpine directives in dynamically generated content
-            const escapedPath = folder.path.replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+            const escapedPath = this.escapeForInlineHandler(folder.path);
             html += `
                 <div>
                     <div 
@@ -1771,13 +1778,13 @@ function noteApp() {
                                 title="Add item here"
                             >+</button>
                             <button 
-                                onclick="event.stopPropagation(); window.$root.renameFolder('${escapedPath}', '${folder.name.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')"
+                                onclick="event.stopPropagation(); window.$root.renameFolder('${escapedPath}', '${this.escapeForInlineHandler(folder.name)}')"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
                                 title="Rename folder"
                             >✏️</button>
                             <button 
-                                onclick="event.stopPropagation(); window.$root.deleteFolder('${escapedPath}', '${folder.name.replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')"
+                                onclick="event.stopPropagation(); window.$root.deleteFolder('${escapedPath}', '${this.escapeForInlineHandler(folder.name)}')"
                                 class="px-1 py-0.5 text-xs rounded hover:brightness-110"
                                 style="color: var(--error);"
                                 title="Delete folder"
@@ -1820,8 +1827,8 @@ function noteApp() {
                         const icon = isImage ? '🖼️' : '';
                         
                         // Escape paths for use in native event handlers
-                        const escapedNotePath = note.path.replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-                        const escapedNoteName = note.name.replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+                        const escapedNotePath = this.escapeForInlineHandler(note.path);
+                        const escapedNoteName = this.escapeForInlineHandler(note.name);
                         
                         // Click handler
                         const clickHandler = `window.$root.openItem('${escapedNotePath}', '${note.type}')`; 
