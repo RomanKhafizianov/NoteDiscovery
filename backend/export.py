@@ -1,7 +1,10 @@
 """
 HTML Export Module for NoteDiscovery
-Generates standalone HTML files for notes with embedded media and styling.
-Used by both /api/export (download) and /public (sharing) endpoints.
+Generates standalone HTML files for notes with embedded images and styling.
+Used by both /api/export (download) and /share (public sharing) endpoints.
+
+Note: Only images are embedded as base64. Audio, video, and PDF files are
+replaced with placeholder HTML since they would make exports too large.
 """
 
 import base64
@@ -161,15 +164,17 @@ def generate_media_placeholder(media_type: str, alt_text: str) -> str:
 </div>'''
 
 
-def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
+def process_media_for_export(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
     """
-    Find all media references in markdown and embed them as base64.
+    Process all media references in markdown for standalone HTML export.
+    
     Handles:
     - Standard markdown images: ![alt](path)
     - Wikilink media: ![[file.png]] or ![[file.mp3|alt text]]
     
-    For images: returns markdown ![alt](base64)
-    For audio/video/PDF: returns inline HTML
+    Behavior by media type:
+    - Images (jpg, png, gif, webp): Embedded as base64 data URLs
+    - Audio/Video/PDF: Replaced with styled placeholder HTML (not embedded - too large)
     """
     
     # First, handle wikilink media: ![[file.png]] or ![[file.mp3|alt text]]
@@ -264,8 +269,10 @@ def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: P
 
 
 # Legacy alias for backward compatibility
+# Legacy alias for backward compatibility
 def embed_images_as_base64(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
-    return embed_media_as_base64(markdown_content, note_folder, notes_dir)
+    """Alias for process_media_for_export (legacy name kept for compatibility)."""
+    return process_media_for_export(markdown_content, note_folder, notes_dir)
 
 
 def convert_wikilinks_to_html(markdown_content: str) -> str:
