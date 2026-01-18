@@ -486,38 +486,62 @@ def save_uploaded_image(notes_dir: str, note_path: str, filename: str, file_data
         return None
 
 
+# Media file type definitions
+MEDIA_EXTENSIONS = {
+    'image': {'.jpg', '.jpeg', '.png', '.gif', '.webp'},
+    'audio': {'.mp3', '.wav', '.ogg', '.m4a'},
+    'video': {'.mp4', '.webm', '.mov', '.avi'},
+    'document': {'.pdf'},
+}
+
+# All supported media extensions (flat set for quick lookup)
+ALL_MEDIA_EXTENSIONS = set().union(*MEDIA_EXTENSIONS.values())
+
+
+def get_media_type(filename: str) -> Optional[str]:
+    """
+    Determine the media type based on file extension.
+    Returns: 'image', 'audio', 'video', 'document', or None if not a media file.
+    """
+    ext = Path(filename).suffix.lower()
+    for media_type, extensions in MEDIA_EXTENSIONS.items():
+        if ext in extensions:
+            return media_type
+    return None
+
+
 def get_all_images(notes_dir: str) -> List[Dict]:
     """
-    Get all images from attachments directories.
-    Returns list of image dictionaries with metadata.
+    Get all media files (images, audio, video, documents) from attachments directories.
+    Returns list of media dictionaries with metadata.
+    Note: Function name kept as 'get_all_images' for backward compatibility.
     """
-    images = []
+    media_files = []
     notes_path = Path(notes_dir)
-    
-    # Common image extensions
-    image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
     
     # Find all attachments directories
     for attachments_dir in notes_path.rglob("_attachments"):
         if not attachments_dir.is_dir():
             continue
         
-        # Find all images in this attachments directory
-        for image_file in attachments_dir.iterdir():
-            if image_file.is_file() and image_file.suffix.lower() in image_extensions:
-                relative_path = image_file.relative_to(notes_path)
-                stat = image_file.stat()
-                
-                images.append({
-                    "name": image_file.name,
-                    "path": str(relative_path.as_posix()),
-                    "folder": str(relative_path.parent.as_posix()),
-                    "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
-                    "size": stat.st_size,
-                    "type": "image"
-                })
+        # Find all media files in this attachments directory
+        for media_file in attachments_dir.iterdir():
+            if media_file.is_file():
+                media_type = get_media_type(media_file.name)
+                if media_type:
+                    relative_path = media_file.relative_to(notes_path)
+                    stat = media_file.stat()
+                    
+                    media_files.append({
+                        "name": media_file.name,
+                        "path": str(relative_path.as_posix()),
+                        "folder": str(relative_path.parent.as_posix()),
+                        "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                        "size": stat.st_size,
+                        "type": media_type  # 'image', 'audio', 'video', or 'document'
+                    })
     
-    return images
+    return media_files
 
 
 def parse_tags(content: str) -> List[str]:

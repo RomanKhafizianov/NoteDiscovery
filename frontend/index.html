@@ -444,6 +444,59 @@
             margin: 1rem 0;
         }
         
+        /* Embedded Media (audio, video, PDF) */
+        .markdown-preview .media-embed {
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        /* Audio embeds */
+        .markdown-preview .media-audio {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border: 1px solid var(--border-primary);
+        }
+        .markdown-preview .media-audio audio {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 2rem;
+        }
+        .markdown-preview .media-audio .media-caption {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Video embeds */
+        .markdown-preview .media-video {
+            background: #000;
+            display: flex;
+            justify-content: center;
+        }
+        .markdown-preview .media-video video {
+            width: 100%;
+            max-width: 800px;
+            max-height: 450px;
+            border-radius: 0;
+        }
+        
+        /* PDF embeds */
+        .markdown-preview .media-pdf {
+            border: 1px solid var(--border-primary);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .markdown-preview .media-pdf iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            background: #525659;
+        }
+        
         /* Task lists */
         .markdown-preview input[type="checkbox"] {
             margin-right: 0.5rem;
@@ -1451,19 +1504,19 @@
                                 @dragend="onNoteDragEnd()"
                                 @click="openItem(note.path, note.type)"
                                 class="note-item px-2 py-1 text-sm relative"
-                                :style="((note.type === 'image' ? currentImage === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type === 'image' ? ' opacity: 0.85;' : '') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
-                                @mouseover="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
-                                @mouseout="if(currentNote !== note.path && currentImage !== note.path) $el.style.backgroundColor='transparent'"
+                                :style="((note.type !== 'note' ? currentMedia === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type !== 'note' ? ' opacity: 0.85;' : '') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                @mouseover="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
+                                @mouseout="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='transparent'"
                             >
                                 <span class="truncate" style="display: block; padding-right: 30px;">
-                                    <template x-if="note.type === 'image'">🖼️ </template>
+                                    <span x-text="getMediaIcon(note.type)"></span>
                                     <span x-text="note.name"></span>
                                 </span>
                                 <button 
-                                    @click.stop="note.type === 'image' ? deleteImage(note.path) : deleteNote(note.path, note.name)"
+                                    @click.stop="note.type !== 'note' ? deleteMedia(note.path) : deleteNote(note.path, note.name)"
                                     class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                                     style="opacity: 0; color: var(--error);"
-                                    :title="note.type === 'image' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                    :title="note.type !== 'note' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1868,7 +1921,7 @@
                 </button>
             </div>
             
-            <template x-if="!currentNote && !currentImage">
+            <template x-if="!currentNote && !currentMedia">
                 <!-- Notes Homepage -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar" style="background-color: var(--bg-primary);">
                     <!-- Mobile Menu Button (Homepage) -->
@@ -2044,12 +2097,12 @@
                                         >
                                             <!-- Delete Button -->
                                             <button 
-                                                @click.stop="note.type === 'image' ? deleteImage(note.path) : deleteNote(note.path, note.name)"
+                                                @click.stop="note.type !== 'note' ? deleteMedia(note.path) : deleteNote(note.path, note.name)"
                                                 class="card-delete-btn hidden sm:block"
                                                 style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s; color: var(--error); padding: 4px; border-radius: 4px; background-color: var(--bg-secondary);"
                                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                                 onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
-                                                :title="note.type === 'image' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                                :title="note.type !== 'note' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
                                             >
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2080,7 +2133,7 @@
                 </div>
             </template>
             
-            <template x-if="currentNote || currentImage">
+            <template x-if="currentNote || currentMedia">
                 <!-- Editor Area -->
                 <div class="flex-1 flex flex-col overflow-hidden" :class="{'zen-editor-container': zenMode}" style="background-color: var(--bg-primary);">
                     <!-- Toolbar -->
@@ -2101,7 +2154,7 @@
                             </button>
                             <input 
                                 type="text" 
-                                :value="currentNote ? currentNoteName : (currentImage ? currentImage.split('/').pop() : '')"
+                                :value="currentNote ? currentNoteName : (currentMedia ? currentMedia.split('/').pop() : '')"
                                 @input="if (currentNote) currentNoteName = $event.target.value"
                                 @blur="if (currentNote) renameNote()"
                                 :readonly="!currentNote"
@@ -2140,12 +2193,12 @@
                             
                             <!-- Delete Button -->
                             <button 
-                                @click="currentImage ? deleteImage(currentImage) : deleteCurrentNote()"
+                                @click="currentMedia ? deleteMedia(currentMedia) : deleteCurrentNote()"
                                 class="p-2 rounded-lg"
                                 style="color: var(--error);"
                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
-                                :title="currentImage ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                :title="currentMedia ? t('toolbar.delete_image') : t('toolbar.delete_note')"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2287,7 +2340,7 @@
                     <div class="flex-1 flex relative" style="min-height: 0;">
                         <!-- Editor -->
                         <div 
-                            x-show="!currentImage && (viewMode === 'edit' || viewMode === 'split')"
+                            x-show="!currentMedia && (viewMode === 'edit' || viewMode === 'split')"
                             class="flex flex-col"
                             style="min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
@@ -2366,7 +2419,7 @@
                         
                         <!-- Split view resize handle -->
                         <div 
-                            x-show="!currentImage && viewMode === 'split'"
+                            x-show="!currentMedia && viewMode === 'split'"
                             @mousedown="startSplitResize($event)"
                             class="split-resize-handle"
                             style="width: 6px; cursor: col-resize; background: linear-gradient(90deg, transparent 0%, var(--border-secondary) 50%, transparent 100%); transition: all 0.2s; position: relative; z-index: 10; opacity: 0.5;"
@@ -2376,7 +2429,7 @@
                         
                         <!-- Preview -->
                         <div 
-                            x-show="(viewMode === 'preview' || viewMode === 'split') && !currentImage"
+                            x-show="(viewMode === 'preview' || viewMode === 'split') && !currentMedia"
                             class="overflow-y-auto overflow-x-hidden custom-scrollbar"
                             style="background-color: var(--bg-primary); min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${100 - editorWidth}%;` : 'width: 100%;'"
@@ -2499,17 +2552,55 @@
                             ></div>
                         </div>
                         
-                        <!-- Image Viewer -->
-                        <template x-if="currentImage">
+                        <!-- Media Viewer (images, audio, video, PDF) -->
+                        <template x-if="currentMedia">
                             <div 
                                 class="flex-1 flex items-center justify-center overflow-auto"
                                 style="background-color: var(--bg-primary); min-height: 0;"
                             >
-                                <img 
-                                    :src="`/api/images/${currentImage}`" 
-                                    :alt="currentImage.split('/').pop()"
-                                    style="max-width: 100%; max-height: 100%; object-fit: contain; padding: 2rem;"
-                                />
+                                <!-- Image -->
+                                <template x-if="currentMediaType === 'image'">
+                                    <img 
+                                        :src="`/api/media/${currentMedia}`" 
+                                        :alt="currentMedia.split('/').pop()"
+                                        style="max-width: 100%; max-height: 100%; object-fit: contain; padding: 2rem;"
+                                    />
+                                </template>
+                                
+                                <!-- Audio -->
+                                <template x-if="currentMediaType === 'audio'">
+                                    <div class="flex flex-col items-center gap-4 p-8">
+                                        <div class="text-6xl">🎵</div>
+                                        <div class="text-lg font-medium" style="color: var(--text-primary);" x-text="currentMedia.split('/').pop()"></div>
+                                        <audio 
+                                            controls 
+                                            :src="`/api/media/${currentMedia}`"
+                                            style="width: 100%; max-width: 500px;"
+                                        >
+                                            Your browser does not support the audio element.
+                                        </audio>
+                                    </div>
+                                </template>
+                                
+                                <!-- Video -->
+                                <template x-if="currentMediaType === 'video'">
+                                    <video 
+                                        controls 
+                                        :src="`/api/media/${currentMedia}`"
+                                        style="max-width: 100%; max-height: 100%; padding: 1rem;"
+                                    >
+                                        Your browser does not support the video element.
+                                    </video>
+                                </template>
+                                
+                                <!-- PDF -->
+                                <template x-if="currentMediaType === 'document'">
+                                    <iframe 
+                                        :src="`/api/media/${currentMedia}`"
+                                        style="width: 100%; height: 100%; border: none;"
+                                        :title="currentMedia.split('/').pop()"
+                                    ></iframe>
+                                </template>
                             </div>
                         </template>
                     </div>
@@ -2958,18 +3049,18 @@
     <nav class="mobile-bottom-tabs zen-hide" style="display: none;" role="navigation" aria-label="Main navigation">
         <button 
             class="mobile-bottom-tab"
-            :class="{'active': activePanel === 'files' && (mobileSidebarOpen || (!currentNote && !currentImage && !showGraph))}"
+            :class="{'active': activePanel === 'files' && (mobileSidebarOpen || (!currentNote && !currentMedia && !showGraph))}"
             @click="mobileFilesTabClick()"
             :aria-label="t('sidebar.files')"
         >
             <!-- Show home icon when viewing content, folder icon when on homepage -->
-            <svg x-show="currentNote || currentImage || showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg x-show="currentNote || currentMedia || showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
-            <svg x-show="!currentNote && !currentImage && !showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg x-show="!currentNote && !currentMedia && !showGraph" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
             </svg>
-            <span x-text="(currentNote || currentImage || showGraph) ? t('homepage.title') : t('sidebar.files')"></span>
+            <span x-text="(currentNote || currentMedia || showGraph) ? t('homepage.title') : t('sidebar.files')"></span>
         </button>
         <button 
             class="mobile-bottom-tab relative"

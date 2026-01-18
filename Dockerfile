@@ -45,5 +45,5 @@ HEALTHCHECK --interval=60s --timeout=3s --start-period=5s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health')"
 
 # Run the application (shell form to allow environment variable expansion)
-CMD uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+CMD uvicorn backend.main:app --host 0.0.0.0 --port $PORT --timeout-graceful-shutdown 2
 

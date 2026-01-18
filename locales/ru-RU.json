@@ -194,11 +194,11 @@
     "error_incorrect_password": "Неверный пароль. Попробуйте снова."
   },
 
-  "images": {
-    "confirm_delete": "Удалить изображение «{{name}}»?",
-    "upload_failed": "Не удалось загрузить изображение",
-    "no_valid_files": "Не найдено подходящих изображений. Поддерживаемые форматы: JPG, PNG, GIF, WEBP",
-    "formats": "Поддерживает JPG, PNG, GIF, WebP (макс. 10МБ)"
+  "media": {
+    "confirm_delete": "Удалить «{{name}}»?",
+    "upload_failed": "Не удалось загрузить файл",
+    "no_valid_files": "Не найдено подходящих файлов. Поддерживает: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {

@@ -194,11 +194,11 @@
     "error_incorrect_password": "Contraseña incorrecta. Por favor, inténtalo de nuevo."
   },
 
-  "images": {
-    "confirm_delete": "¿Eliminar imagen \"{{name}}\"?",
-    "upload_failed": "Error al subir imagen",
-    "no_valid_files": "No se encontraron archivos de imagen válidos. Formatos soportados: JPG, PNG, GIF, WEBP",
-    "formats": "Soporta JPG, PNG, GIF, WebP (máx 10MB)"
+  "media": {
+    "confirm_delete": "¿Eliminar \"{{name}}\"?",
+    "upload_failed": "Error al subir archivo",
+    "no_valid_files": "No se encontraron archivos válidos. Soporta: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {

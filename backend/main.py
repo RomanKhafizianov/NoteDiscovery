@@ -476,90 +476,112 @@ async def create_new_folder(request: Request, data: dict):
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to create folder"))
 
 
-@api_router.get("/images/{image_path:path}", tags=["Images"])
-async def get_image(image_path: str):
+@api_router.get("/media/{media_path:path}", tags=["Media"])
+async def get_media(media_path: str):
     """
-    Serve an image file with authentication protection.
+    Serve a media file (image, audio, video, PDF) with authentication protection.
     """
     try:
+        from backend.utils import ALL_MEDIA_EXTENSIONS
+        
         notes_dir = config['storage']['notes_dir']
-        full_path = Path(notes_dir) / image_path
+        full_path = Path(notes_dir) / media_path
         
         # Security: Validate path is within notes directory
         if not validate_path_security(notes_dir, full_path):
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Check file exists and is an image
+        # Check file exists
         if not full_path.exists() or not full_path.is_file():
-            raise HTTPException(status_code=404, detail="Image not found")
+            raise HTTPException(status_code=404, detail="File not found")
         
-        # Validate it's an image file
-        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
-        if full_path.suffix.lower() not in allowed_extensions:
-            raise HTTPException(status_code=400, detail="Not an image file")
+        # Validate it's an allowed media file
+        if full_path.suffix.lower() not in ALL_MEDIA_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Not an allowed media file")
         
         # Return the file
         return FileResponse(full_path)
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load image"))
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load media file"))
 
 
-@api_router.post("/upload-image", tags=["Images"])
+@api_router.post("/upload-media", tags=["Media"])
 @limiter.limit("20/minute")
-async def upload_image(request: Request, file: UploadFile = File(...), note_path: str = Form(...)):
+async def upload_media(request: Request, file: UploadFile = File(...), note_path: str = Form(...)):
     """
-    Upload an image file and save it to the attachments directory.
-    Returns the relative path to the image for markdown linking.
+    Upload a media file (image, audio, video, PDF) and save it to the attachments directory.
+    Returns the relative path for markdown linking.
     """
     try:
-        # Validate file type
-        allowed_types = {'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'}
-        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        from backend.utils import ALL_MEDIA_EXTENSIONS, get_media_type
+        
+        # Allowed MIME types for each category
+        allowed_types = {
+            # Images
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            # Audio
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a',
+            # Video
+            'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+            # Documents
+            'application/pdf',
+        }
         
         # Get file extension
         file_ext = Path(file.filename).suffix.lower() if file.filename else ''
         
-        if file.content_type not in allowed_types and file_ext not in allowed_extensions:
+        if file.content_type not in allowed_types and file_ext not in ALL_MEDIA_EXTENSIONS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type. Allowed: jpg, jpeg, png, gif, webp. Got: {file.content_type}"
+                detail=f"Invalid file type. Allowed: images, audio (mp3), video (mp4), PDF. Got: {file.content_type}"
             )
         
         # Read file data
         file_data = await file.read()
         
-        # Validate file size (10MB max)
-        max_size = 10 * 1024 * 1024  # 10MB in bytes
+        # Validate file size - different limits for different types
+        media_type = get_media_type(file.filename) if file.filename else None
+        
+        # Size limits: images 10MB, audio 50MB, video 100MB, PDF 20MB
+        size_limits = {
+            'image': 10 * 1024 * 1024,
+            'audio': 50 * 1024 * 1024,
+            'video': 100 * 1024 * 1024,
+            'document': 20 * 1024 * 1024,
+        }
+        max_size = size_limits.get(media_type, 10 * 1024 * 1024)
+        
         if len(file_data) > max_size:
             raise HTTPException(
                 status_code=400,
-                detail=f"File too large. Maximum size: 10MB. Uploaded: {len(file_data) / 1024 / 1024:.2f}MB"
+                detail=f"File too large. Maximum size for {media_type or 'this type'}: {max_size // (1024*1024)}MB. Uploaded: {len(file_data) / 1024 / 1024:.2f}MB"
             )
         
-        # Save the image
-        image_path = save_uploaded_image(
+        # Save the file (reusing image save function - it works for any file)
+        file_path = save_uploaded_image(
             config['storage']['notes_dir'],
             note_path,
             file.filename,
             file_data
         )
         
-        if not image_path:
-            raise HTTPException(status_code=500, detail="Failed to save image")
+        if not file_path:
+            raise HTTPException(status_code=500, detail="Failed to save file")
         
         return {
             "success": True,
-            "path": image_path,
-            "filename": Path(image_path).name,
-            "message": "Image uploaded successfully"
+            "path": file_path,
+            "filename": Path(file_path).name,
+            "type": media_type,
+            "message": f"{media_type.capitalize() if media_type else 'File'} uploaded successfully"
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to upload image"))
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to upload file"))
 
 
 @api_router.post("/notes/move", tags=["Notes"])

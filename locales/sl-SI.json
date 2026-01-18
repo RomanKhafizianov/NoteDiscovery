@@ -194,11 +194,11 @@
     "error_incorrect_password": "Napačno geslo. Prosimo, poskusite znova."
   },
 
-  "images": {
-    "confirm_delete": "Izbrišem sliko \"{{name}}\"?",
-    "upload_failed": "Nalaganje slike ni uspelo",
-    "no_valid_files": "Ni najdenih veljavnih slikovnih datotek. Podprti formati: JPG, PNG, GIF, WEBP",
-    "formats": "Podpira JPG, PNG, GIF, WebP (največ 10MB)"
+  "media": {
+    "confirm_delete": "Izbrišem \"{{name}}\"?",
+    "upload_failed": "Nalaganje datoteke ni uspelo",
+    "no_valid_files": "Ni najdenih veljavnih datotek. Podprto: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {

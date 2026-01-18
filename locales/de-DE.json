@@ -194,11 +194,11 @@
     "error_incorrect_password": "Falsches Passwort. Bitte versuche es erneut."
   },
 
-  "images": {
-    "confirm_delete": "Bild \"{{name}}\" löschen?",
-    "upload_failed": "Bild-Upload fehlgeschlagen",
-    "no_valid_files": "Keine gültigen Bilddateien gefunden. Unterstützte Formate: JPG, PNG, GIF, WEBP",
-    "formats": "Unterstützt JPG, PNG, GIF, WebP (max 10MB)"
+  "media": {
+    "confirm_delete": "\"{{name}}\" löschen?",
+    "upload_failed": "Datei-Upload fehlgeschlagen",
+    "no_valid_files": "Keine gültigen Dateien gefunden. Unterstützt: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {

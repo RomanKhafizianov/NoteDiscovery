@@ -164,9 +164,9 @@ function noteApp() {
             byEndPath: new Map(),        // '/filename' and '/filename.md' -> true
         },
         
-        // Image lookup map for O(1) image wikilink resolution (built on loadNotes)
-        // Maps image filename (case-insensitive) -> full path
-        _imageLookup: new Map(),
+        // Media lookup map for O(1) media wikilink resolution (built on loadNotes)
+        // Maps media filename (case-insensitive) -> full path
+        _mediaLookup: new Map(),
         
         // Preview rendering debounce
         _previewDebounceTimeout: null,
@@ -422,8 +422,9 @@ function noteApp() {
         // Mermaid state cache
         lastMermaidTheme: null,
         
-        // Image viewer state
-        currentImage: '',
+        // Media viewer state
+        currentMedia: '',  // Path to current media file (kept as 'currentMedia' for compatibility)
+        currentMediaType: 'image',  // 'image', 'audio', 'video', 'document'
         
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
@@ -1038,7 +1039,7 @@ function noteApp() {
             this._noteLookup.byName.clear();
             this._noteLookup.byNameLower.clear();
             this._noteLookup.byEndPath.clear();
-            this._imageLookup.clear();
+            this._mediaLookup.clear();
             
             for (const note of this.notes) {
                 const path = note.path;
@@ -1046,12 +1047,12 @@ function noteApp() {
                 const name = note.name;
                 const nameLower = name.toLowerCase();
                 
-                // Handle images separately - build image lookup map
-                if (note.type === 'image') {
+                // Handle media files separately - build media lookup map
+                if (note.type !== 'note') {
                     // Map filename (case-insensitive) to full path
                     // First match wins if there are duplicates
-                    if (!this._imageLookup.has(nameLower)) {
-                        this._imageLookup.set(nameLower, path);
+                    if (!this._mediaLookup.has(nameLower)) {
+                        this._mediaLookup.set(nameLower, path);
                     }
                     continue;
                 }
@@ -1093,11 +1094,11 @@ function noteApp() {
             );
         },
         
-        // Resolve image wikilink to full path (O(1) lookup)
+        // Resolve media wikilink to full path (O(1) lookup)
         // Returns the full path if found, null otherwise
-        resolveImageWikilink(imageName) {
-            const nameLower = imageName.toLowerCase();
-            return this._imageLookup.get(nameLower) || null;
+        resolveMediaWikilink(mediaName) {
+            const nameLower = mediaName.toLowerCase();
+            return this._mediaLookup.get(nameLower) || null;
         },
         
         // Load all tags
@@ -1782,14 +1783,14 @@ function noteApp() {
         },
         handleItemHover(el, isEnter) {
             const path = el.dataset.path;
-            if (path !== this.currentNote && path !== this.currentImage) {
+            if (path !== this.currentNote && path !== this.currentMedia) {
                 el.style.backgroundColor = isEnter ? 'var(--bg-hover)' : 'transparent';
             }
         },
         handleDeleteItemClick(el, event) {
             event.stopPropagation();
             if (el.dataset.type === 'image') {
-                this.deleteImage(el.dataset.path);
+                this.deleteMedia(el.dataset.path);
             } else {
                 this.deleteNote(el.dataset.path, el.dataset.name);
             }
@@ -1893,16 +1894,16 @@ function noteApp() {
                 // Then, render notes and images in this folder (after subfolders)
                 if (folder.notes && folder.notes.length > 0) {
                     folder.notes.forEach(note => {
-                        // Check if it's an image or a note
-                        const isImage = note.type === 'image';
+                        // Check if it's a media file or a note
+                        const isMediaFile = note.type !== 'note';
                         const isCurrentNote = this.currentNote === note.path;
-                        const isCurrentImage = this.currentImage === note.path;
-                        const isCurrent = isImage ? isCurrentImage : isCurrentNote;
+                        const isCurrentMedia = this.currentMedia === note.path;
+                        const isCurrent = isMediaFile ? isCurrentMedia : isCurrentNote;
                         
-                        // Different icon for images, share icon for shared notes
-                        const isShared = !isImage && this.isNoteShared(note.path);
+                        // Icon based on media type, share icon for shared notes
+                        const isShared = !isMediaFile && this.isNoteShared(note.path);
                         const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
-                        const icon = isImage ? '🖼️' : '';
+                        const icon = this.getMediaIcon(note.type);
                         
                         html += `
                             <div 
@@ -1914,7 +1915,7 @@ function noteApp() {
                                 ondragend="window.$root.onNoteDragEnd()"
                                 onclick="window.$root.handleItemClick(this)"
                                 class="note-item px-2 py-1 text-sm relative"
-                                style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isImage ? 'opacity: 0.85;' : ''} cursor: pointer;"
+                                style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isMediaFile ? 'opacity: 0.85;' : ''} cursor: pointer;"
                                 onmouseover="window.$root.handleItemHover(this, true)"
                                 onmouseout="window.$root.handleItemHover(this, false)"
                             >
@@ -1926,7 +1927,7 @@ function noteApp() {
                                     onclick="window.$root.handleDeleteItemClick(this, event)"
                                     class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                                     style="opacity: 0; color: var(--error);"
-                                    title="${isImage ? 'Delete image' : 'Delete note'}"
+                                    title="${isMediaFile ? 'Delete file' : 'Delete note'}"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2037,18 +2038,18 @@ function noteApp() {
         
         // Drag and drop handlers
         onNoteDragStart(notePath, event) {
-            // Check if this is an image
+            // Check if this is a media file
             const item = this.notes.find(n => n.path === notePath);
-            const isImage = item && item.type === 'image';
+            const isMediaFile = item && item.type !== 'note';
             
             // Set unified drag state
             this.draggedItem = {
                 path: notePath,
-                type: isImage ? 'image' : 'note'
+                type: item ? item.type : 'note'
             };
             
             // For notes, also set legacy draggedNote for folder move logic
-            if (!isImage) {
+            if (!isMediaFile) {
                 this.draggedNote = notePath;
                 // Make drag image semi-transparent
                 if (event.target) {
@@ -2141,26 +2142,26 @@ function noteApp() {
             }
         },
         
-        // Handle drop into editor to create internal link or upload image
+        // Handle drop into editor to create internal link or upload media
         async onEditorDrop(event) {
             event.preventDefault();
             this.dropTarget = null;
             
-            // Check if files are being dropped (images from file system)
+            // Check if files are being dropped (media from file system)
             if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                await this.handleImageDrop(event);
+                await this.handleMediaDrop(event);
                 return;
             }
             
-            // Otherwise, handle note/image link drop from sidebar
+            // Otherwise, handle note/media link drop from sidebar
             if (!this.draggedItem) return;
             
             const notePath = this.draggedItem.path;
-            const isImage = this.draggedItem.type === 'image';
+            const isMediaFile = this.draggedItem.type !== 'note';
             
             let link;
-            if (isImage) {
-                // For images, use wiki-style link (resolves by filename, never breaks)
+            if (isMediaFile) {
+                // For media files (images, audio, video, PDF), use wiki-style embed link
                 const filename = notePath.split('/').pop();
                 link = `![[${filename}]]`;
             } else {
@@ -2192,22 +2193,30 @@ function noteApp() {
             this.draggedItem = null;
         },
         
-        // Handle image files dropped into editor
-        async handleImageDrop(event) {
+        // Handle media files dropped into editor
+        async handleMediaDrop(event) {
             if (!this.currentNote) {
                 alert(this.t('notes.open_first'));
                 return;
             }
             
             const files = Array.from(event.dataTransfer.files);
-            const imageFiles = files.filter(file => {
-                const type = file.type.toLowerCase();
-                return type.startsWith('image/') && 
-                       ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'].includes(type);
-            });
             
-            if (imageFiles.length === 0) {
-                alert(this.t('images.no_valid_files'));
+            // Filter for allowed media types
+            const allowedTypes = [
+                // Images
+                'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+                // Audio
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a',
+                // Video
+                'video/mp4', 'video/webm', 'video/quicktime',
+                // Documents
+                'application/pdf'
+            ];
+            const mediaFiles = files.filter(file => allowedTypes.includes(file.type.toLowerCase()));
+            
+            if (mediaFiles.length === 0) {
+                alert(this.t('media.no_valid_files'));
                 return;
             }
             
@@ -2216,27 +2225,27 @@ function noteApp() {
             let cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
             if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
             
-            // Upload each image
-            for (const file of imageFiles) {
+            // Upload each media file
+            for (const file of mediaFiles) {
                 try {
-                    const imagePath = await this.uploadImage(file, this.currentNote);
-                    if (imagePath) {
-                        await this.insertImageMarkdown(imagePath, file.name, cursorPos);
+                    const mediaPath = await this.uploadMedia(file, this.currentNote);
+                    if (mediaPath) {
+                        await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
                     }
                 } catch (error) {
-                    ErrorHandler.handle(`upload image ${file.name}`, error);
+                    ErrorHandler.handle(`upload file ${file.name}`, error);
                 }
             }
         },
         
-        // Upload an image file
-        async uploadImage(file, notePath) {
+        // Upload a media file (image, audio, video, PDF)
+        async uploadMedia(file, notePath) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('note_path', notePath);
             
             try {
-                const response = await fetch('/api/upload-image', {
+                const response = await fetch('/api/upload-media', {
                     method: 'POST',
                     body: formData
                 });
@@ -2253,13 +2262,13 @@ function noteApp() {
             }
         },
         
-        // Insert image markdown at cursor position using wiki-style syntax
-        // This ensures image links don't break when notes are moved
-        async insertImageMarkdown(imagePath, altText, cursorPos) {
+        // Insert media markdown at cursor position using wiki-style syntax
+        // This ensures media links don't break when notes are moved
+        async insertMediaMarkdown(mediaPath, altText, cursorPos) {
             // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
-            const filename = imagePath.split('/').pop();
+            const filename = mediaPath.split('/').pop();
             
-            // Use wiki-style image link: ![[filename.png]] or ![[filename.png|alt text]]
+            // Use wiki-style embed link: ![[filename.png]] or ![[filename.png|alt text]]
             // The alt text is optional - only add if different from filename
             const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
             const altWithoutExt = altText.replace(/\.[^/.]+$/, '');
@@ -2281,7 +2290,7 @@ function noteApp() {
             this.autoSave();
         },
         
-        // Handle paste event for clipboard images
+        // Handle paste event for clipboard media (images)
         async handlePaste(event) {
             if (!this.currentNote) return;
             
@@ -2305,77 +2314,112 @@ function noteApp() {
                             // Create a File from the blob
                             const file = new File([blob], filename, { type: item.type });
                             
-                            const imagePath = await this.uploadImage(file, this.currentNote);
-                            if (imagePath) {
-                                await this.insertImageMarkdown(imagePath, filename, cursorPos);
+                            const mediaPath = await this.uploadMedia(file, this.currentNote);
+                            if (mediaPath) {
+                                await this.insertMediaMarkdown(mediaPath, filename, cursorPos);
                             }
                         } catch (error) {
-                            ErrorHandler.handle('paste image', error);
+                            ErrorHandler.handle('paste media', error);
                         }
                     }
-                    break; // Only handle first image
+                    break; // Only handle first media item
                 }
             }
         },
         
-        // Open a note or image (unified handler for sidebar/homepage clicks)
+        // Media type detection based on file extension
+        getMediaType(filename) {
+            if (!filename) return null;
+            const ext = filename.split('.').pop().toLowerCase();
+            const mediaTypes = {
+                image: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                audio: ['mp3', 'wav', 'ogg', 'm4a'],
+                video: ['mp4', 'webm', 'mov', 'avi'],
+                document: ['pdf'],
+            };
+            for (const [type, extensions] of Object.entries(mediaTypes)) {
+                if (extensions.includes(ext)) return type;
+            }
+            return null;
+        },
+        
+        // Get icon for media type
+        getMediaIcon(type) {
+            const icons = {
+                image: '🖼️',
+                audio: '🎵',
+                video: '🎬',
+                document: '📄',
+            };
+            return icons[type] || '';
+        },
+        
+        // Open a note or media file (unified handler for sidebar/homepage clicks)
         openItem(path, type = 'note', searchHighlight = '') {
             this.showGraph = false;
-            if (type === 'image' || path.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
-                this.viewImage(path);
+            // Check if it's a media file by type or extension
+            const mediaType = type !== 'note' ? type : this.getMediaType(path);
+            if (mediaType && mediaType !== 'note') {
+                this.viewMedia(path, mediaType);
             } else {
                 this.loadNote(path, true, searchHighlight);
             }
         },
         
-        // View an image in the main pane
-        viewImage(imagePath, updateHistory = true) {
+        // View a media file (image, audio, video, PDF) in the main pane
+        viewMedia(mediaPath, mediaType = null, updateHistory = true) {
             this.showGraph = false; // Ensure graph is closed
             this.currentNote = '';
             this.currentNoteName = '';
             this.noteContent = '';
-            this.currentImage = imagePath;
+            this.currentMedia = mediaPath; // Reuse currentMedia for all media
+            this.currentMediaType = mediaType || this.getMediaType(mediaPath) || 'image';
             this.shareInfo = null; // Reset share info
-            this.viewMode = 'preview'; // Use preview mode to show image
+            this.viewMode = 'preview'; // Use preview mode to show media
             
-            // Update browser tab title for image
-            const imageName = imagePath.split('/').pop();
-            document.title = `${imageName} - ${this.appName}`;
+            // Update browser tab title
+            const fileName = mediaPath.split('/').pop();
+            document.title = `${fileName} - ${this.appName}`;
             
             // Update browser URL
             if (updateHistory) {
                 // Encode each path segment to handle special characters
-                const encodedPath = imagePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const encodedPath = mediaPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
                 window.history.pushState(
-                    { imagePath: imagePath },
+                    { mediaPath: mediaPath },
                     '',
                     `/${encodedPath}`
                 );
             }
         },
         
-        // Delete an image
-        async deleteImage(imagePath) {
-            const filename = imagePath.split('/').pop();
-            if (!confirm(this.t('images.confirm_delete', { name: filename }))) return;
+        // Backward compatibility alias
+        viewImage(mediaPath, updateHistory = true) {
+            this.viewMedia(mediaPath, 'image', updateHistory);
+        },
+        
+        // Delete a media file (image, audio, video, PDF)
+        async deleteMedia(mediaPath) {
+            const filename = mediaPath.split('/').pop();
+            if (!confirm(this.t('media.confirm_delete', { name: filename }))) return;
             
             try {
-                const response = await fetch(`/api/notes/${encodeURIComponent(imagePath)}`, {
+                const response = await fetch(`/api/notes/${encodeURIComponent(mediaPath)}`, {
                     method: 'DELETE'
                 });
                 
                 if (response.ok) {
                     await this.loadNotes(); // Refresh tree
                     
-                    // Clear viewer if deleting currently viewed image
-                    if (this.currentImage === imagePath) {
-                        this.currentImage = '';
+                    // Clear viewer if deleting currently viewed media
+                    if (this.currentMedia === mediaPath) {
+                        this.currentMedia = '';
                     }
                 } else {
-                    throw new Error('Failed to delete image');
+                    throw new Error('Failed to delete media file');
                 }
             } catch (error) {
-                ErrorHandler.handle('delete image', error);
+                ErrorHandler.handle('delete media', error);
             }
         },
         
@@ -2655,7 +2699,7 @@ function noteApp() {
                         window.history.replaceState({ homepageFolder: this.selectedHomepageFolder || '' }, '', '/');
                         this.currentNote = '';
                         this.noteContent = '';
-                        this.currentImage = '';
+                        this.currentMedia = '';
                         document.title = this.appName;
                         return;
                     }
@@ -2669,7 +2713,7 @@ function noteApp() {
                 this._cachedRenderedHTML = '';
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
-                this.currentImage = ''; // Clear image viewer when loading a note
+                this.currentMedia = ''; // Clear image viewer when loading a note
                 this.shareInfo = null; // Reset share info for new note
                 
                 // Update browser tab title
@@ -3944,20 +3988,20 @@ function noteApp() {
                 return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
             });
             
-            // Step 2: Convert image wikilinks FIRST: ![[image.png]] or ![[image.png|alt text]]
-            // Must be before note wikilinks to prevent [[image.png]] from being matched first
+            // Step 2: Convert media wikilinks FIRST: ![[file.png]] or ![[file.png|alt text]]
+            // Must be before note wikilinks to prevent [[file.png]] from being matched first
             contentToRender = contentToRender.replace(
                 /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
-                (match, imageName, altText) => {
-                    const filename = imageName.trim();
+                (match, mediaName, altText) => {
+                    const filename = mediaName.trim();
                     const alt = altText ? altText.trim() : filename.replace(/\.[^/.]+$/, '');
                     
-                    // Resolve image path using O(1) lookup
-                    const imagePath = self.resolveImageWikilink(filename);
+                    // Resolve media path using O(1) lookup
+                    const mediaPath = self.resolveMediaWikilink(filename);
                     
-                    if (imagePath) {
+                    if (mediaPath) {
                         // URL-encode path segments for the API
-                        const encodedPath = imagePath.split('/').map(segment => {
+                        const encodedPath = mediaPath.split('/').map(segment => {
                             try {
                                 return encodeURIComponent(decodeURIComponent(segment));
                             } catch (e) {
@@ -3966,12 +4010,27 @@ function noteApp() {
                         }).join('/');
                         
                         const safeAlt = alt.replace(/"/g, '&quot;');
-                        return `<img src="/api/images/${encodedPath}" alt="${safeAlt}" title="${safeAlt}">`;
+                        const mediaSrc = `/api/media/${encodedPath}`;
+                        const mediaType = self.getMediaType(filename);
+                        
+                        // Return appropriate HTML based on media type
+                        switch (mediaType) {
+                            case 'audio':
+                                return `<div class="media-embed media-audio"><audio controls preload="none" src="${mediaSrc}" title="${safeAlt}"></audio><span class="media-caption">${safeAlt}</span></div>`;
+                            case 'video':
+                                return `<div class="media-embed media-video"><video controls preload="none" poster="" src="${mediaSrc}" title="${safeAlt}"></video></div>`;
+                            case 'document':
+                                return `<div class="media-embed media-pdf"><iframe src="${mediaSrc}" title="${safeAlt}" loading="lazy"></iframe></div>`;
+                            default: // image
+                                return `<img src="${mediaSrc}" alt="${safeAlt}" title="${safeAlt}">`;
+                        }
                     }
                     
-                    // Image not found - return broken image indicator
+                    // Media not found - return broken indicator
                     const safeFilename = filename.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    return `<span class="wikilink-broken" title="Image not found">🖼️ ${safeFilename}</span>`;
+                    const mediaType = self.getMediaType(filename);
+                    const icon = mediaType === 'audio' ? '🎵' : mediaType === 'video' ? '🎬' : mediaType === 'document' ? '📄' : '🖼️';
+                    return `<span class="wikilink-broken" title="Media not found">${icon} ${safeFilename}</span>`;
                 }
             );
             
@@ -4045,17 +4104,17 @@ function noteApp() {
             });
             
             // Find all images and transform paths for display
+            // Also convert non-image media (audio, video, PDF) to appropriate elements
             const images = tempDiv.querySelectorAll('img');
             images.forEach(img => {
-                const src = img.getAttribute('src');
+                let src = img.getAttribute('src');
                 if (src) {
-                    // Transform relative paths to /api/images/ for serving
+                    // Transform relative paths to /api/media/ for serving
                     // Skip external URLs and already-transformed paths
                     if (!src.startsWith('http://') && !src.startsWith('https://') && 
-                        !src.startsWith('//') && !src.startsWith('/api/images/') &&
+                        !src.startsWith('//') && !src.startsWith('/api/media/') &&
                         !src.startsWith('data:')) {
                         // URL-encode path segments to handle spaces and special characters
-                        // Decode first to avoid double-encoding if path already contains %XX sequences
                         const encodedPath = src.split('/').map(segment => {
                             try {
                                 return encodeURIComponent(decodeURIComponent(segment));
@@ -4063,13 +4122,39 @@ function noteApp() {
                                 return encodeURIComponent(segment);
                             }
                         }).join('/');
-                        img.setAttribute('src', `/api/images/${encodedPath}`);
+                        src = `/api/media/${encodedPath}`;
+                        img.setAttribute('src', src);
+                    }
+                    
+                    // Check if this is non-image media and convert to appropriate element
+                    const mediaType = self.getMediaType(src);
+                    const altText = img.getAttribute('alt') || src.split('/').pop().replace(/\.[^/.]+$/, '');
+                    const safeAlt = altText.replace(/"/g, '&quot;');
+                    
+                    if (mediaType === 'audio') {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'media-embed media-audio';
+                        wrapper.innerHTML = `<audio controls preload="none" src="${src}" title="${safeAlt}"></audio><span class="media-caption">${safeAlt}</span>`;
+                        img.replaceWith(wrapper);
+                        return;
+                    } else if (mediaType === 'video') {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'media-embed media-video';
+                        wrapper.innerHTML = `<video controls preload="none" poster="" src="${src}" title="${safeAlt}"></video>`;
+                        img.replaceWith(wrapper);
+                        return;
+                    } else if (mediaType === 'document') {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'media-embed media-pdf';
+                        wrapper.innerHTML = `<iframe src="${src}" title="${safeAlt}" loading="lazy"></iframe>`;
+                        img.replaceWith(wrapper);
+                        return;
                     }
                 }
                 
+                // For regular images, set title attribute
                 const altText = img.getAttribute('alt');
                 if (altText) {
-                    // Set title attribute to show alt text on hover
                     img.setAttribute('title', altText);
                 }
             });
@@ -4892,7 +4977,7 @@ function noteApp() {
                     const encodedPath = match[1];
                     try {
                         // Fetch the image
-                        const imgResponse = await fetch(`/api/images/${encodedPath}`);
+                        const imgResponse = await fetch(`/api/media/${encodedPath}`);
                         if (imgResponse.ok) {
                             const blob = await imgResponse.blob();
                             // Convert to base64 data URL
@@ -5417,7 +5502,7 @@ function noteApp() {
             this.currentNote = '';
             this.currentNoteName = '';
             this.noteContent = '';
-            this.currentImage = '';
+            this.currentMedia = '';
             this.outline = [];
             document.title = this.appName;
             
@@ -5439,7 +5524,7 @@ function noteApp() {
             this.currentNote = '';
             this.currentNoteName = '';
             this.noteContent = '';
-            this.currentImage = '';
+            this.currentMedia = '';
             this.outline = [];
             this.mobileSidebarOpen = false;
             document.title = this.appName;
@@ -5462,7 +5547,7 @@ function noteApp() {
         
         // Mobile files/home tab - context-aware behavior
         mobileFilesTabClick() {
-            if (this.currentNote || this.currentImage || this.showGraph) {
+            if (this.currentNote || this.currentMedia || this.showGraph) {
                 // Viewing content → go home
                 this.goHome();
             } else {

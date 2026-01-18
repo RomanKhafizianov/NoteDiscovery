@@ -15,10 +15,14 @@
 - **HTML Export** - Export notes as standalone HTML files with embedded images
 - **Public Sharing** - Share notes via token-based URLs without requiring authentication (see [SHARING.md](SHARING.md))
 
-### Image Support
-- **Drag & drop upload** - Drop images from your file system directly into the editor
+### Media Support
+- **Drag & drop upload** - Drop files from your file system directly into the editor
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
-- **Multiple formats** - Supports JPG, PNG, GIF, and WebP (max 10MB)
+- **Images** - JPG, PNG, GIF, WebP (max 10MB)
+- **Audio** - MP3, WAV, OGG (max 50MB)
+- **Video** - MP4, WebM (max 100MB)
+- **Documents** - PDF (max 20MB)
+- **In-app viewing** - View all media types directly in the sidebar
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
