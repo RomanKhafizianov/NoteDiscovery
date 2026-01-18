@@ -1839,7 +1839,7 @@ function noteApp() {
                                     <path d="M6 4l4 4-4 4V4z"/>
                                 </svg>
                             </button>
-                            <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;">
+                            <span class="flex items-center gap-1 flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none;" title="${esc(folder.name)}">
                                 <span>${esc(folder.name)}</span>
                                 ${folder.notes.length === 0 && (!folder.children || Object.keys(folder.children).length === 0) ? `<span class="text-xs" style="color: var(--text-tertiary); font-weight: 400;">(${this.t('folders.empty')})</span>` : ''}
                             </span>
@@ -1919,7 +1919,7 @@ function noteApp() {
                                 onmouseover="window.$root.handleItemHover(this, true)"
                                 onmouseout="window.$root.handleItemHover(this, false)"
                             >
-                                <span class="truncate" style="display: block; padding-right: 30px;">${shareIcon}${icon}${icon ? ' ' : ''}${esc(note.name)}</span>
+                                <span class="truncate" style="display: block; padding-right: 30px;" title="${esc(note.name)}">${shareIcon}${icon}${icon ? ' ' : ''}${esc(note.name)}</span>
                                 <button 
                                     data-path="${esc(note.path)}"
                                     data-name="${esc(note.name)}"
