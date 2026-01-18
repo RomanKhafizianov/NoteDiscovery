@@ -13,23 +13,8 @@ from pathlib import Path
 from typing import Optional, Tuple
 import mimetypes
 
-
-# Media type detection
-MEDIA_EXTENSIONS = {
-    'image': {'.jpg', '.jpeg', '.png', '.gif', '.webp'},
-    'audio': {'.mp3', '.wav', '.ogg', '.m4a'},
-    'video': {'.mp4', '.webm'},
-    'document': {'.pdf'}
-}
-
-
-def get_media_type(filename: str) -> Optional[str]:
-    """Determine media type based on file extension."""
-    ext = Path(filename).suffix.lower()
-    for media_type, extensions in MEDIA_EXTENSIONS.items():
-        if ext in extensions:
-            return media_type
-    return None
+# Import shared media type definitions from utils to avoid duplication
+from backend.utils import MEDIA_EXTENSIONS, get_media_type
 
 
 def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:

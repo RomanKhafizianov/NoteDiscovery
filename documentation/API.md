@@ -114,8 +114,8 @@ Upload a media file to the `_attachments` directory. Files are automatically org
 | Type | Formats | Max Size |
 |------|---------|----------|
 | Images | JPG, PNG, GIF, WebP | 10 MB |
-| Audio | MP3, WAV, OGG | 50 MB |
-| Video | MP4, WebM | 100 MB |
+| Audio | MP3, WAV, OGG, M4A | 50 MB |
+| Video | MP4, WebM, MOV, AVI | 100 MB |
 | Documents | PDF | 20 MB |
 
 **Response:**
