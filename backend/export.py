@@ -143,25 +143,22 @@ def find_image_in_attachments(image_name: str, note_folder: Path, notes_dir: Pat
     return find_media_in_attachments(image_name, note_folder, notes_dir)
 
 
-def generate_media_html(base64_url: str, media_type: str, alt_text: str) -> str:
-    """Generate appropriate HTML for embedded media based on type."""
-    safe_alt = alt_text.replace('"', '&quot;')
+def generate_media_placeholder(media_type: str, alt_text: str) -> str:
+    """Generate a placeholder for non-embeddable media (audio, video, PDF)."""
+    safe_alt = alt_text.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
     
-    if media_type == 'audio':
-        return f'''<div class="media-embed media-audio" style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,var(--bg-tertiary,#f5f5f5) 0%,var(--bg-secondary,#eee) 100%);border:1px solid var(--border-primary,#ddd);border-radius:0.5rem;display:flex;flex-direction:column;align-items:center;">
-<audio controls preload="none" src="{base64_url}" title="{safe_alt}" style="width:100%;max-width:500px;border-radius:2rem;"></audio>
-<span style="margin-top:0.75rem;font-size:0.875rem;color:var(--text-secondary,#666);">{safe_alt}</span>
+    icons = {'audio': '🎵', 'video': '🎬', 'document': '📄'}
+    labels = {'audio': 'Audio file', 'video': 'Video file', 'document': 'PDF document'}
+    icon = icons.get(media_type, '📎')
+    label = labels.get(media_type, 'Media file')
+    
+    return f'''<div style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;display:flex;align-items:center;gap:1rem;">
+<span style="font-size:2rem;">{icon}</span>
+<div>
+<div style="font-weight:600;color:var(--text-primary,#212529);">{safe_alt}</div>
+<div style="font-size:0.875rem;color:var(--text-secondary,#6c757d);">{label} — not available in exported view</div>
+</div>
 </div>'''
-    elif media_type == 'video':
-        return f'''<div class="media-embed media-video" style="margin:1.5rem 0;background:#000;display:flex;justify-content:center;border-radius:0.5rem;overflow:hidden;">
-<video controls preload="none" poster="" src="{base64_url}" title="{safe_alt}" style="width:100%;max-width:800px;max-height:450px;"></video>
-</div>'''
-    elif media_type == 'document':
-        return f'''<div class="media-embed media-pdf" style="margin:1.5rem 0;border:1px solid var(--border-primary,#ddd);border-radius:0.5rem;overflow:hidden;">
-<iframe src="{base64_url}" title="{safe_alt}" style="width:100%;height:600px;border:none;background:#525659;"></iframe>
-</div>'''
-    else:  # image
-        return f'![{alt_text}]({base64_url})'
 
 
 def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
@@ -182,19 +179,23 @@ def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: P
         media_name = match.group(1).strip()
         alt_text = match.group(2).strip() if match.group(2) else media_name.split('/')[-1].rsplit('.', 1)[0]
         
-        # Find the media file
+        # Check media type first
+        media_type = get_media_type(media_name)
+        
+        # For non-image media (audio, video, PDF), show placeholder without embedding
+        if media_type in ('audio', 'video', 'document'):
+            return generate_media_placeholder(media_type, alt_text)
+        
+        # For images, embed as base64
         resolved_path = find_media_in_attachments(media_name, note_folder, notes_dir)
         
         if resolved_path:
-            result = get_media_as_base64(resolved_path)
-            if result:
-                base64_url, media_type = result
-                return generate_media_html(base64_url, media_type, alt_text)
+            base64_url = get_image_as_base64(resolved_path)
+            if base64_url:
+                return f'![{alt_text}]({base64_url})'
         
-        # Media not found, convert to placeholder
-        media_type = get_media_type(media_name)
-        icon = '🎵' if media_type == 'audio' else '🎬' if media_type == 'video' else '📄' if media_type == 'document' else '🖼️'
-        return f'<span style="color:var(--text-tertiary,#999);opacity:0.7;" title="Media not found">{icon} {alt_text}</span>'
+        # Image not found
+        return f'<span style="color:var(--text-tertiary,#999);opacity:0.7;" title="Image not found">🖼️ {alt_text}</span>'
     
     markdown_content = re.sub(wikilink_pattern, replace_wikilink_media, markdown_content)
     
@@ -213,6 +214,15 @@ def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: P
         if not media_path:
             return match.group(0)
         
+        # Check media type first
+        media_type = get_media_type(media_path)
+        display_alt = alt_text or Path(media_path).stem
+        
+        # For non-image media (audio, video, PDF), show placeholder without embedding
+        if media_type in ('audio', 'video', 'document'):
+            return generate_media_placeholder(media_type, display_alt)
+        
+        # For images, proceed with base64 embedding
         # Handle /api/media/ or legacy /api/images/ paths (convert to filesystem paths)
         if media_path.startswith('/api/media/'):
             relative_path = media_path[len('/api/media/'):]
@@ -240,14 +250,12 @@ def embed_media_as_base64(markdown_content: str, note_folder: Path, notes_dir: P
             # Path is outside notes_dir, skip
             return match.group(0)
         
-        # Get base64 data
-        result = get_media_as_base64(resolved_path)
-        if result:
-            base64_url, media_type = result
-            display_alt = alt_text or resolved_path.stem
-            return generate_media_html(base64_url, media_type, display_alt)
+        # Get base64 data for image
+        base64_url = get_image_as_base64(resolved_path)
+        if base64_url:
+            return f'![{display_alt}]({base64_url})'
         
-        # Media not found, keep original
+        # Image not found, keep original
         return match.group(0)
     
     markdown_content = re.sub(img_pattern, replace_media, markdown_content)

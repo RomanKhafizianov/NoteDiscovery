@@ -2711,6 +2711,7 @@ function noteApp() {
                 this.currentNote = notePath;
                 this._lastRenderedContent = ''; // Clear render cache for new note
                 this._cachedRenderedHTML = '';
+                this._initializedVideoSources = new Set(); // Clear video cache for new note
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 this.currentMedia = ''; // Clear image viewer when loading a note
@@ -4188,6 +4189,17 @@ function noteApp() {
                             this.addCopyButtonToCodeBlock(pre);
                         }
                     });
+                    
+                    // Enable video metadata loading (for first frame preview)
+                    // Track by source URL to prevent duplicate requests on re-renders
+                    if (!this._initializedVideoSources) this._initializedVideoSources = new Set();
+                    previewEl.querySelectorAll('video[preload="none"]').forEach((video) => {
+                        const src = video.getAttribute('src');
+                        if (src && !this._initializedVideoSources.has(src)) {
+                            this._initializedVideoSources.add(src);
+                            video.preload = 'metadata';
+                        }
+                    });
                 }
             }, 0);
             
@@ -4969,12 +4981,54 @@ function noteApp() {
                 // Get current rendered HTML (this already has markdown converted and will have LaTeX delimiters)
                 let renderedHTML = this.renderedMarkdown;
                 
+                // Convert non-image media (audio, video, PDF) to placeholders first
+                // These shouldn't be embedded as base64 (too large)
+                // Use CSS variables with fallbacks for theme-aware styling (matches backend export.py)
+                const mediaPlaceholder = (type, name) => {
+                    const icons = { audio: '🎵', video: '🎬', document: '📄' };
+                    const labels = { audio: 'Audio file', video: 'Video file', document: 'PDF document' };
+                    const icon = icons[type] || '📎';
+                    const label = labels[type] || 'Media file';
+                    return `<div style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;display:flex;align-items:center;gap:1rem;">
+<span style="font-size:2rem;">${icon}</span>
+<div>
+<div style="font-weight:600;color:var(--text-primary,#212529);">${name}</div>
+<div style="font-size:0.875rem;color:var(--text-secondary,#6c757d);">${label} — not available in exported view</div>
+</div>
+</div>`;
+                };
+                
+                // Replace audio embeds with placeholders
+                renderedHTML = renderedHTML.replace(
+                    /<div class="media-embed media-audio">.*?<audio[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
+                    (match, filename) => mediaPlaceholder('audio', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
+                );
+                
+                // Replace video embeds with placeholders
+                renderedHTML = renderedHTML.replace(
+                    /<div class="media-embed media-video">.*?<video[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
+                    (match, filename) => mediaPlaceholder('video', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
+                );
+                
+                // Replace PDF embeds with placeholders
+                renderedHTML = renderedHTML.replace(
+                    /<div class="media-embed media-pdf">.*?<iframe[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
+                    (match, filename) => mediaPlaceholder('document', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
+                );
+                
                 // Embed local images as base64 for fully self-contained HTML
-                const imgRegex = /src="\/api\/images\/([^"]+)"/g;
+                // Handle both /api/media/ and legacy /api/images/ paths
+                const imgRegex = /src="\/api\/(?:media|images)\/([^"]+)"/g;
                 const imgMatches = [...renderedHTML.matchAll(imgRegex)];
                 
                 for (const match of imgMatches) {
                     const encodedPath = match[1];
+                    // Skip non-image files (already handled above)
+                    const ext = encodedPath.split('.').pop().toLowerCase();
+                    if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        continue;
+                    }
+                    
                     try {
                         // Fetch the image
                         const imgResponse = await fetch(`/api/media/${encodedPath}`);
