@@ -2432,9 +2432,9 @@ function noteApp() {
             const href = link.getAttribute('href');
             if (!href) return;
             
-            // Check if it's an external link
-            if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('mailto:')) {
-                return; // Let external links work normally
+            // Check if it's an external link or API path (media files, etc.)
+            if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('mailto:') || href.startsWith('/api/')) {
+                return; // Let external links and API paths work normally
             }
             
             // Prevent default navigation for internal links
@@ -2606,6 +2606,7 @@ function noteApp() {
                         const wasCurrentNote = this.currentNote === draggedNotePath;
                         
                         await this.loadNotes();
+                        await this.loadSharedNotePaths(); // Refresh shared paths after move
                         
                         if (wasCurrentNote) {
                             this.currentNote = newPath;
@@ -2668,6 +2669,7 @@ function noteApp() {
                         }
                         
                         await this.loadNotes();
+                        await this.loadSharedNotePaths(); // Refresh shared paths after folder move
                         // Update current note path if it was in the moved folder
                         if (this.currentNote && this.currentNote.startsWith(oldPrefix)) {
                             this.currentNote = this.currentNote.replace(oldPrefix, newPrefix);
@@ -4021,7 +4023,8 @@ function noteApp() {
                             case 'video':
                                 return `<div class="media-embed media-video"><video controls preload="none" poster="" src="${mediaSrc}" title="${safeAlt}"></video></div>`;
                             case 'document':
-                                return `<div class="media-embed media-pdf"><iframe src="${mediaSrc}" title="${safeAlt}" loading="lazy"></iframe></div>`;
+                                // Local PDFs: show iframe preview
+                                return `<div class="media-embed media-pdf"><iframe src="${mediaSrc}" title="${safeAlt}"></iframe></div>`;
                             default: // image
                                 return `<img src="${mediaSrc}" alt="${safeAlt}" title="${safeAlt}">`;
                         }
@@ -4110,11 +4113,11 @@ function noteApp() {
             images.forEach(img => {
                 let src = img.getAttribute('src');
                 if (src) {
+                    const isExternal = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//');
+                    const isLocal = !isExternal && !src.startsWith('data:');
+                    
                     // Transform relative paths to /api/media/ for serving
-                    // Skip external URLs and already-transformed paths
-                    if (!src.startsWith('http://') && !src.startsWith('https://') && 
-                        !src.startsWith('//') && !src.startsWith('/api/media/') &&
-                        !src.startsWith('data:')) {
+                    if (isLocal && !src.startsWith('/api/media/')) {
                         // URL-encode path segments to handle spaces and special characters
                         const encodedPath = src.split('/').map(segment => {
                             try {
@@ -4132,25 +4135,42 @@ function noteApp() {
                     const altText = img.getAttribute('alt') || src.split('/').pop().replace(/\.[^/.]+$/, '');
                     const safeAlt = altText.replace(/"/g, '&quot;');
                     
-                    if (mediaType === 'audio') {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'media-embed media-audio';
-                        wrapper.innerHTML = `<audio controls preload="none" src="${src}" title="${safeAlt}"></audio><span class="media-caption">${safeAlt}</span>`;
-                        img.replaceWith(wrapper);
-                        return;
-                    } else if (mediaType === 'video') {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'media-embed media-video';
-                        wrapper.innerHTML = `<video controls preload="none" poster="" src="${src}" title="${safeAlt}"></video>`;
-                        img.replaceWith(wrapper);
-                        return;
-                    } else if (mediaType === 'document') {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'media-embed media-pdf';
-                        wrapper.innerHTML = `<iframe src="${src}" title="${safeAlt}" loading="lazy"></iframe>`;
-                        img.replaceWith(wrapper);
+                    // Only convert LOCAL media to embedded elements (security)
+                    // External non-image media gets styled links instead
+                    if (isLocal || src.startsWith('/api/media/')) {
+                        if (mediaType === 'audio') {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'media-embed media-audio';
+                            wrapper.innerHTML = `<audio controls preload="none" src="${src}" title="${safeAlt}"></audio><span class="media-caption">${safeAlt}</span>`;
+                            img.replaceWith(wrapper);
+                            return;
+                        } else if (mediaType === 'video') {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'media-embed media-video';
+                            wrapper.innerHTML = `<video controls preload="none" poster="" src="${src}" title="${safeAlt}"></video>`;
+                            img.replaceWith(wrapper);
+                            return;
+                        } else if (mediaType === 'document') {
+                            // Local PDFs: show iframe preview
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'media-embed media-pdf';
+                            wrapper.innerHTML = `<iframe src="${src}" title="${safeAlt}"></iframe>`;
+                            img.replaceWith(wrapper);
+                            return;
+                        }
+                    } else if (isExternal && mediaType === 'document') {
+                        // External PDFs: styled link (opens in new tab)
+                        const link = document.createElement('a');
+                        link.href = src;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.className = 'pdf-link';
+                        link.title = `Open ${safeAlt}`;
+                        link.innerHTML = `<span class="pdf-link-content">📄 ${safeAlt}</span><span class="pdf-link-note">Opens in new tab</span>`;
+                        img.replaceWith(link);
                         return;
                     }
+                    // External audio/video: leave as broken image for security
                 }
                 
                 // For regular images, set title attribute

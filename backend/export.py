@@ -211,8 +211,23 @@ def process_media_for_export(markdown_content: str, note_folder: Path, notes_dir
         alt_text = match.group(1)
         media_path = match.group(2)
         
-        # Skip external URLs and already-embedded base64
-        if media_path.startswith(('http://', 'https://', 'data:')):
+        # Handle external URLs
+        if media_path.startswith(('http://', 'https://')):
+            # Check if it's a PDF - generate styled external link
+            media_type = get_media_type(media_path)
+            if media_type == 'document':
+                display_name = alt_text or Path(media_path).stem
+                safe_name = display_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                safe_url = media_path.replace('"', '&quot;')
+                return f'''<a href="{safe_url}" target="_blank" rel="noopener noreferrer" style="display:flex;flex-direction:column;gap:0.25rem;padding:1rem 1.25rem;margin:1rem 0;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;color:var(--text-primary,#212529);text-decoration:none;">
+<span style="font-weight:600;">📄 {safe_name}</span>
+<span style="font-size:0.75rem;color:var(--text-secondary,#6c757d);">Opens in new tab</span>
+</a>'''
+            # Other external media: keep as-is (will show as broken image)
+            return match.group(0)
+        
+        # Skip already-embedded base64
+        if media_path.startswith('data:'):
             return match.group(0)
         
         # Skip empty paths (from failed wikilink conversion)
