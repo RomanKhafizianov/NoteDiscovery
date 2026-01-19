@@ -140,6 +140,28 @@ curl -X POST http://localhost:8000/api/upload-media \
 curl.exe -X POST http://localhost:8000/api/upload-media -F "file=@C:\path\to\video.mp4" -F "note_path=folder/mynote.md"
 ```
 
+### Move Media
+```http
+POST /api/media/move
+Content-Type: application/json
+
+{
+  "oldPath": "_attachments/image.png",
+  "newPath": "folder/_attachments/image.png"
+}
+```
+
+Move a media file to a different location. Supports drag & drop in the UI.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Media moved successfully",
+  "newPath": "folder/_attachments/image.png"
+}
+```
+
 **Notes:**
 - Media is stored in `_attachments` folders relative to the note's location
 - Filenames are automatically timestamped (e.g., `media-20240417093343.mp3`)

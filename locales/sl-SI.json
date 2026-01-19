@@ -203,7 +203,8 @@
 
   "move": {
     "failed_note": "Napaka pri premikanju zapisa.",
-    "failed_folder": "Napaka pri premikanju mape."
+    "failed_folder": "Napaka pri premikanju mape.",
+    "failed_media": "Napaka pri premikanju medijske datoteke."
   },
 
   "search": {

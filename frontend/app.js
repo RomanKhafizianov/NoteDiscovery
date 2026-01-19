@@ -196,8 +196,6 @@ function noteApp() {
         folderTree: [],
         allFolders: [],
         expandedFolders: new Set(),
-        draggedNote: null,
-        draggedFolder: null,
         dragOverFolder: null,  // Track which folder is being hovered during drag
         
         // Tags state
@@ -212,8 +210,8 @@ function noteApp() {
         // Scroll sync state
         isScrolling: false,
         
-        // Unified drag state
-        draggedItem: null,  // { path: string, type: 'note' | 'image' }
+        // Unified drag state for notes, folders, and media
+        draggedItem: null,  // { path: string, type: 'note' | 'folder' | 'image' | 'audio' | 'video' | 'document' }
         dropTarget: null,   // 'editor' | 'folder' | null
         
         // Undo/Redo history
@@ -444,7 +442,7 @@ function noteApp() {
             
             // ESC key to cancel drag operations
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && (this.draggedNote || this.draggedFolder || this.draggedItem)) {
+                if (e.key === 'Escape' && this.draggedItem) {
                     this.cancelDrag();
                 }
             });
@@ -1744,7 +1742,7 @@ function noteApp() {
             this.toggleFolder(el.dataset.path);
         },
         handleFolderDragStart(el, event) {
-            this.onFolderDragStart(el.dataset.path, event);
+            this.onItemDragStart(el.dataset.path, 'folder', event);
         },
         handleFolderDragOver(el, event) {
             event.preventDefault();
@@ -1779,7 +1777,7 @@ function noteApp() {
             this.openItem(el.dataset.path, el.dataset.type);
         },
         handleItemDragStart(el, event) {
-            this.onNoteDragStart(el.dataset.path, event);
+            this.onItemDragStart(el.dataset.path, el.dataset.type || 'note', event);
         },
         handleItemHover(el, isEnter) {
             const path = el.dataset.path;
@@ -1819,14 +1817,14 @@ function noteApp() {
                         data-name="${esc(folder.name)}"
                         draggable="true"
                         ondragstart="window.$root.handleFolderDragStart(this, event)"
-                        ondragend="window.$root.onFolderDragEnd()"
+                        ondragend="window.$root.onItemDragEnd()"
                         ondragover="window.$root.handleFolderDragOver(this, event)"
                         ondragenter="window.$root.handleFolderDragOver(this, event)"
                         ondragleave="window.$root.handleFolderDragLeave(this)"
                         ondrop="window.$root.handleFolderDrop(this, event)"
                         onclick="window.$root.handleFolderClick(this)"
-                        onmouseover="if(!window.$root.draggedNote && !window.$root.draggedFolder) this.style.backgroundColor='var(--bg-hover)'"
-                        onmouseout="if(!window.$root.draggedNote && !window.$root.draggedFolder) this.style.backgroundColor='transparent'"
+                        onmouseover="if(!window.$root.draggedItem) this.style.backgroundColor='var(--bg-hover)'"
+                        onmouseout="if(!window.$root.draggedItem) this.style.backgroundColor='transparent'"
                         class="folder-item px-2 py-1 text-sm relative"
                         style="color: var(--text-primary); cursor: pointer;"
                     >
@@ -1912,7 +1910,7 @@ function noteApp() {
                                 data-type="${note.type}"
                                 draggable="true"
                                 ondragstart="window.$root.handleItemDragStart(this, event)"
-                                ondragend="window.$root.onNoteDragEnd()"
+                                ondragend="window.$root.onItemDragEnd()"
                                 onclick="window.$root.handleItemClick(this)"
                                 class="note-item px-2 py-1 text-sm relative"
                                 style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isMediaFile ? 'opacity: 0.85;' : ''} cursor: pointer;"
@@ -2036,40 +2034,29 @@ function noteApp() {
             }, 200); // Increased delay to ensure Alpine has finished rendering
         },
         
-        // Drag and drop handlers
-        onNoteDragStart(notePath, event) {
-            // Check if this is a media file
-            const item = this.notes.find(n => n.path === notePath);
-            const isMediaFile = item && item.type !== 'note';
-            
+        // Unified drag and drop handlers for notes, folders, and media
+        onItemDragStart(itemPath, itemType, event) {
             // Set unified drag state
-            this.draggedItem = {
-                path: notePath,
-                type: item ? item.type : 'note'
-            };
+            this.draggedItem = { path: itemPath, type: itemType };
             
-            // For notes, also set legacy draggedNote for folder move logic
-            if (!isMediaFile) {
-                this.draggedNote = notePath;
-                // Make drag image semi-transparent
-                if (event.target) {
-                    event.target.style.opacity = '0.5';
-                }
+            // Make drag image semi-transparent
+            if (event.target) {
+                event.target.style.opacity = '0.5';
             }
             
             event.dataTransfer.effectAllowed = 'all';
         },
         
-        onNoteDragEnd() {
-            this.draggedNote = null;
+        onItemDragEnd() {
             this.draggedItem = null;
             this.dropTarget = null;
             this.dragOverFolder = null;
-            // Reset opacity of all note items
-            document.querySelectorAll('.note-item').forEach(el => el.style.opacity = '1');
-            // Reset drag-over class (more efficient than querying all folder items)
+            // Reset opacity of all draggable items
+            document.querySelectorAll('.note-item, .folder-header').forEach(el => el.style.opacity = '1');
+            // Reset drag-over class
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         },
+        
         
         // Handle dragover on editor to show cursor position
         onEditorDragOver(event) {
@@ -2518,28 +2505,9 @@ function noteApp() {
             }
         },
         
-        // Folder drag handlers
-        onFolderDragStart(folderPath, event) {
-            this.draggedFolder = folderPath;
-            // Make drag image semi-transparent
-            if (event && event.target) {
-                event.target.style.opacity = '0.5';
-            }
-        },
-        
-        onFolderDragEnd() {
-            this.draggedFolder = null;
-            this.dropTarget = null;
-            this.dragOverFolder = null;
-            // Reset styles - only query elements with drag-over class (more efficient)
-            document.querySelectorAll('.folder-item').forEach(el => el.style.opacity = '1');
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-        },
         
         cancelDrag() {
             // Cancel any active drag operation (triggered by ESC key)
-            this.draggedNote = null;
-            this.draggedFolder = null;
             this.draggedItem = null;
             this.dropTarget = null;
             this.dragOverFolder = null;
@@ -2555,124 +2523,62 @@ function noteApp() {
                 return;
             }
             
-            // IMPORTANT: Capture dragged item info immediately before async operations
-            // because ondragend may fire and clear these values
-            const draggedNotePath = this.draggedNote || (this.draggedItem?.type === 'note' ? this.draggedItem.path : null);
-            const draggedFolderPath = this.draggedFolder;
+            // Capture dragged item info immediately (ondragend may clear it)
+            if (!this.draggedItem) return;
+            const { path: draggedPath, type: draggedType } = this.draggedItem;
             
-            // Handle note drop into folder
-            if (draggedNotePath) {
-                const note = this.notes.find(n => n.path === draggedNotePath);
-                if (!note) return;
-                
-                // Don't allow moving images to folders
-                if (note.type === 'image') {
-                    return;
-                }
-                
-                // Get note filename
-                const filename = note.path.split('/').pop();
-                const newPath = targetFolderPath ? `${targetFolderPath}/${filename}` : filename;
-                
-                if (newPath === draggedNotePath) {
-                    return;
-                }
-                
-                // Check if this note is favorited BEFORE the async call
-                const wasFavorited = this.favoritesSet.has(draggedNotePath);
-                
-                try {
-                    const response = await fetch('/api/notes/move', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            oldPath: draggedNotePath,
-                            newPath: newPath
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        // Update favorites if the moved note was favorited
-                        if (wasFavorited) {
-                            // Update Array (create new array for reactivity)
-                            const newFavorites = this.favorites.map(f => f === draggedNotePath ? newPath : f);
-                            this.favorites = newFavorites;
-                            // Recreate Set from array for consistency
-                            this.favoritesSet = new Set(newFavorites);
-                            this.saveFavorites();
-                        }
-                        
-                        // Keep current note open if it was the moved note
-                        const wasCurrentNote = this.currentNote === draggedNotePath;
-                        
-                        await this.loadNotes();
-                        await this.loadSharedNotePaths(); // Refresh shared paths after move
-                        
-                        if (wasCurrentNote) {
-                            this.currentNote = newPath;
-                        }
-                    } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        alert(errorData.detail || this.t('move.failed_note'));
-                    }
-                } catch (error) {
-                    console.error('Failed to move note:', error);
-                    alert(this.t('move.failed_note'));
-                }
-                
-                return;
-            }
+            // Determine item category for endpoint selection
+            const isFolder = draggedType === 'folder';
+            const isNote = draggedType === 'note';
+            const isMedia = !isFolder && !isNote; // image, audio, video, document
             
-            // Handle folder drop into folder
-            if (draggedFolderPath) {
+            // Handle folder drop
+            if (isFolder) {
                 // Prevent dropping folder into itself or its subfolders
-                if (targetFolderPath === draggedFolderPath || 
-                    targetFolderPath.startsWith(draggedFolderPath + '/')) {
+                if (targetFolderPath === draggedPath || 
+                    targetFolderPath.startsWith(draggedPath + '/')) {
                     alert(this.t('folders.cannot_move_into_self'));
                     return;
                 }
                 
-                const folderName = draggedFolderPath.split('/').pop();
+                const folderName = draggedPath.split('/').pop();
                 const newPath = targetFolderPath ? `${targetFolderPath}/${folderName}` : folderName;
                 
-                if (newPath === draggedFolderPath) {
-                    return;
-                }
+                if (newPath === draggedPath) return;
                 
                 // Capture favorites info before async call
-                const oldPrefix = draggedFolderPath + '/';
+                const oldPrefix = draggedPath + '/';
                 const newPrefix = newPath + '/';
                 
                 try {
                     const response = await fetch('/api/folders/move', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            oldPath: draggedFolderPath,
-                            newPath: newPath
-                        })
+                        body: JSON.stringify({ oldPath: draggedPath, newPath })
                     });
                     
                     if (response.ok) {
-                        // Update favorites that were in the moved folder
-                        const newFavorites = this.favorites.map(f => {
-                            if (f.startsWith(oldPrefix)) {
-                                return f.replace(oldPrefix, newPrefix);
-                            }
-                            return f;
-                        });
-                        // Check if anything changed
-                        if (JSON.stringify(newFavorites) !== JSON.stringify(this.favorites)) {
+                        // Update favorites for notes inside moved folder
+                        const favoritesInFolder = this.favorites.filter(f => f.startsWith(oldPrefix));
+                        if (favoritesInFolder.length > 0) {
+                            const newFavorites = this.favorites.map(f => 
+                                f.startsWith(oldPrefix) ? newPrefix + f.substring(oldPrefix.length) : f
+                            );
                             this.favorites = newFavorites;
                             this.favoritesSet = new Set(newFavorites);
                             this.saveFavorites();
                         }
                         
+                        // Keep folder expanded if it was
+                        const wasExpanded = this.expandedFolders.has(draggedPath);
+                        
                         await this.loadNotes();
-                        await this.loadSharedNotePaths(); // Refresh shared paths after folder move
-                        // Update current note path if it was in the moved folder
-                        if (this.currentNote && this.currentNote.startsWith(oldPrefix)) {
-                            this.currentNote = this.currentNote.replace(oldPrefix, newPrefix);
+                        await this.loadSharedNotePaths();
+                        
+                        if (wasExpanded) {
+                            this.expandedFolders.delete(draggedPath);
+                            this.expandedFolders.add(newPath);
+                            this.saveExpandedFolders();
                         }
                     } else {
                         const errorData = await response.json().catch(() => ({}));
@@ -2682,9 +2588,62 @@ function noteApp() {
                     console.error('Failed to move folder:', error);
                     alert(this.t('move.failed_folder'));
                 }
-                this.dropTarget = null;
+                return;
+            }
+            
+            // Handle note or media drop into folder
+            const item = this.notes.find(n => n.path === draggedPath);
+            if (!item) return;
+            
+            const filename = draggedPath.split('/').pop();
+            const newPath = targetFolderPath ? `${targetFolderPath}/${filename}` : filename;
+            
+            if (newPath === draggedPath) return;
+            
+            // Check if note is favorited (only for notes)
+            const wasFavorited = isNote && this.favoritesSet.has(draggedPath);
+            
+            try {
+                // Use different endpoint for media vs notes
+                const endpoint = isMedia ? '/api/media/move' : '/api/notes/move';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldPath: draggedPath, newPath })
+                });
+                
+                if (response.ok) {
+                    // Update favorites if the moved note was favorited
+                    if (wasFavorited) {
+                        const newFavorites = this.favorites.map(f => f === draggedPath ? newPath : f);
+                        this.favorites = newFavorites;
+                        this.favoritesSet = new Set(newFavorites);
+                        this.saveFavorites();
+                    }
+                    
+                    // Keep current item open if it was the moved one
+                    const wasCurrentNote = this.currentNote === draggedPath;
+                    const wasCurrentMedia = this.currentMedia === draggedPath;
+                    
+                    await this.loadNotes();
+                    if (isNote) {
+                        await this.loadSharedNotePaths();
+                    }
+                    
+                    if (wasCurrentNote) this.currentNote = newPath;
+                    if (wasCurrentMedia) this.currentMedia = newPath;
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
+                    alert(errorData.detail || this.t(errorKey));
+                }
+            } catch (error) {
+                console.error(`Failed to move ${isMedia ? 'media' : 'note'}:`, error);
+                const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
+                alert(this.t(errorKey));
             }
         },
+        
         
         // Load a specific note
         async loadNote(notePath, updateHistory = true, searchQuery = '') {

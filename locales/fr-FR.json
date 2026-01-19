@@ -44,6 +44,7 @@
     "no_notes": "Pas encore de notes. Créez votre première note !",
     "no_notes_yet": "Pas encore de notes ni de dossiers.",
     "create_first": "Créez votre première note ou dossier !",
+    "drop_to_root": "Déposer ici pour la racine",
     "no_favorites": "Pas encore de favoris",
     "no_results": "Aucun résultat trouvé",
     "expand_all": "Développer tous les dossiers",
@@ -203,7 +204,8 @@
 
   "move": {
     "failed_note": "Échec du déplacement de la note.",
-    "failed_folder": "Échec du déplacement du dossier."
+    "failed_folder": "Échec du déplacement du dossier.",
+    "failed_media": "Échec du déplacement du fichier multimédia."
   },
 
   "search": {

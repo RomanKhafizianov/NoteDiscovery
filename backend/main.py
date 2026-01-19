@@ -584,6 +584,56 @@ async def upload_media(request: Request, file: UploadFile = File(...), note_path
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to upload file"))
 
 
+@api_router.post("/media/move", tags=["Media"])
+@limiter.limit("30/minute")
+async def move_media_endpoint(request: Request, data: dict):
+    """Move a media file to a different folder"""
+    try:
+        from backend.utils import ALL_MEDIA_EXTENSIONS
+        
+        old_path = data.get('oldPath', '')
+        new_path = data.get('newPath', '')
+        
+        if not old_path or not new_path:
+            raise HTTPException(status_code=400, detail="Both oldPath and newPath required")
+        
+        notes_dir = config['storage']['notes_dir']
+        old_full_path = Path(notes_dir) / old_path
+        new_full_path = Path(notes_dir) / new_path
+        
+        # Security: Validate paths are within notes directory
+        if not validate_path_security(notes_dir, old_full_path):
+            raise HTTPException(status_code=403, detail="Invalid source path")
+        if not validate_path_security(notes_dir, new_full_path):
+            raise HTTPException(status_code=403, detail="Invalid destination path")
+        
+        # Validate it's a media file
+        if old_full_path.suffix.lower() not in ALL_MEDIA_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Not a valid media file")
+        
+        # Check source exists
+        if not old_full_path.exists():
+            raise HTTPException(status_code=404, detail=f"Media file not found: {old_path}")
+        
+        # Check target doesn't exist
+        if new_full_path.exists():
+            raise HTTPException(status_code=409, detail=f"A file already exists at: {new_path}")
+        
+        # Create parent directory if needed
+        new_full_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Move the file
+        import shutil
+        shutil.move(str(old_full_path), str(new_full_path))
+        
+        return {"success": True, "message": "Media moved successfully", "newPath": new_path}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to move media file"))
+
+
 @api_router.post("/notes/move", tags=["Notes"])
 @limiter.limit("30/minute")
 async def move_note_endpoint(request: Request, data: dict):

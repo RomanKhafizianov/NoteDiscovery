@@ -203,7 +203,8 @@
 
   "move": {
     "failed_note": "Impossibile spostare la nota.",
-    "failed_folder": "Impossibile spostare la cartella."
+    "failed_folder": "Impossibile spostare la cartella.",
+    "failed_media": "Impossibile spostare il file multimediale."
   },
 
   "search": {

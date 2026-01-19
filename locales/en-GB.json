@@ -203,7 +203,8 @@
 
   "move": {
     "failed_note": "Failed to move note.",
-    "failed_folder": "Failed to move folder."
+    "failed_folder": "Failed to move folder.",
+    "failed_media": "Failed to move media file."
   },
 
   "search": {

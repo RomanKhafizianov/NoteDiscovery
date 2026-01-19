@@ -203,7 +203,8 @@
 
   "move": {
     "failed_note": "ノートの移動に失敗しました。",
-    "failed_folder": "フォルダの移動に失敗しました。"
+    "failed_folder": "フォルダの移動に失敗しました。",
+    "failed_media": "メディアファイルの移動に失敗しました。"
   },
 
   "search": {

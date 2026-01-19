@@ -512,34 +512,35 @@ def get_media_type(filename: str) -> Optional[str]:
 
 def get_all_images(notes_dir: str) -> List[Dict]:
     """
-    Get all media files (images, audio, video, documents) from attachments directories.
+    Get all media files (images, audio, video, documents) from anywhere in the notes directory.
     Returns list of media dictionaries with metadata.
     Note: Function name kept as 'get_all_images' for backward compatibility.
     """
     media_files = []
     notes_path = Path(notes_dir)
     
-    # Find all attachments directories
-    for attachments_dir in notes_path.rglob("_attachments"):
-        if not attachments_dir.is_dir():
+    # Find all media files recursively in the entire notes directory
+    for media_file in notes_path.rglob("*"):
+        # Skip directories and hidden files/folders
+        if media_file.is_dir():
+            continue
+        if any(part.startswith('.') for part in media_file.parts):
             continue
         
-        # Find all media files in this attachments directory
-        for media_file in attachments_dir.iterdir():
-            if media_file.is_file():
-                media_type = get_media_type(media_file.name)
-                if media_type:
-                    relative_path = media_file.relative_to(notes_path)
-                    stat = media_file.stat()
-                    
-                    media_files.append({
-                        "name": media_file.name,
-                        "path": str(relative_path.as_posix()),
-                        "folder": str(relative_path.parent.as_posix()),
-                        "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
-                        "size": stat.st_size,
-                        "type": media_type  # 'image', 'audio', 'video', or 'document'
-                    })
+        # Check if it's a media file
+        media_type = get_media_type(media_file.name)
+        if media_type:
+            relative_path = media_file.relative_to(notes_path)
+            stat = media_file.stat()
+            
+            media_files.append({
+                "name": media_file.name,
+                "path": str(relative_path.as_posix()),
+                "folder": str(relative_path.parent.as_posix()) if relative_path.parent != Path('.') else "",
+                "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                "size": stat.st_size,
+                "type": media_type  # 'image', 'audio', 'video', or 'document'
+            })
     
     return media_files
 

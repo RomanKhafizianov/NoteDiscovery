@@ -1503,24 +1503,24 @@
                             <div 
                                 class="text-xs px-2 py-1 mb-2 rounded transition-all font-medium text-center"
                                 :class="{
-                                    'border-2 border-dashed bg-accent-light': (draggedNote || draggedFolder) && dragOverFolder === '',
-                                    'border-2 border-dashed': (draggedNote || draggedFolder) && dragOverFolder !== '',
-                                    'border-2 border-transparent': !draggedNote && !draggedFolder
+                                    'border-2 border-dashed bg-accent-light': draggedItem && dragOverFolder === '',
+                                    'border-2 border-dashed': draggedItem && dragOverFolder !== '',
+                                    'border-2 border-transparent': !draggedItem
                                 }"
                                 :style="{
-                                    'color': (draggedNote || draggedFolder) ? (dragOverFolder === '' ? 'var(--accent-primary)' : 'var(--text-secondary)') : 'var(--text-tertiary)',
-                                    'opacity': (draggedNote || draggedFolder) ? '1' : '0.8',
-                                    'border-color': (draggedNote || draggedFolder) && dragOverFolder === '' ? 'var(--accent-primary)' : 'var(--border-secondary)',
+                                    'color': draggedItem ? (dragOverFolder === '' ? 'var(--accent-primary)' : 'var(--text-secondary)') : 'var(--text-tertiary)',
+                                    'opacity': draggedItem ? '1' : '0.8',
+                                    'border-color': draggedItem && dragOverFolder === '' ? 'var(--accent-primary)' : 'var(--border-secondary)',
                                     'background-color': dragOverFolder === '' ? 'var(--accent-light)' : ''
                                 }"
-                                @dragover.prevent="if(draggedNote || draggedFolder) dragOverFolder = '';"
-                                @dragenter.prevent="if(draggedNote || draggedFolder) dragOverFolder = '';"
-                                @dragleave="if(draggedNote || draggedFolder) dragOverFolder = null;"
-                                @drop="if(draggedNote || draggedFolder) onFolderDrop('')"
+                                @dragover.prevent="if(draggedItem) dragOverFolder = '';"
+                                @dragenter.prevent="if(draggedItem) dragOverFolder = '';"
+                                @dragleave="if(draggedItem) dragOverFolder = null;"
+                                @drop="if(draggedItem) onFolderDrop('')"
                                 style="height: 28px; line-height: 20px; display: flex; align-items: center; justify-content: center;"
                             >
-                                <span x-show="!draggedNote && !draggedFolder && !draggedItem" x-text="t('sidebar.drag_hint')"></span>
-                                <span x-show="draggedNote || draggedFolder" x-text="t('sidebar.root_folder')"></span>
+                                <span x-show="!draggedItem" x-text="t('sidebar.drag_hint')"></span>
+                                <span x-show="draggedItem" x-text="t('sidebar.root_folder')"></span>
                             </div>
                         </div>
                         
@@ -1533,11 +1533,11 @@
                         <template x-for="note in (folderTree.__root__ && folderTree.__root__.notes ? folderTree.__root__.notes : [])" :key="note.path">
                             <div 
                                 draggable="true"
-                                @dragstart="onNoteDragStart(note.path, $event)"
-                                @dragend="onNoteDragEnd()"
+                                @dragstart="onItemDragStart(note.path, note.type, $event)"
+                                @dragend="onItemDragEnd()"
                                 @click="openItem(note.path, note.type)"
                                 class="note-item px-2 py-1 text-sm relative"
-                                :style="((note.type !== 'note' ? currentMedia === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type !== 'note' ? ' opacity: 0.85;' : '') + (draggedNote || draggedFolder ? ' cursor: grabbing;' : ' cursor: pointer;')"
+                                :style="((note.type !== 'note' ? currentMedia === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type !== 'note' ? ' opacity: 0.85;' : '') + (draggedItem ? ' cursor: grabbing;' : ' cursor: pointer;')"
                                 @mouseover="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
                                 @mouseout="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='transparent'"
                             >
