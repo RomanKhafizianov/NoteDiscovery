@@ -194,16 +194,17 @@
     "error_incorrect_password": "Incorrect password. Please try again."
   },
 
-  "images": {
-    "confirm_delete": "Delete image \"{{name}}\"?",
-    "upload_failed": "Failed to upload image",
-    "no_valid_files": "No valid image files found. Supported formats: JPG, PNG, GIF, WEBP",
-    "formats": "Supports JPG, PNG, GIF, WebP (max 10MB)"
+  "media": {
+    "confirm_delete": "Delete \"{{name}}\"?",
+    "upload_failed": "Failed to upload file",
+    "no_valid_files": "No valid files found. Supported: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {
     "failed_note": "Failed to move note.",
-    "failed_folder": "Failed to move folder."
+    "failed_folder": "Failed to move folder.",
+    "failed_media": "Failed to move media file."
   },
 
   "search": {

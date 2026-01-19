@@ -194,16 +194,17 @@
     "error_incorrect_password": "パスワードが正しくありません。もう一度お試しください。"
   },
 
-  "images": {
-    "confirm_delete": "画像「{{name}}」を削除しますか？",
-    "upload_failed": "画像のアップロードに失敗しました",
-    "no_valid_files": "有効な画像ファイルが見つかりません。対応形式: JPG, PNG, GIF, WEBP",
-    "formats": "JPG, PNG, GIF, WebP対応（最大10MB）"
+  "media": {
+    "confirm_delete": "「{{name}}」を削除しますか？",
+    "upload_failed": "ファイルのアップロードに失敗しました",
+    "no_valid_files": "有効なファイルが見つかりません。対応: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {
     "failed_note": "ノートの移動に失敗しました。",
-    "failed_folder": "フォルダの移動に失敗しました。"
+    "failed_folder": "フォルダの移動に失敗しました。",
+    "failed_media": "メディアファイルの移動に失敗しました。"
   },
 
   "search": {

@@ -1,34 +1,57 @@
 """
 HTML Export Module for NoteDiscovery
 Generates standalone HTML files for notes with embedded images and styling.
-Used by both /api/export (download) and /public (sharing) endpoints.
+Used by both /api/export (download) and /share (public sharing) endpoints.
+
+Note: Only images are embedded as base64. Audio, video, and PDF files are
+replaced with placeholder HTML since they would make exports too large.
 """
 
 import base64
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 import mimetypes
 
+# Import shared media type definitions from utils to avoid duplication
+from backend.utils import MEDIA_EXTENSIONS, get_media_type
 
-def get_image_as_base64(image_path: Path) -> Optional[str]:
-    """Read an image file and return it as a base64 data URL."""
-    if not image_path.exists() or not image_path.is_file():
+
+def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:
+    """
+    Read a media file and return it as a base64 data URL.
+    Returns tuple of (base64_url, media_type) or None if failed.
+    """
+    if not media_path.exists() or not media_path.is_file():
         return None
     
     # Get MIME type
-    mime_type, _ = mimetypes.guess_type(str(image_path))
-    if not mime_type or not mime_type.startswith('image/'):
+    mime_type, _ = mimetypes.guess_type(str(media_path))
+    if not mime_type:
+        return None
+    
+    # Determine media type
+    media_type = get_media_type(media_path.name)
+    if not media_type:
         return None
     
     try:
-        with open(image_path, 'rb') as f:
-            image_data = f.read()
-        base64_data = base64.b64encode(image_data).decode('utf-8')
-        return f"data:{mime_type};base64,{base64_data}"
+        with open(media_path, 'rb') as f:
+            media_data = f.read()
+        base64_data = base64.b64encode(media_data).decode('utf-8')
+        return (f"data:{mime_type};base64,{base64_data}", media_type)
     except Exception as e:
-        print(f"Failed to read image {image_path}: {e}")
+        print(f"Failed to read media {media_path}: {e}")
         return None
+
+
+# Legacy alias for backward compatibility
+def get_image_as_base64(image_path: Path) -> Optional[str]:
+    """Read an image file and return it as a base64 data URL."""
+    result = get_media_as_base64(image_path)
+    if result and result[1] == 'image':
+        return result[0]
+    return None
 
 
 def strip_frontmatter(content: str) -> str:
@@ -57,22 +80,22 @@ def strip_frontmatter(content: str) -> str:
     return '\n'.join(lines[end_idx + 1:]).strip()
 
 
-def find_image_in_attachments(image_name: str, note_folder: Path, notes_dir: Path) -> Optional[Path]:
+def find_media_in_attachments(media_name: str, note_folder: Path, notes_dir: Path) -> Optional[Path]:
     """
-    Search for an image file in common attachment locations.
+    Search for a media file in common attachment locations.
     Returns the resolved path if found, None otherwise.
     """
-    # Common locations to search for images (fast path)
+    # Common locations to search for media (fast path)
     search_paths = [
-        note_folder / image_name,                          # Same folder as note
-        note_folder / '_attachments' / image_name,         # Note's _attachments folder
-        notes_dir / '_attachments' / image_name,           # Root _attachments folder
+        note_folder / media_name,                          # Same folder as note
+        note_folder / '_attachments' / media_name,         # Note's _attachments folder
+        notes_dir / '_attachments' / media_name,           # Root _attachments folder
     ]
     
     # Also search in parent folders' _attachments (for nested notes)
     current = note_folder
     while current != notes_dir and current.parent != current:
-        search_paths.append(current / '_attachments' / image_name)
+        search_paths.append(current / '_attachments' / media_name)
         current = current.parent
     
     for path in search_paths:
@@ -86,11 +109,11 @@ def find_image_in_attachments(image_name: str, note_folder: Path, notes_dir: Pat
                 continue
     
     # Fallback: search all _attachments folders recursively (slower but thorough)
-    # This handles cross-folder image references like in Obsidian
+    # This handles cross-folder media references like in Obsidian
     try:
         for attachment_folder in notes_dir.rglob('_attachments'):
             if attachment_folder.is_dir():
-                candidate = attachment_folder / image_name
+                candidate = attachment_folder / media_name
                 if candidate.exists() and candidate.is_file():
                     try:
                         candidate.resolve().relative_to(notes_dir.resolve())
@@ -103,63 +126,125 @@ def find_image_in_attachments(image_name: str, note_folder: Path, notes_dir: Pat
     return None
 
 
-def embed_images_as_base64(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
+# Legacy alias
+def find_image_in_attachments(image_name: str, note_folder: Path, notes_dir: Path) -> Optional[Path]:
+    return find_media_in_attachments(image_name, note_folder, notes_dir)
+
+
+def generate_media_placeholder(media_type: str, alt_text: str) -> str:
+    """Generate a placeholder for non-embeddable media (audio, video, PDF)."""
+    safe_alt = alt_text.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+    
+    icons = {'audio': '🎵', 'video': '🎬', 'document': '📄'}
+    labels = {'audio': 'Audio file', 'video': 'Video file', 'document': 'PDF document'}
+    icon = icons.get(media_type, '📎')
+    label = labels.get(media_type, 'Media file')
+    
+    return f'''<div style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;display:flex;align-items:center;gap:1rem;">
+<span style="font-size:2rem;">{icon}</span>
+<div>
+<div style="font-weight:600;color:var(--text-primary,#212529);">{safe_alt}</div>
+<div style="font-size:0.875rem;color:var(--text-secondary,#6c757d);">{label} — not available in exported view</div>
+</div>
+</div>'''
+
+
+def process_media_for_export(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
     """
-    Find all image references in markdown and embed them as base64.
+    Process all media references in markdown for standalone HTML export.
+    
     Handles:
     - Standard markdown images: ![alt](path)
-    - Wikilink images: ![[image.png]] or ![[image.png|alt text]]
+    - Wikilink media: ![[file.png]] or ![[file.mp3|alt text]]
+    
+    Behavior by media type:
+    - Images (jpg, png, gif, webp): Embedded as base64 data URLs
+    - Audio/Video/PDF: Replaced with styled placeholder HTML (not embedded - too large)
     """
     
-    # First, handle wikilink images: ![[image.png]] or ![[image.png|alt text]]
-    wikilink_img_pattern = r'!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]'
+    # First, handle wikilink media: ![[file.png]] or ![[file.mp3|alt text]]
+    wikilink_pattern = r'!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]'
     
-    def replace_wikilink_image(match):
-        image_name = match.group(1).strip()
-        alt_text = match.group(2).strip() if match.group(2) else image_name.split('/')[-1].rsplit('.', 1)[0]
+    def replace_wikilink_media(match):
+        media_name = match.group(1).strip()
+        alt_text = match.group(2).strip() if match.group(2) else media_name.split('/')[-1].rsplit('.', 1)[0]
         
-        # Find the image
-        resolved_path = find_image_in_attachments(image_name, note_folder, notes_dir)
+        # Check media type first
+        media_type = get_media_type(media_name)
+        
+        # For non-image media (audio, video, PDF), show placeholder without embedding
+        if media_type in ('audio', 'video', 'document'):
+            return generate_media_placeholder(media_type, alt_text)
+        
+        # For images, embed as base64
+        resolved_path = find_media_in_attachments(media_name, note_folder, notes_dir)
         
         if resolved_path:
             base64_url = get_image_as_base64(resolved_path)
             if base64_url:
                 return f'![{alt_text}]({base64_url})'
         
-        # Image not found, convert to placeholder
-        return f'![{alt_text}]()'
+        # Image not found
+        return f'<span style="color:var(--text-tertiary,#999);opacity:0.7;" title="Image not found">🖼️ {alt_text}</span>'
     
-    markdown_content = re.sub(wikilink_img_pattern, replace_wikilink_image, markdown_content)
+    markdown_content = re.sub(wikilink_pattern, replace_wikilink_media, markdown_content)
     
     # Then, handle standard markdown images: ![alt](path)
     img_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'
     
-    def replace_image(match):
+    def replace_media(match):
         alt_text = match.group(1)
-        img_path = match.group(2)
+        media_path = match.group(2)
         
-        # Skip external URLs and already-embedded base64
-        if img_path.startswith(('http://', 'https://', 'data:')):
+        # Handle external URLs
+        if media_path.startswith(('http://', 'https://')):
+            # Check if it's a PDF - generate styled external link
+            media_type = get_media_type(media_path)
+            if media_type == 'document':
+                display_name = alt_text or Path(media_path).stem
+                safe_name = display_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                safe_url = media_path.replace('"', '&quot;')
+                return f'''<a href="{safe_url}" target="_blank" rel="noopener noreferrer" style="display:flex;flex-direction:column;gap:0.25rem;padding:1rem 1.25rem;margin:1rem 0;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;color:var(--text-primary,#212529);text-decoration:none;">
+<span style="font-weight:600;">📄 {safe_name}</span>
+<span style="font-size:0.75rem;color:var(--text-secondary,#6c757d);">Opens in new tab</span>
+</a>'''
+            # Other external media: keep as-is (will show as broken image)
+            return match.group(0)
+        
+        # Skip already-embedded base64
+        if media_path.startswith('data:'):
             return match.group(0)
         
         # Skip empty paths (from failed wikilink conversion)
-        if not img_path:
+        if not media_path:
             return match.group(0)
         
-        # Handle /api/images/ paths (convert to filesystem paths)
-        if img_path.startswith('/api/images/'):
-            # Strip the /api/images/ prefix to get the relative path within notes_dir
-            relative_path = img_path[len('/api/images/'):]
+        # Check media type first
+        media_type = get_media_type(media_path)
+        display_alt = alt_text or Path(media_path).stem
+        
+        # For non-image media (audio, video, PDF), show placeholder without embedding
+        if media_type in ('audio', 'video', 'document'):
+            return generate_media_placeholder(media_type, display_alt)
+        
+        # For images, proceed with base64 embedding
+        # Handle /api/media/ or legacy /api/images/ paths (convert to filesystem paths)
+        if media_path.startswith('/api/media/'):
+            relative_path = media_path[len('/api/media/'):]
+            resolved_path = (notes_dir / relative_path).resolve()
+        elif media_path.startswith('/api/images/'):
+            # Legacy path support for backward compatibility
+            relative_path = media_path[len('/api/images/'):]
             resolved_path = (notes_dir / relative_path).resolve()
         else:
-            # Try to resolve the image path relative to note folder
-            resolved_path = (note_folder / img_path).resolve()
+            # Try to resolve the media path relative to note folder
+            resolved_path = (note_folder / media_path).resolve()
         
         # If not found, try the attachment search
         if not resolved_path.exists():
             # Extract just the filename and search
-            image_name = Path(img_path).name
-            resolved_path = find_image_in_attachments(image_name, note_folder, notes_dir)
+            media_name = Path(media_path).name
+            resolved_path = find_media_in_attachments(media_name, note_folder, notes_dir)
             if not resolved_path:
                 return match.group(0)  # Keep original if not found
         
@@ -170,17 +255,24 @@ def embed_images_as_base64(markdown_content: str, note_folder: Path, notes_dir: 
             # Path is outside notes_dir, skip
             return match.group(0)
         
-        # Get base64 data
+        # Get base64 data for image
         base64_url = get_image_as_base64(resolved_path)
         if base64_url:
-            return f'![{alt_text}]({base64_url})'
+            return f'![{display_alt}]({base64_url})'
         
         # Image not found, keep original
         return match.group(0)
     
-    markdown_content = re.sub(img_pattern, replace_image, markdown_content)
+    markdown_content = re.sub(img_pattern, replace_media, markdown_content)
     
     return markdown_content
+
+
+# Legacy alias for backward compatibility
+# Legacy alias for backward compatibility
+def embed_images_as_base64(markdown_content: str, note_folder: Path, notes_dir: Path) -> str:
+    """Alias for process_media_for_export (legacy name kept for compatibility)."""
+    return process_media_for_export(markdown_content, note_folder, notes_dir)
 
 
 def convert_wikilinks_to_html(markdown_content: str) -> str:

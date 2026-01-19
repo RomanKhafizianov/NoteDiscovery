@@ -81,66 +81,93 @@ Content-Type: application/json
 }
 ```
 
-## 🖼️ Images
+## 🎬 Media
 
-### Get Image
+### Get Media
 ```http
-GET /api/images/{image_path}
+GET /api/media/{media_path}
 ```
-Retrieve an image file with authentication protection.
+Retrieve a media file (image, audio, video, PDF) with authentication protection.
 
 **Example:**
 ```bash
-curl http://localhost:8000/api/images/folder/_attachments/image-20240417093343.png
+curl http://localhost:8000/api/media/folder/_attachments/image-20240417093343.png
 ```
 
 **Security Note:** This endpoint requires authentication and validates that:
-- The image path is within the notes directory (prevents directory traversal)
-- The file exists and is a valid image format
+- The media path is within the notes directory (prevents directory traversal)
+- The file exists and is a valid media format
 - The requesting user is authenticated (if auth is enabled)
 
-### Upload Image
+### Upload Media
 ```http
-POST /api/upload-image
+POST /api/upload-media
 Content-Type: multipart/form-data
 
-file: <image file>
+file: <media file>
 note_path: <path of note to attach to>
 ```
 
-Upload an image file to the `_attachments` directory. Images are automatically organized per-folder and named with timestamps to prevent conflicts.
+Upload a media file to the `_attachments` directory. Files are automatically organized per-folder and named with timestamps to prevent conflicts.
 
-**Supported formats:** JPG, JPEG, PNG, GIF, WEBP  
-**Maximum size:** 10MB
+**Supported formats & size limits:**
+| Type | Formats | Max Size |
+|------|---------|----------|
+| Images | JPG, PNG, GIF, WebP | 10 MB |
+| Audio | MP3, WAV, OGG, M4A | 50 MB |
+| Video | MP4, WebM, MOV, AVI | 100 MB |
+| Documents | PDF | 20 MB |
 
 **Response:**
 ```json
 {
   "success": true,
-  "path": "folder/_attachments/image-20240417093343.png",
-  "filename": "image-20240417093343.png",
-  "message": "Image uploaded successfully"
+  "path": "folder/_attachments/media-20240417093343.png",
+  "filename": "media-20240417093343.png",
+  "message": "Media uploaded successfully"
 }
 ```
 
 **Example (using curl):**
 ```bash
-curl -X POST http://localhost:8000/api/upload-image \
-  -F "file=@/path/to/image.png" \
+curl -X POST http://localhost:8000/api/upload-media \
+  -F "file=@/path/to/file.mp3" \
   -F "note_path=folder/mynote.md"
 ```
 
 **Windows PowerShell:**
 ```powershell
-curl.exe -X POST http://localhost:8000/api/upload-image -F "file=@C:\path\to\image.png" -F "note_path=folder/mynote.md"
+curl.exe -X POST http://localhost:8000/api/upload-media -F "file=@C:\path\to\video.mp4" -F "note_path=folder/mynote.md"
+```
+
+### Move Media
+```http
+POST /api/media/move
+Content-Type: application/json
+
+{
+  "oldPath": "_attachments/image.png",
+  "newPath": "folder/_attachments/image.png"
+}
+```
+
+Move a media file to a different location. Supports drag & drop in the UI.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Media moved successfully",
+  "newPath": "folder/_attachments/image.png"
+}
 ```
 
 **Notes:**
-- Images are stored in `_attachments` folders relative to the note's location
-- Filenames are automatically timestamped (e.g., `image-20240417093343.png`)
-- Images appear in the sidebar navigation and can be viewed/deleted directly
-- Drag & drop images into the editor automatically uploads and inserts markdown
-- All image access requires authentication when security is enabled
+- Media is stored in `_attachments` folders relative to the note's location
+- Filenames are automatically timestamped (e.g., `media-20240417093343.mp3`)
+- Media appears in the sidebar navigation and can be viewed/deleted directly
+- Drag & drop files into the editor automatically uploads and inserts markdown
+- All media access requires authentication when security is enabled
 
 ## 📁 Folders
 

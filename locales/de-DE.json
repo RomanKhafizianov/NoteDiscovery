@@ -44,6 +44,7 @@
     "no_notes": "Du hast noch keine Notizen. Erstelle deine erste!",
     "no_notes_yet": "Noch keine Notizen oder Ordner.",
     "create_first": "Erstelle deine erste Notiz oder Ordner!",
+    "drop_to_root": "Hier ablegen für Stammverzeichnis",
     "no_favorites": "Noch keine Favoriten",
     "no_results": "Keine Ergebnisse gefunden",
     "expand_all": "Alle Ordner aufklappen",
@@ -194,16 +195,17 @@
     "error_incorrect_password": "Falsches Passwort. Bitte versuche es erneut."
   },
 
-  "images": {
-    "confirm_delete": "Bild \"{{name}}\" löschen?",
-    "upload_failed": "Bild-Upload fehlgeschlagen",
-    "no_valid_files": "Keine gültigen Bilddateien gefunden. Unterstützte Formate: JPG, PNG, GIF, WEBP",
-    "formats": "Unterstützt JPG, PNG, GIF, WebP (max 10MB)"
+  "media": {
+    "confirm_delete": "\"{{name}}\" löschen?",
+    "upload_failed": "Datei-Upload fehlgeschlagen",
+    "no_valid_files": "Keine gültigen Dateien gefunden. Unterstützt: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {
     "failed_note": "Verschieben der Notiz fehlgeschlagen.",
-    "failed_folder": "Verschieben des Ordners fehlgeschlagen."
+    "failed_folder": "Verschieben des Ordners fehlgeschlagen.",
+    "failed_media": "Verschieben der Mediendatei fehlgeschlagen."
   },
 
   "search": {

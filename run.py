@@ -73,7 +73,8 @@ def main():
         "backend.main:app",
         "--reload",
         "--host", "0.0.0.0",
-        "--port", port
+        "--port", port,
+        "--timeout-graceful-shutdown", "2"
     ])
 
 if __name__ == "__main__":

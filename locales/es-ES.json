@@ -44,6 +44,7 @@
     "no_notes": "Aún no hay notas. ¡Crea tu primera nota!",
     "no_notes_yet": "Aún no hay notas ni carpetas.",
     "create_first": "¡Crea tu primera nota o carpeta!",
+    "drop_to_root": "Soltar aquí para raíz",
     "no_favorites": "Aún no hay favoritos",
     "no_results": "No se encontraron resultados",
     "expand_all": "Expandir todas las carpetas",
@@ -194,16 +195,17 @@
     "error_incorrect_password": "Contraseña incorrecta. Por favor, inténtalo de nuevo."
   },
 
-  "images": {
-    "confirm_delete": "¿Eliminar imagen \"{{name}}\"?",
-    "upload_failed": "Error al subir imagen",
-    "no_valid_files": "No se encontraron archivos de imagen válidos. Formatos soportados: JPG, PNG, GIF, WEBP",
-    "formats": "Soporta JPG, PNG, GIF, WebP (máx 10MB)"
+  "media": {
+    "confirm_delete": "¿Eliminar \"{{name}}\"?",
+    "upload_failed": "Error al subir archivo",
+    "no_valid_files": "No se encontraron archivos válidos. Soporta: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
+    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
 
   "move": {
     "failed_note": "Error al mover la nota.",
-    "failed_folder": "Error al mover la carpeta."
+    "failed_folder": "Error al mover la carpeta.",
+    "failed_media": "Error al mover el archivo multimedia."
   },
 
   "search": {
