@@ -116,12 +116,13 @@ if 'AUTHENTICATION_SECRET_KEY' in os.environ:
 tags_metadata = [
     {"name": "Notes", "description": "Create, read, update, delete notes"},
     {"name": "Folders", "description": "Folder management"},
-    {"name": "Images", "description": "Image viewing and uploads"},
+    {"name": "Media", "description": "Media files (images, audio, video, PDF)"},
     {"name": "Search", "description": "Full-text search"},
     {"name": "Sharing", "description": "Public note sharing via tokens"},
-    {"name": "Themes", "description": "UI theme management"},
-    {"name": "Templates", "description": "Note templates"},
     {"name": "Tags", "description": "Tag-based organization"},
+    {"name": "Templates", "description": "Note templates"},
+    {"name": "Themes", "description": "UI theme management"},
+    {"name": "Locales", "description": "Internationalization (i18n)"},
     {"name": "Graph", "description": "Note relationship graph"},
     {"name": "Plugins", "description": "Plugin management"},
     {"name": "System", "description": "Health checks and configuration"},
@@ -223,7 +224,7 @@ static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # PWA Service Worker - must be served from root for proper scope
-@app.get("/sw.js")
+@app.get("/sw.js", include_in_schema=False)
 @limiter.limit("30/minute")
 async def service_worker(request: Request):
     """Serve the PWA service worker from root path for proper scope.
@@ -305,7 +306,7 @@ def verify_password(password: str) -> bool:
 # Authentication Routes
 # ============================================================================
 
-@app.get("/login", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse, include_in_schema=False)
 async def login_page(request: Request, error: str = None):
     """Serve the login page"""
     if not auth_enabled():
@@ -327,7 +328,7 @@ async def login_page(request: Request, error: str = None):
     return content
 
 
-@app.post("/login")
+@app.post("/login", include_in_schema=False)
 async def login(request: Request, password: str = Form(...)):
     """Handle login form submission"""
     if not auth_enabled():
@@ -347,7 +348,7 @@ async def login(request: Request, password: str = Form(...)):
         return RedirectResponse(url="/login?error=incorrect_password", status_code=303)
 
 
-@app.get("/logout")
+@app.get("/logout", include_in_schema=False)
 async def logout(request: Request):
     """Log out the current user"""
     request.session.clear()
@@ -395,7 +396,7 @@ async def list_themes():
     return {"themes": themes}
 
 
-@app.get("/api/themes/{theme_id}") # Don't use the router here, as we want this route unsecured
+@app.get("/api/themes/{theme_id}", tags=["Themes"]) # Don't use the router here, as we want this route unsecured
 async def get_theme(theme_id: str):
     """Get CSS for a specific theme"""
     themes_dir = Path(__file__).parent.parent / "themes"
@@ -408,7 +409,7 @@ async def get_theme(theme_id: str):
 
 
 # Locales endpoints (unauthenticated - needed for login page and initial load)
-@app.get("/api/locales")
+@app.get("/api/locales", tags=["Locales"])
 async def get_available_locales():
     """Get list of available locales"""
     import json
@@ -433,7 +434,7 @@ async def get_available_locales():
     return {"locales": locales}
 
 
-@app.get("/api/locales/{locale_code}")
+@app.get("/api/locales/{locale_code}", tags=["Locales"])
 async def get_locale(locale_code: str):
     """Get translations for a specific locale"""
     import json
