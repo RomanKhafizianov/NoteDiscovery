@@ -466,7 +466,7 @@ function noteApp() {
             this.loadSyntaxHighlightSetting();
             
             // Parse URL and load specific note if provided
-            this.loadNoteFromURL();
+            this.loadItemFromURL();
             
             // Set initial homepage state ONLY if we're actually on the homepage
             if (window.location.pathname === '/') {
@@ -490,6 +490,9 @@ function noteApp() {
                         this.searchResults = [];
                         this.clearSearchHighlights();
                     }
+                } else if (e.state && e.state.mediaPath) {
+                    // Navigating to a media file
+                    this.viewMedia(e.state.mediaPath, null, false);
                 } else {
                     // Navigating back to homepage
                     this.currentNote = '';
@@ -1886,47 +1889,7 @@ function noteApp() {
                 // Then, render notes and images in this folder (after subfolders)
                 if (folder.notes && folder.notes.length > 0) {
                     folder.notes.forEach(note => {
-                        // Check if it's a media file or a note
-                        const isMediaFile = note.type !== 'note';
-                        const isCurrentNote = this.currentNote === note.path;
-                        const isCurrentMedia = this.currentMedia === note.path;
-                        const isCurrent = isMediaFile ? isCurrentMedia : isCurrentNote;
-                        
-                        // Icon based on media type, share icon for shared notes
-                        const isShared = !isMediaFile && this.isNoteShared(note.path);
-                        const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
-                        const icon = this.getMediaIcon(note.type);
-                        
-                        html += `
-                            <div 
-                                data-path="${esc(note.path)}"
-                                data-name="${esc(note.name)}"
-                                data-type="${note.type}"
-                                draggable="true"
-                                ondragstart="window.$root.onItemDragStart(this.dataset.path, this.dataset.type || 'note', event)"
-                                ondragend="window.$root.onItemDragEnd()"
-                                onclick="window.$root.handleItemClick(this)"
-                                class="note-item px-2 py-1 text-sm relative"
-                                style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isMediaFile ? 'opacity: 0.85;' : ''} cursor: pointer;"
-                                onmouseover="window.$root.handleItemHover(this, true)"
-                                onmouseout="window.$root.handleItemHover(this, false)"
-                            >
-                                <span class="truncate" style="display: block; padding-right: 30px;" title="${esc(note.name)}">${shareIcon}${icon}${icon ? ' ' : ''}${esc(note.name)}</span>
-                                <button 
-                                    data-path="${esc(note.path)}"
-                                    data-name="${esc(note.name)}"
-                                    data-type="${note.type}"
-                                    onclick="window.$root.handleDeleteItemClick(this, event)"
-                                    class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
-                                    style="opacity: 0; color: var(--error);"
-                                    title="${isMediaFile ? 'Delete file' : 'Delete note'}"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        `;
+                        html += this.renderNoteItem(note);
                     });
                 }
                 
@@ -1935,6 +1898,60 @@ function noteApp() {
             
             html += `</div>`; // Close folder wrapper
             return html;
+        },
+        
+        // Render a single note/media item (used by both folders and root level)
+        renderNoteItem(note) {
+            const esc = (s) => this.escapeHtmlAttr(s);
+            const isMediaFile = note.type !== 'note';
+            const isCurrentNote = this.currentNote === note.path;
+            const isCurrentMedia = this.currentMedia === note.path;
+            const isCurrent = isMediaFile ? isCurrentMedia : isCurrentNote;
+            
+            // Share icon for shared notes
+            const isShared = !isMediaFile && this.isNoteShared(note.path);
+            const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
+            const icon = this.getMediaIcon(note.type);
+            
+            return `
+                <div 
+                    data-path="${esc(note.path)}"
+                    data-name="${esc(note.name)}"
+                    data-type="${note.type}"
+                    draggable="true"
+                    ondragstart="window.$root.onItemDragStart(this.dataset.path, this.dataset.type || 'note', event)"
+                    ondragend="window.$root.onItemDragEnd()"
+                    onclick="window.$root.handleItemClick(this)"
+                    class="note-item px-2 py-1 text-sm relative"
+                    style="${isCurrent ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'} ${isMediaFile ? 'opacity: 0.85;' : ''} cursor: pointer;"
+                    onmouseover="window.$root.handleItemHover(this, true)"
+                    onmouseout="window.$root.handleItemHover(this, false)"
+                >
+                    <span class="truncate" style="display: block; padding-right: 30px;" title="${esc(note.name)}">${shareIcon}${icon}${icon ? ' ' : ''}${esc(note.name)}</span>
+                    <button 
+                        data-path="${esc(note.path)}"
+                        data-name="${esc(note.name)}"
+                        data-type="${note.type}"
+                        onclick="window.$root.handleDeleteItemClick(this, event)"
+                        class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
+                        style="opacity: 0; color: var(--error);"
+                        title="${isMediaFile ? 'Delete file' : 'Delete note'}"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        },
+        
+        // Render root-level items (notes and media not in any folder)
+        renderRootItems() {
+            const root = this.folderTree['__root__'];
+            if (!root || !root.notes || root.notes.length === 0) {
+                return '';
+            }
+            return root.notes.map(note => this.renderNoteItem(note)).join('');
         },
         
         // Toggle folder expansion
@@ -2362,6 +2379,9 @@ function noteApp() {
             const fileName = mediaPath.split('/').pop();
             document.title = `${fileName} - ${this.appName}`;
             
+            // Expand folder tree to show the media file
+            this.expandFolderForNote(mediaPath);
+            
             // Update browser URL
             if (updateHistory) {
                 // Encode each path segment to handle special characters
@@ -2752,9 +2772,9 @@ function noteApp() {
             }
         },
         
-        // Load note from URL path
-        loadNoteFromURL() {
-            // Get path from URL (e.g., /folder/note or /note)
+        // Load item (note or media) from URL path
+        loadItemFromURL() {
+            // Get path from URL (e.g., /folder/note or /folder/image.png)
             let path = window.location.pathname;
             
             // Strip .md extension if present (for MKdocs/Zensical integration)
@@ -2772,12 +2792,12 @@ function noteApp() {
             // Remove leading slash and decode URL encoding (e.g., %20 -> space)
             const decodedPath = decodeURIComponent(path.substring(1));
             
-            // Check if this is an image path (check if it exists in notes list as an image)
+            // Check if this is a media file (image, audio, video, PDF)
             const matchedItem = this.notes.find(n => n.path === decodedPath);
             
-            if (matchedItem && matchedItem.type === 'image') {
-                // It's an image, view it
-                this.viewImage(decodedPath, false); // false = don't update history (we're already at this URL)
+            if (matchedItem && matchedItem.type !== 'note') {
+                // It's a media file, view it
+                this.viewMedia(decodedPath, matchedItem.type, false); // false = don't update history
             } else {
                 // It's a note, add .md extension and load it
                 const notePath = decodedPath + '.md';

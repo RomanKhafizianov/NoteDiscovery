@@ -1529,35 +1529,8 @@
                             <div x-html="renderFolderRecursive(folder, 0, true)"></div>
                         </template>
                         
-                        <!-- Root notes and images (no folder) - shown after folders -->
-                        <template x-for="note in (folderTree.__root__ && folderTree.__root__.notes ? folderTree.__root__.notes : [])" :key="note.path">
-                            <div 
-                                draggable="true"
-                                @dragstart="onItemDragStart(note.path, note.type, $event)"
-                                @dragend="onItemDragEnd()"
-                                @click="openItem(note.path, note.type)"
-                                class="note-item px-2 py-1 text-sm relative"
-                                :style="((note.type !== 'note' ? currentMedia === note.path : currentNote === note.path) ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);') + (note.type !== 'note' ? ' opacity: 0.85;' : '') + (draggedItem ? ' cursor: grabbing;' : ' cursor: pointer;')"
-                                @mouseover="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='var(--bg-hover)'"
-                                @mouseout="if(currentNote !== note.path && currentMedia !== note.path) $el.style.backgroundColor='transparent'"
-                            >
-                                <span class="truncate" style="display: block; padding-right: 30px;" :title="note.name">
-                                    <span x-show="note.type === 'note' && isNoteShared(note.path)" style="opacity: 0.6; margin-right: 2px;" title="Shared">🔗</span>
-                                    <span x-text="getMediaIcon(note.type)"></span>
-                                    <span x-text="note.name"></span>
-                                </span>
-                                <button 
-                                    @click.stop="note.type !== 'note' ? deleteMedia(note.path) : deleteNote(note.path, note.name)"
-                                    class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
-                                    style="opacity: 0; color: var(--error);"
-                                    :title="note.type !== 'note' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </template>
+                        <!-- Root notes and images (no folder) - rendered via JS for consistency -->
+                        <div x-html="renderRootItems()"></div>
                         
                         <!-- Empty state -->
                         <template x-if="notes.length === 0 && allFolders.length === 0">
