@@ -193,6 +193,7 @@ app.add_middleware(
 # When DEMO_MODE=true, enables rate limiting and other demo protections
 # Add additional demo restrictions here as needed (e.g., disable certain features)
 DEMO_MODE = os.getenv('DEMO_MODE', 'false').lower() in ('true', '1', 'yes')
+ALREADY_DONATED = os.getenv('ALREADY_DONATED', 'false').lower() in ('true', '1', 'yes')
 
 if DEMO_MODE:
     # Enable rate limiting for demo deployments
@@ -382,6 +383,7 @@ async def get_config():
         "version": config['app']['version'],
         "searchEnabled": config['search']['enabled'],
         "demoMode": DEMO_MODE,  # Expose demo mode flag to frontend
+        "alreadyDonated": ALREADY_DONATED,  # Hide support buttons if true
         "authentication": {
             "enabled": config.get('authentication', {}).get('enabled', False)
         }

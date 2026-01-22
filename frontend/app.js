@@ -129,6 +129,7 @@ function noteApp() {
         appVersion: '0.0.0',
         authEnabled: false,
         demoMode: false,
+        alreadyDonated: false,
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -696,6 +697,7 @@ function noteApp() {
                 this.appVersion = config.version || '0.0.0';
                 this.authEnabled = config.authentication?.enabled || false;
                 this.demoMode = config.demoMode || false;
+                this.alreadyDonated = config.alreadyDonated || false;
             } catch (error) {
                 console.error('Failed to load config:', error);
             }
