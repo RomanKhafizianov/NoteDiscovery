@@ -213,7 +213,8 @@
     "matches": "{{current}} di {{total}}",
     "match_of": "Risultato {{current}} di {{total}}",
     "result_singular": "risultato",
-    "result_plural": "risultati"
+    "result_plural": "risultati",
+    "no_results": "Nessuna nota contiene \"{{query}}\""
   },
 
   "theme": {

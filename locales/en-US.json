@@ -214,7 +214,8 @@
     "matches": "{{current}} of {{total}}",
     "match_of": "Match {{current}} of {{total}}",
     "result_singular": "result",
-    "result_plural": "results"
+    "result_plural": "results",
+    "no_results": "No notes contain \"{{query}}\""
   },
 
   "theme": {

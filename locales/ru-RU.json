@@ -213,7 +213,8 @@
     "matches": "{{current}} из {{total}}",
     "match_of": "Результат {{current}} из {{total}}",
     "result_singular": "результат",
-    "result_plural": "результатов"
+    "result_plural": "результатов",
+    "no_results": "Нет заметок с \"{{query}}\""
   },
 
   "theme": {
