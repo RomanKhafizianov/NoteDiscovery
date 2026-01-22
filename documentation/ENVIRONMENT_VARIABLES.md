@@ -39,6 +39,16 @@ AUTHENTICATION_PASSWORD=mysecretpassword
 |----------|------|---------|-------------|
 | `DEMO_MODE` | boolean | `false` | Enable demo mode (enables rate limiting and other demo restrictions) |
 
+### Support
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ALREADY_DONATED` | boolean | `false` | Hides the support buttons in the Settings pane |
+
+> ⚠️ **Disclaimer:** No verification exists. But legend says that setting this to `true` without donating causes your next `git push` to fail silently. Just once. When it matters most.
+>
+> Haven't donated yet? [☕ Buy me a coffee](https://ko-fi.com/gamosoft) - it takes 30 seconds and makes my day!
+
 ## 🎯 Configuration Priority
 
 Configuration is loaded in this order (later overrides earlier):
