@@ -234,7 +234,9 @@
 
   "settings": {
     "account": "Račun",
-    "logout": "Odjava"
+    "logout": "Odjava",
+    "readable_line_length": "Berljiva dolžina vrstice",
+    "readable_line_length_desc": "Omejite širino predogleda za lažje branje"
   },
 
   "homepage": {

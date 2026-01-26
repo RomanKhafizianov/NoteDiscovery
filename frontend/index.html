@@ -170,6 +170,13 @@
             font-size: 16px;
         }
         
+        /* Readable line length - constrain text width for better readability */
+        .markdown-preview.readable-width {
+            max-width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
         /* Remove top margin from first element */
         .markdown-preview > *:first-child {
             margin-top: 0 !important;
@@ -1829,6 +1836,24 @@
                                     <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('syntax_highlight.description')"></p>
                                 </div>
                                 
+                                <!-- Readable Line Length Toggle -->
+                                <div class="mb-4">
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.readable_line_length')"></span>
+                                        <div 
+                                            @click="toggleReadableLineLength()"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            :style="readableLineLength ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
+                                        >
+                                            <div 
+                                                class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                                                :style="'background-color: var(--bg-primary);' + (readableLineLength ? ' transform: translateX(20px);' : '')"
+                                            ></div>
+                                        </div>
+                                    </label>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.readable_line_length_desc')"></p>
+                                </div>
+                                
                                 <!-- Logout (if auth enabled) - uses authEnabled from main app state -->
                                 <div x-show="authEnabled" class="mb-4">
                                     <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);" x-text="t('settings.account')"></label>
@@ -2576,7 +2601,7 @@
                             
                             <div 
                                 class="p-6 markdown-preview"
-                                :class="{ 'pt-2': getHasMetadata() && currentNote }"
+                                :class="{ 'pt-2': getHasMetadata() && currentNote, 'readable-width': readableLineLength }"
                                 x-html="renderedMarkdown"
                                 @click="handleInternalLink($event)"
                             ></div>

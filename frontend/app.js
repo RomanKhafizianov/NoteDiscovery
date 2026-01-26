@@ -11,6 +11,22 @@ const CONFIG = {
     DEFAULT_SIDEBAR_WIDTH: 256,        // px - Default sidebar width (w-64 in Tailwind)
 };
 
+// localStorage settings configuration - centralized definition of all persisted settings
+const LOCAL_SETTINGS = {
+    // Boolean settings
+    syntaxHighlightEnabled: { key: 'syntaxHighlightEnabled', type: 'boolean', default: false },
+    readableLineLength: { key: 'readableLineLength', type: 'boolean', default: true },
+    favoritesExpanded: { key: 'favoritesExpanded', type: 'boolean', default: true },
+    tagsExpanded: { key: 'tagsExpanded', type: 'boolean', default: false },
+    // Number settings with validation
+    sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
+    editorWidth: { key: 'editorWidth', type: 'number', default: 50, min: 20, max: 80 },
+    // String settings with validation
+    viewMode: { key: 'viewMode', type: 'string', default: 'split', valid: ['edit', 'split', 'preview'] },
+    // JSON settings
+    favorites: { key: 'noteFavorites', type: 'json', default: [] },
+};
+
 // Centralized error handling
 const ErrorHandler = {
     /**
@@ -189,6 +205,9 @@ function noteApp() {
         // Syntax highlighting
         syntaxHighlightEnabled: false,
         syntaxHighlightTimeout: null,
+        
+        // Readable line length (preview max-width)
+        readableLineLength: true,
         
         // Icon rail / panel state
         activePanel: 'files', // 'files', 'search', 'tags', 'settings'
@@ -458,13 +477,7 @@ function noteApp() {
             await this.loadSharedNotePaths();
             await this.loadTemplates();
             await this.checkStatsPlugin();
-            this.loadSidebarWidth();
-            this.loadEditorWidth();
-            this.loadViewMode();
-            this.loadTagsExpanded();
-            this.loadFavorites();
-            this.loadFavoritesExpanded();
-            this.loadSyntaxHighlightSetting();
+            this.loadLocalSettings();
             
             // Parse URL and load specific note if provided
             this.loadItemFromURL();
@@ -745,13 +758,51 @@ function noteApp() {
             }
         },
         
-        loadSyntaxHighlightSetting() {
-            try {
-                const saved = localStorage.getItem('syntaxHighlightEnabled');
-                this.syntaxHighlightEnabled = saved === 'true';
-            } catch (error) {
-                console.error('Error loading syntax highlight setting:', error);
+        // Load all localStorage settings at once using centralized config
+        loadLocalSettings() {
+            for (const [prop, config] of Object.entries(LOCAL_SETTINGS)) {
+                try {
+                    const saved = localStorage.getItem(config.key);
+                    
+                    if (saved === null) {
+                        // Use default value if not set
+                        this[prop] = config.default;
+                    } else if (config.type === 'boolean') {
+                        this[prop] = saved === 'true';
+                    } else if (config.type === 'number') {
+                        const num = parseFloat(saved);
+                        // Validate range if specified
+                        if (!isNaN(num) && 
+                            (config.min === undefined || num >= config.min) && 
+                            (config.max === undefined || num <= config.max)) {
+                            this[prop] = num;
+                        } else {
+                            this[prop] = config.default;
+                        }
+                    } else if (config.type === 'string') {
+                        // Validate against allowed values if specified
+                        if (!config.valid || config.valid.includes(saved)) {
+                            this[prop] = saved;
+                        } else {
+                            this[prop] = config.default;
+                        }
+                    } else if (config.type === 'json') {
+                        this[prop] = JSON.parse(saved);
+                    }
+                } catch (error) {
+                    console.error(`Error loading setting ${prop}:`, error);
+                    this[prop] = config.default;
+                }
             }
+            
+            // Special case: favorites also needs to update the Set for O(1) lookups
+            this.favoritesSet = new Set(this.favorites);
+        },
+        
+        // Readable line length toggle (for preview max-width)
+        toggleReadableLineLength() {
+            this.readableLineLength = !this.readableLineLength;
+            localStorage.setItem('readableLineLength', this.readableLineLength);
         },
         
         // Update syntax highlight overlay (debounced, called on input)
@@ -1439,20 +1490,6 @@ function noteApp() {
         
         // ==================== FAVORITES ====================
         
-        // Load favorites from localStorage
-        loadFavorites() {
-            try {
-                const stored = localStorage.getItem('noteFavorites');
-                if (stored) {
-                    this.favorites = JSON.parse(stored);
-                    this.favoritesSet = new Set(this.favorites);
-                }
-            } catch (e) {
-                this.favorites = [];
-                this.favoritesSet = new Set();
-            }
-        },
-        
         // Save favorites to localStorage
         saveFavorites() {
             try {
@@ -1501,17 +1538,6 @@ function noteApp() {
                     };
                 })
                 .filter(Boolean); // Remove nulls (deleted notes)
-        },
-        
-        loadFavoritesExpanded() {
-            try {
-                const saved = localStorage.getItem('favoritesExpanded');
-                if (saved !== null) {
-                    this.favoritesExpanded = saved === 'true';
-                }
-            } catch (e) {
-                console.error('Error loading favorites expanded state:', e);
-            }
         },
         
         saveFavoritesExpanded() {
@@ -4770,32 +4796,9 @@ function noteApp() {
             return Array.isArray(this.noteMetadata.tags) ? this.noteMetadata.tags : [this.noteMetadata.tags];
         },
         
-        // Load sidebar width from localStorage
-        loadSidebarWidth() {
-            const saved = localStorage.getItem('sidebarWidth');
-            if (saved) {
-                const width = parseInt(saved, 10);
-                if (width >= 200 && width <= 600) {
-                    this.sidebarWidth = width;
-                }
-            }
-        },
-        
         // Save sidebar width to localStorage
         saveSidebarWidth() {
             localStorage.setItem('sidebarWidth', this.sidebarWidth.toString());
-        },
-        
-        // Load view mode from localStorage
-        loadViewMode() {
-            try {
-                const saved = localStorage.getItem('viewMode');
-                if (saved && ['edit', 'split', 'preview'].includes(saved)) {
-                    this.viewMode = saved;
-                }
-            } catch (error) {
-                console.error('Error loading view mode:', error);
-            }
         },
         
         // Save view mode to localStorage
@@ -4804,17 +4807,6 @@ function noteApp() {
                 localStorage.setItem('viewMode', this.viewMode);
             } catch (error) {
                 console.error('Error saving view mode:', error);
-            }
-        },
-        
-        loadTagsExpanded() {
-            try {
-                const saved = localStorage.getItem('tagsExpanded');
-                if (saved !== null) {
-                    this.tagsExpanded = saved === 'true';
-                }
-            } catch (error) {
-                console.error('Error loading tags expanded state:', error);
             }
         },
         
@@ -4913,17 +4905,6 @@ function noteApp() {
             // Check initial state
             if (window.innerWidth <= MOBILE_BREAKPOINT && this.viewMode === 'split') {
                 this.viewMode = 'edit';
-            }
-        },
-        
-        // Load editor width from localStorage
-        loadEditorWidth() {
-            const saved = localStorage.getItem('editorWidth');
-            if (saved) {
-                const width = parseFloat(saved);
-                if (width >= 20 && width <= 80) {
-                    this.editorWidth = width;
-                }
             }
         },
         

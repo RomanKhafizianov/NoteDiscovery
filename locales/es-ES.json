@@ -235,7 +235,9 @@
 
   "settings": {
     "account": "Cuenta",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "readable_line_length": "Longitud de línea legible",
+    "readable_line_length_desc": "Limitar el ancho de vista previa para facilitar la lectura"
   },
 
   "homepage": {

@@ -235,7 +235,9 @@
 
   "settings": {
     "account": "Konto",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "readable_line_length": "Lesbare Zeilenlänge",
+    "readable_line_length_desc": "Vorschaubreite für bessere Lesbarkeit begrenzen"
   },
 
   "homepage": {

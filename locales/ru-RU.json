@@ -234,7 +234,9 @@
 
   "settings": {
     "account": "Аккаунт",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "readable_line_length": "Удобная длина строки",
+    "readable_line_length_desc": "Ограничить ширину предпросмотра для удобства чтения"
   },
 
   "homepage": {
