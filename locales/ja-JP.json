@@ -234,7 +234,9 @@
 
   "settings": {
     "account": "アカウント",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "readable_line_length": "読みやすい行幅",
+    "readable_line_length_desc": "プレビューの幅を制限して読みやすくする"
   },
 
   "homepage": {

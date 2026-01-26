@@ -235,7 +235,9 @@
 
   "settings": {
     "account": "Account",
-    "logout": "Logout"
+    "logout": "Logout",
+    "readable_line_length": "Readable line length",
+    "readable_line_length_desc": "Limit preview width for easier reading"
   },
 
   "homepage": {

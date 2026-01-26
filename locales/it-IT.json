@@ -234,7 +234,9 @@
 
   "settings": {
     "account": "Account",
-    "logout": "Esci"
+    "logout": "Esci",
+    "readable_line_length": "Larghezza riga leggibile",
+    "readable_line_length_desc": "Limita la larghezza dell'anteprima per una lettura più facile"
   },
 
   "homepage": {

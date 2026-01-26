@@ -234,7 +234,9 @@
 
   "settings": {
     "account": "账户",
-    "logout": "登出"
+    "logout": "登出",
+    "readable_line_length": "可读行宽",
+    "readable_line_length_desc": "限制预览宽度以便于阅读"
   },
 
   "homepage": {

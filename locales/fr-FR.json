@@ -235,7 +235,9 @@
 
   "settings": {
     "account": "Compte",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "readable_line_length": "Longueur de ligne lisible",
+    "readable_line_length_desc": "Limiter la largeur de l'aperçu pour une lecture plus facile"
   },
 
   "homepage": {
