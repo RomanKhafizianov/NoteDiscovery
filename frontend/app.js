@@ -860,8 +860,9 @@ function noteApp() {
             
             // Now apply other patterns (they won't match inside protected code)
             
-            // Headings
-            html = html.replace(/^(#{1,6})\s(.*)$/gm, '<span class="md-heading">$1 $2</span>');
+            // Headings - capture the whitespace to preserve exact characters (tabs vs spaces)
+            // This prevents cursor/selection misalignment
+            html = html.replace(/^(#{1,6})(\s)(.*)$/gm, '<span class="md-heading">$1$2$3</span>');
             
             // Bold (must come before italic)
             html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
@@ -877,16 +878,14 @@ function noteApp() {
             // Links [text](url)
             html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="md-link">[$1]</span><span class="md-link-url">($2)</span>');
             
-            // Lists - use [ \t] instead of \s to avoid matching newlines
-            // Capture rest of line to handle empty bullets properly (issue #142)
-            html = html.replace(/^(\s*)([-*+])[ \t](.*)$/gm, (match, indent, bullet, rest) => {
-                // If rest is empty/whitespace-only, add zero-width space to prevent line collapse
-                const content = rest.trim() === '' ? '\u200B' : rest;
-                return `${indent}<span class="md-list">${bullet}</span> ${content}`;
+            // Lists - use ([ \t]) to capture the space/tab and preserve exact characters
+            // IMPORTANT: Don't add any characters (like \u200B) that aren't in the original,
+            // as this breaks cursor/selection alignment between textarea and overlay
+            html = html.replace(/^(\s*)([-*+])([ \t])(.*)$/gm, (match, indent, bullet, space, rest) => {
+                return `${indent}<span class="md-list">${bullet}</span>${space}${rest}`;
             });
-            html = html.replace(/^(\s*)(\d+\.)[ \t](.*)$/gm, (match, indent, bullet, rest) => {
-                const content = rest.trim() === '' ? '\u200B' : rest;
-                return `${indent}<span class="md-list">${bullet}</span> ${content}`;
+            html = html.replace(/^(\s*)(\d+\.)([ \t])(.*)$/gm, (match, indent, bullet, space, rest) => {
+                return `${indent}<span class="md-list">${bullet}</span>${space}${rest}`;
             });
             
             // Blockquotes
