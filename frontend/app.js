@@ -1272,6 +1272,7 @@ function noteApp() {
                 // Reload notes and open the new note
                 await this.loadNotes();
                 await this.loadNote(data.path);
+                this.focusEditorForNewNote();
                 
             } catch (error) {
                 ErrorHandler.handle('create note from template', error);
@@ -3073,6 +3074,20 @@ function noteApp() {
         // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
         // =====================================================
         
+        // Switch to split view (if in preview-only mode) and focus editor for new notes
+        focusEditorForNewNote() {
+            // Only switch if in preview-only mode - don't disturb edit or split mode
+            if (this.viewMode === 'preview') {
+                this.viewMode = 'split';
+                this.saveViewMode();
+            }
+            // Focus the editor after a short delay to ensure DOM is updated
+            this.$nextTick(() => {
+                const editor = document.getElementById('note-editor');
+                if (editor) editor.focus();
+            });
+        },
+        
         async createNote(folderPath = null, directPath = null) {
             let notePath;
             
@@ -3138,6 +3153,7 @@ function noteApp() {
                     if (folderPart) this.expandedFolders.add(folderPart);
                     await this.loadNotes();
                     await this.loadNote(notePath);
+                    this.focusEditorForNewNote();
                 } else {
                     ErrorHandler.handle('create note', new Error('Server returned error'));
                 }
