@@ -7,7 +7,7 @@ Share notes publicly without requiring viewers to log in.
 1. Open a note you want to share
 2. Click the **Share** button in the toolbar
 3. Click **Create Share Link**
-4. Copy the generated URL and send it to anyone
+4. Copy the generated URL or click **Show QR Code** for easy mobile scanning
 
 The recipient can view the note in their browser - no account needed.
 
@@ -27,6 +27,7 @@ The old URL will immediately stop working.
 - **Code highlighting** - Syntax highlighting works in shared notes
 - **Copy button** - Code blocks have a copy-to-clipboard button
 - **MathJax & Mermaid** - Math equations and diagrams render correctly
+- **QR code** - Generate a QR code for easy mobile sharing
 - **No expiration** - Links work until you revoke them
 
 ## Visual Indicators
