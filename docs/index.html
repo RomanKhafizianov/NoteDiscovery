@@ -1053,12 +1053,17 @@
             const icon = document.getElementById('theme-icon');
             icon.textContent = newTheme === 'light' ? '🌙' : '☀️';
         }
+        
+        function getBrowserThemePreference() {
+            const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            return prefersDarkMode ? 'dark' : 'light';
+        }
 
         // Load saved theme on page load
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedTheme = localStorage.getItem('theme') || getBrowserThemePreference();
             document.documentElement.setAttribute('data-theme', savedTheme);
-            
+
             // Update icon
             const icon = document.getElementById('theme-icon');
             icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
