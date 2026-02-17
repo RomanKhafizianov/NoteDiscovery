@@ -92,7 +92,7 @@
     "already_exists": "A(z) \"{{name}}\" nevű mappa már létezik.\nKérlek válassz egy másik nevet.",
     "prompt_name": "Add meg a mappa nevét:",
     "prompt_name_in_folder": "Almappa létrehozása a \"{{folder}}\" mappában.\nAdd meg a mappa nevét:",
-    "prompt_name_with_path": "Új mappa létrehozása.\nAdd meg a mappa elérési útját (p.l. \"Projektek\" vagy \"Munka/2026\"):",
+    "prompt_name_with_path": "Új mappa létrehozása.\nAdd meg a mappa elérési útját (pl. \"Projektek\" vagy \"Munka/2026\"):",
     "prompt_rename": "Nevezd át a(z) \"{{name}}\" mappát:",
     "invalid_name": "Érvénytelen mappanév.",
     "cannot_move_into_self": "A mappa nem mozgatható saját magába vagy bármelyik almappájába.",
