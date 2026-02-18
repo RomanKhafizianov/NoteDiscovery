@@ -128,7 +128,7 @@
     "confirm_revoke": "Biztos leállítod a jegyzet a megosztását? A megosztási link többé nem fog működni.",
     "error_creating": "Hiba történt a megosztási link létrehozásánál: {{error}}",
     "error_revoking": "Nemsikerült visszavonni a megosztási linket: {{error}}",
-    "show_qr": "QR-Kód Megjelentítése",
+    "show_qr": "QR-Kód Megjelenítése",
     "hide_qr": "QR-Kód Elrejtése"
   },
 
