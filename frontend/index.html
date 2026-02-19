@@ -1499,19 +1499,23 @@
                         <div class="text-xs px-2 py-1 mb-2" style="color: var(--text-tertiary);">
                             <div class="flex items-center justify-between mb-1">
                                 <span x-text="t('sidebar.folders_and_notes')"></span>
-                                <div class="flex gap-1">
+                                <div class="flex gap-0.5">
                                     <button 
                                         @click="expandAllFolders()"
-                                        class="text-xs px-2 py-0.5 rounded hover:bg-opacity-20"
-                                        style="color: var(--text-secondary);"
+                                        class="text-xs px-1.5 py-0.5 rounded transition-all hover:scale-110"
                                         :title="t('sidebar.expand_all')"
-                                    >⊞</button>
+                                        style="opacity: 0.7;"
+                                        onmouseover="this.style.opacity='1'"
+                                        onmouseout="this.style.opacity='0.7'"
+                                    >📂</button>
                                     <button 
                                         @click="collapseAllFolders()"
-                                        class="text-xs px-2 py-0.5 rounded hover:bg-opacity-20"
-                                        style="color: var(--text-secondary);"
+                                        class="text-xs px-1.5 py-0.5 rounded transition-all hover:scale-110"
                                         :title="t('sidebar.collapse_all')"
-                                    >⊟</button>
+                                        style="opacity: 0.7;"
+                                        onmouseover="this.style.opacity='1'"
+                                        onmouseout="this.style.opacity='0.7'"
+                                    >📁</button>
                                 </div>
                             </div>
                             <!-- Dual-purpose: hint text OR root drop zone when dragging -->
