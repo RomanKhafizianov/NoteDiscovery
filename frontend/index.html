@@ -707,11 +707,14 @@
         /* Folder tree styling - compact Obsidian-like */
         .folder-item {
             user-select: none;
-            border-radius: 4px;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            margin-left: 2px;
         }
         
         .folder-item:hover {
             background-color: var(--bg-hover);
+            border-left-color: var(--accent-primary);
         }
         
         .folder-item.drag-over {
@@ -724,11 +727,51 @@
         }
         
         .note-item {
-            border-radius: 4px;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            margin-left: 2px;
         }
         
         .note-item:hover {
             background-color: var(--bg-hover);
+            border-left-color: var(--accent-primary);
+            transform: translateX(2px);
+        }
+        
+        /* Active/selected note styling */
+        .note-item.active,
+        .note-item[style*="accent-light"] {
+            border-left-color: var(--accent-primary) !important;
+            font-weight: 500;
+        }
+        
+        /* Shared hover accent effect for list items */
+        .hover-accent {
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            margin-left: 2px;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+        }
+        
+        .hover-accent:not(.active):hover {
+            background-color: var(--bg-hover);
+            border-left-color: var(--accent-primary);
+            transform: translateX(2px);
+        }
+        
+        .hover-accent.active {
+            border-left-color: var(--accent-primary);
+        }
+        
+        /* Tag chip - same effect but no margin */
+        .tag-chip {
+            border-left: 3px solid transparent;
+            transition: border-color 0.15s ease, transform 0.1s ease;
+        }
+        
+        .tag-chip:hover {
+            border-left-color: var(--accent-primary);
+            transform: translateX(2px);
         }
         
         /* Drag and drop improvements */
@@ -740,12 +783,13 @@
         .note-item[draggable="true"]:active,
         .folder-item[draggable="true"]:active {
             cursor: grabbing;
+            transform: scale(0.98);
         }
         
         /* Smooth transitions for drag states */
         .folder-item,
         .note-item {
-            transition: background-color 0.15s ease, border-color 0.15s ease;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
         }
         
         /* Better drop zone visibility */
@@ -1467,12 +1511,10 @@
                                 <template x-for="fav in favoriteNotes" :key="fav.path">
                                     <div 
                                         @click="loadNote(fav.path)"
-                                        class="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer group"
-                                        :class="{'bg-opacity-50': currentNote === fav.path}"
+                                        class="hover-accent flex items-center justify-between px-2 py-1.5 cursor-pointer group"
+                                        :class="{'active': currentNote === fav.path}"
                                         :style="currentNote === fav.path ? 'background-color: var(--accent-primary); color: white;' : 'color: var(--text-secondary);'"
                                         :title="fav.path"
-                                        @mouseenter="if (currentNote !== fav.path) $el.style.backgroundColor = 'var(--bg-hover)'"
-                                        @mouseleave="if (currentNote !== fav.path) $el.style.backgroundColor = 'transparent'"
                                     >
                                         <div class="flex items-center gap-1.5 min-w-0 flex-1">
                                             <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--warning, #eab308);" fill="currentColor" viewBox="0 0 24 24">
@@ -1624,10 +1666,9 @@
                                 <template x-for="note in searchResults" :key="note.path">
                                     <div 
                                         @click="openItem(note.path, note.type, searchQuery)"
-                                        class="px-2 py-1.5 text-sm cursor-pointer rounded mb-1"
+                                        class="hover-accent px-2 py-1.5 text-sm cursor-pointer mb-1"
+                                        :class="{'active': currentNote === note.path}"
                                         :style="currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
-                                        onmouseover="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='var(--bg-hover)'"
-                                        onmouseout="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='transparent'"
                                     >
                                         <div class="font-medium truncate" x-text="note.name" :title="note.name"></div>
                                         <div class="text-xs truncate" style="color: var(--text-tertiary);" x-html="(note.matches && note.matches.length > 0) ? note.matches[0].context : (note.folder || 'Root')" :title="note.folder || 'Root'"></div>
@@ -1687,7 +1728,7 @@
                                     <template x-for="[tag, count] in sortedTags" :key="tag">
                                         <button 
                                             @click="toggleTag(tag)"
-                                            class="px-2 py-1 text-xs rounded-full transition-all hover:brightness-110"
+                                            class="tag-chip px-2 py-1 text-xs rounded-full"
                                             :style="selectedTags.includes(tag) 
                                                 ? 'background-color: var(--accent-primary); color: white; font-weight: 600;'
                                                 : 'background-color: var(--bg-tertiary); color: var(--text-primary);'"
@@ -1720,10 +1761,9 @@
                                     <template x-for="note in searchResults" :key="note.path">
                                         <div 
                                             @click="openItem(note.path, note.type)"
-                                            class="px-3 py-1.5 text-sm cursor-pointer"
+                                            class="hover-accent px-3 py-1.5 text-sm cursor-pointer"
+                                            :class="{'active': currentNote === note.path}"
                                             :style="currentNote === note.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
-                                            onmouseover="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='var(--bg-hover)'"
-                                            onmouseout="if(this.style.backgroundColor !== 'var(--accent-light)') this.style.backgroundColor='transparent'"
                                         >
                                             <span class="truncate block" x-text="note.name" :title="note.name"></span>
                                         </div>
@@ -1754,10 +1794,8 @@
                                     <template x-for="(heading, index) in outline" :key="index">
                                         <button 
                                             @click="scrollToHeading(heading)"
-                                            class="w-full text-left px-3 py-1.5 text-sm transition-colors hover:brightness-110"
+                                            class="hover-accent w-full text-left px-3 py-1.5 text-sm"
                                             :style="`padding-left: ${(heading.level - 1) * 12 + 12}px; color: var(--text-primary);`"
-                                            onmouseover="this.style.backgroundColor='var(--bg-hover)'"
-                                            onmouseout="this.style.backgroundColor='transparent'"
                                         >
                                             <span 
                                                 class="block truncate"
