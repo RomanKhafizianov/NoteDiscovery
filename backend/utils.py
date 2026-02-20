@@ -40,7 +40,7 @@ def _scan_cache_get(key: Tuple[str, bool]) -> Optional[Tuple[List[Dict], List[st
         return value
 
 
-def _scan_cache_set(key: Tuple[str, str, bool], value: Tuple[List[Dict], List[str]]) -> None:
+def _scan_cache_set(key: Tuple[str, bool], value: Tuple[List[Dict], List[str]]) -> None:
     with _SCAN_WALK_CACHE_LOCK:
         _SCAN_WALK_CACHE[key] = (time.monotonic(), value)
 
