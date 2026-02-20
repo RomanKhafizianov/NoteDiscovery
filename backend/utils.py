@@ -130,7 +130,8 @@ def scan_notes_fast_walk(notes_dir: str, file_filter: Optional[str] = None, use_
                 continue
 
             folder = relative_path.parent.as_posix()
-
+            # Get tags for this note (cached)
+            tags = get_tags_cached(full_path)
             notes.append({
                 "name": full_path.stem,
                 "path": relative_path.as_posix(),
@@ -138,7 +139,7 @@ def scan_notes_fast_walk(notes_dir: str, file_filter: Optional[str] = None, use_
                 "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
                 "size": st.st_size,
                 "type": "note",
-                "tags": [],
+                "tags": tags,
             })
 
     value = (sorted(notes, key=lambda x: x.get('modified', ''), reverse=True), sorted(folders_set))
