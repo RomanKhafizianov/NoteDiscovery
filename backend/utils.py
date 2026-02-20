@@ -5,6 +5,8 @@ Utility functions for file operations, search, and markdown processing
 import os
 import re
 import shutil
+import threading
+import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
@@ -14,6 +16,33 @@ from datetime import datetime, timezone
 # Format: {file_path: (mtime, tags)}
 _tag_cache: Dict[str, Tuple[float, List[str]]] = {}
 
+# Notes tree scan cache (TTL).
+#
+# This avoids repeated full-directory walks when multiple endpoints (or the UI)
+# request indexes in quick succession.
+
+_SCAN_WALK_CACHE_LOCK = threading.Lock()
+_SCAN_WALK_CACHE_TTL_SECONDS = 1.0
+# key: (resolved_notes_dir, file_filter) -> (cached_at_monotonic_seconds, (notes, folders))
+_SCAN_WALK_CACHE: Dict[Tuple[str, str], Tuple[float, Tuple[List[Dict], List[str]]]] = {}
+
+
+def _scan_cache_get(key: Tuple[str, str]) -> Optional[Tuple[List[Dict], List[str]]]:
+    now = time.monotonic()
+    with _SCAN_WALK_CACHE_LOCK:
+        entry = _SCAN_WALK_CACHE.get(key)
+        if not entry:
+            return None
+        cached_at, value = entry
+        if (now - cached_at) > _SCAN_WALK_CACHE_TTL_SECONDS:
+            _SCAN_WALK_CACHE.pop(key, None)
+            return None
+        return value
+
+
+def _scan_cache_set(key: Tuple[str, str], value: Tuple[List[Dict], List[str]]) -> None:
+    with _SCAN_WALK_CACHE_LOCK:
+        _SCAN_WALK_CACHE[key] = (time.monotonic(), value)
 
 
 def validate_path_security(notes_dir: str, path: Path) -> bool:
@@ -68,6 +97,12 @@ def scan_notes_fast_walk(notes_dir: str, file_filter: Optional[str] = None, use_
     """
     notes_path = Path(notes_dir)
 
+    cache_key = (str(notes_path.resolve()), file_filter or '')
+    if use_cache:
+        cached = _scan_cache_get(cache_key)
+        if cached is not None:
+            return cached
+
     notes: List[Dict] = []
     folders_set = set()
 
@@ -106,7 +141,10 @@ def scan_notes_fast_walk(notes_dir: str, file_filter: Optional[str] = None, use_
                 "tags": [],
             })
 
-    return sorted(notes, key=lambda x: x.get('modified', ''), reverse=True), sorted(folders_set)
+    value = (sorted(notes, key=lambda x: x.get('modified', ''), reverse=True), sorted(folders_set))
+    if use_cache:
+        _scan_cache_set(cache_key, value)
+    return value
 
 def move_note(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
     """Move a note to a different location
