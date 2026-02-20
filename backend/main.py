@@ -899,7 +899,7 @@ async def create_note_from_template(request: Request, data: dict):
 async def list_notes():
     """List all notes with metadata"""
     try:
-        notes, folders = scan_notes_fast_walk(config['storage']['notes_dir'], "*.md")
+        notes, folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=True)
         return {"notes": notes, "folders": folders}
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to list notes"))
@@ -1021,7 +1021,7 @@ async def get_graph():
     try:
         import re
         import urllib.parse
-        notes, _folders = scan_notes_fast_walk(config['storage']['notes_dir'], "*.md")
+        notes, _folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
         nodes = []
         edges = []
         

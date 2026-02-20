@@ -111,7 +111,7 @@ def find_media_in_attachments(media_name: str, note_folder: Path, notes_dir: Pat
     # Fallback: search all _attachments folders recursively (slower but thorough)
     # This handles cross-folder media references like in Obsidian
     try:
-        _files, folders = scan_notes_fast_walk(str(notes_dir), "*")
+        _files, folders = scan_notes_fast_walk(str(notes_dir), include_media=False)
         for folder in folders:
             if folder == '_attachments' or folder.endswith('/_attachments'):
                 attachment_folder = notes_dir / folder
