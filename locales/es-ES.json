@@ -239,7 +239,9 @@
     "account": "Cuenta",
     "logout": "Cerrar sesión",
     "readable_line_length": "Longitud de línea legible",
-    "readable_line_length_desc": "Limitar el ancho de vista previa para facilitar la lectura"
+    "readable_line_length_desc": "Limitar el ancho de vista previa para facilitar la lectura",
+    "hide_underscore_folders": "Ocultar carpetas de sistema",
+    "hide_underscore_folders_desc": "Ocultar _attachments, _templates y otras carpetas con guion bajo"
   },
 
   "homepage": {

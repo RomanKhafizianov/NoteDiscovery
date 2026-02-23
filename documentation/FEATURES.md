@@ -31,6 +31,7 @@
 - **Alphabetical sorting** - Find notes quickly
 - **Rename anything** - Files and folders, instantly
 - **Visual tree view** - Expandable/collapsible navigation
+- **Hide system folders** - Toggle to hide `_attachments`, `_templates` and other underscore-prefixed folders from sidebar
 
 ## 🔗 Linking & Discovery
 

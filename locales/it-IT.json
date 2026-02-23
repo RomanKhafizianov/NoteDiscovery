@@ -238,7 +238,9 @@
     "account": "Account",
     "logout": "Esci",
     "readable_line_length": "Larghezza riga leggibile",
-    "readable_line_length_desc": "Limita la larghezza dell'anteprima per una lettura più facile"
+    "readable_line_length_desc": "Limita la larghezza dell'anteprima per una lettura più facile",
+    "hide_underscore_folders": "Nascondi cartelle di sistema",
+    "hide_underscore_folders_desc": "Nascondi _attachments, _templates e altre cartelle con underscore"
   },
 
   "homepage": {

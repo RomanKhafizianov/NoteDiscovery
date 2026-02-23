@@ -238,7 +238,9 @@
     "account": "Аккаунт",
     "logout": "Выйти",
     "readable_line_length": "Удобная длина строки",
-    "readable_line_length_desc": "Ограничить ширину предпросмотра для удобства чтения"
+    "readable_line_length_desc": "Ограничить ширину предпросмотра для удобства чтения",
+    "hide_underscore_folders": "Скрыть системные папки",
+    "hide_underscore_folders_desc": "Скрыть _attachments, _templates и другие папки с подчёркиванием"
   },
 
   "homepage": {

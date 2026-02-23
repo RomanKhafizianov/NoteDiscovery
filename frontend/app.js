@@ -18,6 +18,7 @@ const LOCAL_SETTINGS = {
     readableLineLength: { key: 'readableLineLength', type: 'boolean', default: true },
     favoritesExpanded: { key: 'favoritesExpanded', type: 'boolean', default: true },
     tagsExpanded: { key: 'tagsExpanded', type: 'boolean', default: false },
+    hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
     // Number settings with validation
     sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
     editorWidth: { key: 'editorWidth', type: 'number', default: 50, min: 20, max: 80 },
@@ -208,6 +209,9 @@ function noteApp() {
         
         // Readable line length (preview max-width)
         readableLineLength: true,
+        
+        // Hide underscore-prefixed folders (_attachments, _templates) from sidebar
+        hideUnderscoreFolders: false,
         
         // Icon rail / panel state
         activePanel: 'files', // 'files', 'search', 'tags', 'settings'
@@ -805,6 +809,12 @@ function noteApp() {
         toggleReadableLineLength() {
             this.readableLineLength = !this.readableLineLength;
             localStorage.setItem('readableLineLength', this.readableLineLength);
+        },
+        
+        // Hide underscore folders toggle (hides _attachments, _templates, etc. from sidebar)
+        toggleHideUnderscoreFolders() {
+            this.hideUnderscoreFolders = !this.hideUnderscoreFolders;
+            localStorage.setItem('hideUnderscoreFolders', this.hideUnderscoreFolders);
         },
         
         // Update syntax highlight overlay (debounced, called on input)
@@ -1852,9 +1862,7 @@ function noteApp() {
                         ondragleave="window.$root.handleFolderDragLeave(this)"
                         ondrop="window.$root.handleFolderDrop(this, event)"
                         onclick="window.$root.handleFolderClick(this)"
-                        onmouseover="if(!window.$root.draggedItem) this.style.backgroundColor='var(--bg-hover)'"
-                        onmouseout="if(!window.$root.draggedItem) this.style.backgroundColor='transparent'"
-                        class="folder-item px-2 py-1 text-sm relative"
+                        class="folder-item hover-accent px-2 py-1 text-sm relative"
                         style="color: var(--text-primary); cursor: pointer;"
                     >
                         <div class="flex items-center gap-1">
@@ -1909,9 +1917,9 @@ function noteApp() {
                 
                 // First, render child folders (if any)
                 if (folder.children && Object.keys(folder.children).length > 0) {
-                    const children = Object.entries(folder.children).sort((a, b) => 
-                        a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase())
-                    );
+                    const children = Object.entries(folder.children)
+                        .filter(([k, v]) => !this.hideUnderscoreFolders || !v.name.startsWith('_'))
+                        .sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()));
                     
                     children.forEach(([childKey, childFolder]) => {
                         html += this.renderFolderRecursive(childFolder, 0, false);

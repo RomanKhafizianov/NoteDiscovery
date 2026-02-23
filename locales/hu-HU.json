@@ -239,7 +239,9 @@
     "account": "Fiók",
     "logout": "Kijelentkezés",
     "readable_line_length": "Olvasható sorhossz",
-    "readable_line_length_desc": "Korlátozd az előnézeti szélességet a könnyebb olvasás érdekében"
+    "readable_line_length_desc": "Korlátozd az előnézeti szélességet a könnyebb olvasás érdekében",
+    "hide_underscore_folders": "Rendszermappák elrejtése",
+    "hide_underscore_folders_desc": "_attachments, _templates és más aláhúzásos mappák elrejtése"
   },
 
   "homepage": {

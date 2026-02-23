@@ -238,7 +238,9 @@
     "account": "アカウント",
     "logout": "ログアウト",
     "readable_line_length": "読みやすい行幅",
-    "readable_line_length_desc": "プレビューの幅を制限して読みやすくする"
+    "readable_line_length_desc": "プレビューの幅を制限して読みやすくする",
+    "hide_underscore_folders": "システムフォルダを非表示",
+    "hide_underscore_folders_desc": "_attachments、_templatesなどのフォルダをサイドバーから非表示"
   },
 
   "homepage": {

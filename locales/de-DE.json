@@ -239,7 +239,9 @@
     "account": "Konto",
     "logout": "Abmelden",
     "readable_line_length": "Lesbare Zeilenlänge",
-    "readable_line_length_desc": "Vorschaubreite für bessere Lesbarkeit begrenzen"
+    "readable_line_length_desc": "Vorschaubreite für bessere Lesbarkeit begrenzen",
+    "hide_underscore_folders": "Systemordner ausblenden",
+    "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden"
   },
 
   "homepage": {

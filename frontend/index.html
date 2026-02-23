@@ -763,6 +763,10 @@
             border-left-color: var(--accent-primary);
         }
         
+        .hover-accent.active:hover {
+            transform: translateX(2px);
+        }
+        
         /* Tag chip - same effect but no margin */
         .tag-chip {
             border-left: 3px solid transparent;
@@ -1586,7 +1590,7 @@
                         </div>
                         
                         <!-- Folders (rendered recursively for unlimited nesting) -->
-                        <template x-for="[folderKey, folder] in Object.entries(folderTree).filter(([k]) => k !== '__root__').sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()))" :key="folderKey">
+                        <template x-for="[folderKey, folder] in Object.entries(folderTree).filter(([k, v]) => k !== '__root__' && (!hideUnderscoreFolders || !v.name.startsWith('_'))).sort((a, b) => a[1].name.toLowerCase().localeCompare(b[1].name.toLowerCase()))" :key="folderKey">
                             <div x-html="renderFolderRecursive(folder, 0, true)"></div>
                         </template>
                         
@@ -1896,6 +1900,24 @@
                                         </div>
                                     </label>
                                     <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.readable_line_length_desc')"></p>
+                                </div>
+                                
+                                <!-- Hide Underscore Folders Toggle -->
+                                <div class="mb-4">
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.hide_underscore_folders')"></span>
+                                        <div 
+                                            @click="toggleHideUnderscoreFolders()"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            :style="hideUnderscoreFolders ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
+                                        >
+                                            <div 
+                                                class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                                                :style="'background-color: var(--bg-primary);' + (hideUnderscoreFolders ? ' transform: translateX(20px);' : '')"
+                                            ></div>
+                                        </div>
+                                    </label>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.hide_underscore_folders_desc')"></p>
                                 </div>
                                 
                                 <!-- Logout (if auth enabled) - uses authEnabled from main app state -->

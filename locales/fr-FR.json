@@ -239,7 +239,9 @@
     "account": "Compte",
     "logout": "Déconnexion",
     "readable_line_length": "Longueur de ligne lisible",
-    "readable_line_length_desc": "Limiter la largeur de l'aperçu pour une lecture plus facile"
+    "readable_line_length_desc": "Limiter la largeur de l'aperçu pour une lecture plus facile",
+    "hide_underscore_folders": "Masquer les dossiers système",
+    "hide_underscore_folders_desc": "Masquer _attachments, _templates et autres dossiers préfixés"
   },
 
   "homepage": {

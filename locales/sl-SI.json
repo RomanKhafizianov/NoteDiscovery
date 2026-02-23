@@ -238,7 +238,9 @@
     "account": "Račun",
     "logout": "Odjava",
     "readable_line_length": "Berljiva dolžina vrstice",
-    "readable_line_length_desc": "Omejite širino predogleda za lažje branje"
+    "readable_line_length_desc": "Omejite širino predogleda za lažje branje",
+    "hide_underscore_folders": "Skrij sistemske mape",
+    "hide_underscore_folders_desc": "Skrij _attachments, _templates in druge mape s podčrtajem"
   },
 
   "homepage": {
