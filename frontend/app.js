@@ -1104,10 +1104,12 @@ function noteApp() {
                 
                 // Handle media files separately - build media lookup map
                 if (note.type !== 'note') {
-                    // Map filename (case-insensitive) to full path
+                    // Map filename WITH extension (case-insensitive) to full path
+                    // Use path to get filename with extension (note.name is stem without extension)
+                    const filenameWithExt = path.split('/').pop().toLowerCase();
                     // First match wins if there are duplicates
-                    if (!this._mediaLookup.has(nameLower)) {
-                        this._mediaLookup.set(nameLower, path);
+                    if (!this._mediaLookup.has(filenameWithExt)) {
+                        this._mediaLookup.set(filenameWithExt, path);
                     }
                     continue;
                 }
