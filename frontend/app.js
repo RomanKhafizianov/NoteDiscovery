@@ -4145,6 +4145,11 @@ function noteApp() {
             // Parse markdown
             let html = marked.parse(contentToRender);
             
+            // Sanitize HTML to prevent XSS attacks
+            // DOMPurify defaults allow most HTML/SVG tags but strip scripts, iframes, and event handlers
+            // MathJax and Mermaid run AFTER this, so their elements don't need whitelisting
+            html = DOMPurify.sanitize(html);
+            
             // Post-process: Add target="_blank" to external links and title attributes to images
             // Parse as DOM to safely manipulate
             const tempDiv = document.createElement('div');
