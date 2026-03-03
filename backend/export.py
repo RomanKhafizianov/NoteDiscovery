@@ -341,6 +341,9 @@ def generate_export_html(
     <!-- Marked.js for markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     
+    <!-- DOMPurify for HTML sanitization (XSS prevention) -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+    
     <!-- MathJax for LaTeX math rendering -->
     <script>
         MathJax = {{
@@ -682,8 +685,11 @@ def generate_export_html(
         // Raw markdown content
         const markdown = `{escaped_content}`;
         
-        // Render markdown
-        document.getElementById('content').innerHTML = marked.parse(markdown);
+        // Render markdown with XSS sanitization
+        // DOMPurify strips scripts, iframes, and event handlers while allowing safe HTML/SVG
+        const rawHtml = marked.parse(markdown);
+        const safeHtml = DOMPurify.sanitize(rawHtml);
+        document.getElementById('content').innerHTML = safeHtml;
         
         // Add copy buttons to code blocks
         document.querySelectorAll('.markdown-preview pre').forEach(pre => {{
