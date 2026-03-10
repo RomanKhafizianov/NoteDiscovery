@@ -584,10 +584,17 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            word-break: normal; /* Ensure consistent word breaking */
             padding: 1.5rem;
             margin: 0;
             border: none;
             box-sizing: border-box;
+        }
+        /* Ensure spans in overlay don't affect word wrapping */
+        .syntax-overlay span {
+            word-break: inherit;
+            overflow-wrap: inherit;
+            white-space: inherit;
         }
         
         .editor-textarea {
@@ -619,16 +626,26 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            overflow: auto;
+            overflow-y: scroll; /* Force scrollbar space to match textarea */
+            overflow-x: hidden;
             color: var(--text-primary);
             background-color: var(--bg-primary);
             z-index: 0;
-            /* Hide scrollbars but allow programmatic scrolling */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
         }
+        /* Make overlay scrollbar invisible but still take up space */
         .syntax-overlay::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
+            width: 12px; /* Match textarea scrollbar width */
+            background: transparent;
+        }
+        .syntax-overlay::-webkit-scrollbar-thumb {
+            background: transparent;
+        }
+        /* Firefox: use overlay scrollbar (invisible but takes space) */
+        @supports (scrollbar-width: auto) {
+            .syntax-overlay {
+                scrollbar-width: thin;
+                scrollbar-color: transparent transparent;
+            }
         }
         
         /* Zen Mode Styles */
