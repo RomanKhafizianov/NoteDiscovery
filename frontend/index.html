@@ -584,24 +584,18 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow-wrap: break-word;
-            word-break: normal; /* Ensure consistent word breaking */
             padding: 1.5rem;
             margin: 0;
             border: none;
             box-sizing: border-box;
-        }
-        /* Ensure spans in overlay don't affect word wrapping */
-        .syntax-overlay span {
-            word-break: inherit;
-            overflow-wrap: inherit;
-            white-space: inherit;
         }
         
         .editor-textarea {
             background-color: var(--bg-primary) !important;
             color: var(--text-primary) !important;
             resize: none;
-            overflow: auto;
+            overflow-y: scroll; /* Always show scrollbar for consistent text width */
+            overflow-x: auto;
         }
         
         /* Syntax Highlighting Overlay */
@@ -626,24 +620,23 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            overflow-y: scroll; /* Force scrollbar space to match textarea */
+            overflow-y: scroll; /* Match textarea scrollbar space */
             overflow-x: hidden;
             color: var(--text-primary);
             background-color: var(--bg-primary);
             z-index: 0;
         }
-        /* Make overlay scrollbar invisible but still take up space */
+        /* Invisible scrollbar that takes same space as textarea */
         .syntax-overlay::-webkit-scrollbar {
-            width: 12px; /* Match textarea scrollbar width */
+            width: 12px;
             background: transparent;
         }
         .syntax-overlay::-webkit-scrollbar-thumb {
             background: transparent;
         }
-        /* Firefox: use overlay scrollbar (invisible but takes space) */
-        @supports (scrollbar-width: auto) {
+        /* Firefox */
+        @supports (scrollbar-color: auto) {
             .syntax-overlay {
-                scrollbar-width: thin;
                 scrollbar-color: transparent transparent;
             }
         }
