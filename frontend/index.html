@@ -594,7 +594,8 @@
             background-color: var(--bg-primary) !important;
             color: var(--text-primary) !important;
             resize: none;
-            overflow: auto;
+            overflow-y: scroll; /* Always show scrollbar for consistent text width */
+            overflow-x: auto;
         }
         
         /* Syntax Highlighting Overlay */
@@ -619,16 +620,30 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            overflow: auto;
+            overflow-y: scroll; /* Match textarea scrollbar space */
+            overflow-x: auto; /* Match textarea for horizontal scroll sync */
             color: var(--text-primary);
             background-color: var(--bg-primary);
             z-index: 0;
-            /* Hide scrollbars but allow programmatic scrolling */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
         }
+        /* Invisible scrollbar that takes EXACT same space as textarea */
         .syntax-overlay::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
+            width: 12px;
+            height: 12px;
+            background: transparent;
+        }
+        .syntax-overlay::-webkit-scrollbar-track {
+            background: var(--bg-tertiary); /* MUST match textarea track */
+        }
+        .syntax-overlay::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 6px;
+            border: 2px solid transparent; /* MUST match textarea's 2px border */
+        }
+        /* Firefox - MUST match textarea's scrollbar-width: thin */
+        .syntax-overlay {
+            scrollbar-width: thin;
+            scrollbar-color: transparent var(--bg-tertiary);
         }
         
         /* Zen Mode Styles */
