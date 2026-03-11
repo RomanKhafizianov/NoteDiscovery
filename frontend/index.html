@@ -626,19 +626,24 @@
             background-color: var(--bg-primary);
             z-index: 0;
         }
-        /* Invisible scrollbar that takes same space as textarea */
+        /* Invisible scrollbar that takes EXACT same space as textarea */
         .syntax-overlay::-webkit-scrollbar {
             width: 12px;
+            height: 12px;
             background: transparent;
+        }
+        .syntax-overlay::-webkit-scrollbar-track {
+            background: var(--bg-tertiary); /* MUST match textarea track */
         }
         .syntax-overlay::-webkit-scrollbar-thumb {
             background: transparent;
+            border-radius: 6px;
+            border: 2px solid transparent; /* MUST match textarea's 2px border */
         }
-        /* Firefox */
-        @supports (scrollbar-color: auto) {
-            .syntax-overlay {
-                scrollbar-color: transparent transparent;
-            }
+        /* Firefox - MUST match textarea's scrollbar-width: thin */
+        .syntax-overlay {
+            scrollbar-width: thin;
+            scrollbar-color: transparent var(--bg-tertiary);
         }
         
         /* Zen Mode Styles */
