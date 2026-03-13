@@ -536,8 +536,19 @@ async def get_available_locales():
 async def get_locale(locale_code: str):
     """Get translations for a specific locale"""
     import json
+    import re
+    
+    # Security: Validate locale_code to prevent path traversal
+    # Only allow alphanumeric, hyphens, and underscores (e.g., "en", "pt-BR", "zh_CN")
+    if not re.match(r'^[a-zA-Z0-9_-]+$', locale_code):
+        raise HTTPException(status_code=400, detail="Invalid locale code")
+    
     locales_dir = Path(__file__).parent.parent / "locales"
     locale_file = locales_dir / f"{locale_code}.json"
+    
+    # Security: Ensure resolved path is still within locales directory
+    if not locale_file.resolve().is_relative_to(locales_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid locale code")
     
     if not locale_file.exists():
         raise HTTPException(status_code=404, detail="Locale not found")

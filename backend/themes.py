@@ -73,7 +73,19 @@ def get_available_themes(themes_dir: str) -> List[Dict[str, str]]:
 
 def get_theme_css(themes_dir: str, theme_id: str) -> str:
     """Get the CSS content for a specific theme"""
-    theme_path = Path(themes_dir) / f"{theme_id}.css"
+    import re
+    
+    # Security: Validate theme_id to prevent path traversal
+    # Only allow alphanumeric, hyphens, and underscores
+    if not re.match(r'^[a-zA-Z0-9_-]+$', theme_id):
+        return ""
+    
+    themes_path = Path(themes_dir)
+    theme_path = themes_path / f"{theme_id}.css"
+    
+    # Security: Ensure resolved path is still within themes directory
+    if not theme_path.resolve().is_relative_to(themes_path.resolve()):
+        return ""
     
     if not theme_path.exists():
         return ""
