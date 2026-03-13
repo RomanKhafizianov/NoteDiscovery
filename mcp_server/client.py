@@ -189,6 +189,68 @@ class NoteDiscoveryClient:
         encoded_path = urllib.parse.quote(path, safe="")
         return self._request("DELETE", f"/api/notes/{encoded_path}")
     
+    def append_to_note(self, path: str, content: str, add_timestamp: bool = False) -> APIResponse:
+        """
+        Append content to an existing note.
+        
+        Args:
+            path: Note path
+            content: Content to append
+            add_timestamp: Whether to add a timestamp header
+            
+        Returns:
+            APIResponse with append result
+        """
+        encoded_path = urllib.parse.quote(path, safe="")
+        return self._request(
+            "PATCH",
+            f"/api/notes/{encoded_path}",
+            data={"content": content, "add_timestamp": add_timestamp}
+        )
+    
+    def move_note(self, old_path: str, new_path: str) -> APIResponse:
+        """
+        Move or rename a note.
+        
+        Args:
+            old_path: Current note path
+            new_path: New note path
+            
+        Returns:
+            APIResponse with move result
+        """
+        return self._request(
+            "POST",
+            "/api/notes/move",
+            data={"oldPath": old_path, "newPath": new_path}
+        )
+    
+    def create_note_from_template(
+        self,
+        template_name: str,
+        note_path: str,
+        variables: dict | None = None
+    ) -> APIResponse:
+        """
+        Create a note from a template.
+        
+        Args:
+            template_name: Name of the template
+            note_path: Path for the new note
+            variables: Variables to substitute in the template
+            
+        Returns:
+            APIResponse with creation result
+        """
+        data = {
+            "template": template_name,
+            "path": note_path,
+        }
+        if variables:
+            data["variables"] = variables
+        
+        return self._request("POST", "/api/templates/create-note", data=data)
+    
     # =========================================================================
     # Search API
     # =========================================================================

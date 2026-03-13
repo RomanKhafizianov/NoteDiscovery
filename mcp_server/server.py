@@ -450,6 +450,113 @@ class MCPServer:
         
         return f"Template: {name}\n---\n{content}"
     
+    def _tool_append_to_note(self, args: dict) -> str:
+        """Append content to an existing note."""
+        path = args.get("path", "")
+        content = args.get("content", "")
+        add_timestamp = args.get("add_timestamp", False)
+        
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
+        if not content:
+            return "Error: content is required"
+        
+        response = self.client.append_to_note(path, content, add_timestamp)
+        
+        if not response.success:
+            return f"Failed to append to note: {response.error}"
+        
+        return f"✅ Content appended to: {path}"
+    
+    def _tool_move_note(self, args: dict) -> str:
+        """Move or rename a note."""
+        old_path = args.get("old_path", "")
+        new_path = args.get("new_path", "")
+        
+        is_valid, error = self._validate_path(old_path)
+        if not is_valid:
+            return f"Error: old_path - {error}"
+        
+        is_valid, error = self._validate_path(new_path)
+        if not is_valid:
+            return f"Error: new_path - {error}"
+        
+        response = self.client.move_note(old_path, new_path)
+        
+        if not response.success:
+            return f"Failed to move note: {response.error}"
+        
+        return f"✅ Note moved: {old_path} → {new_path}"
+    
+    def _tool_get_recent_notes(self, args: dict) -> str:
+        """Get recently modified notes."""
+        days = args.get("days", 7)
+        limit = args.get("limit", 10)
+        
+        # Get all notes
+        response = self.client.list_notes()
+        
+        if not response.success:
+            return f"Failed to get notes: {response.error}"
+        
+        data = response.data or {}
+        notes = data.get("notes", [])
+        
+        if not notes:
+            return "No notes found."
+        
+        # Filter by date
+        from datetime import datetime, timedelta
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        recent_notes = []
+        for note in notes:
+            modified_str = note.get("modified", "")
+            if modified_str:
+                try:
+                    # Parse ISO format datetime
+                    modified = datetime.fromisoformat(modified_str.replace("Z", "+00:00"))
+                    if modified.replace(tzinfo=None) >= cutoff:
+                        recent_notes.append(note)
+                except (ValueError, TypeError):
+                    continue
+        
+        # Sort by modified date (most recent first) and limit
+        recent_notes.sort(key=lambda x: x.get("modified", ""), reverse=True)
+        recent_notes = recent_notes[:limit]
+        
+        if not recent_notes:
+            return f"No notes modified in the last {days} day(s)."
+        
+        output = [f"📅 Notes modified in the last {days} day(s) (showing {len(recent_notes)}):\n"]
+        for note in recent_notes:
+            path = note.get("path", "unknown")
+            modified = note.get("modified", "")[:10]  # Just the date part
+            output.append(f"  📝 {path} (modified: {modified})")
+        
+        return "\n".join(output)
+    
+    def _tool_create_note_from_template(self, args: dict) -> str:
+        """Create a note from a template."""
+        template_name = args.get("template_name", "")
+        note_path = args.get("note_path", "")
+        variables = args.get("variables", {})
+        
+        if not template_name:
+            return "Error: template_name is required"
+        
+        is_valid, error = self._validate_path(note_path)
+        if not is_valid:
+            return f"Error: note_path - {error}"
+        
+        response = self.client.create_note_from_template(template_name, note_path, variables)
+        
+        if not response.success:
+            return f"Failed to create note from template: {response.error}"
+        
+        return f"✅ Note created from template '{template_name}': {note_path}"
+    
     def _tool_health_check(self, args: dict) -> str:
         """Check server health."""
         response = self.client.health_check()

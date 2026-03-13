@@ -10,6 +10,9 @@ MCP (Model Context Protocol) is an open standard that allows AI assistants to se
 - 📖 **Read** note contents
 - 🏷️ **Browse** by tags
 - 📝 **Create** new notes
+- ✏️ **Append** to existing notes (journals, logs)
+- 📂 **Organize** notes (move, rename, folders)
+- 📋 **Use templates** to create structured notes
 - 🔗 **Explore** the knowledge graph
 
 ## Quick Setup
@@ -114,6 +117,7 @@ The MCP server provides these tools to AI assistants:
 | `search_notes` | Full-text search across all notes |
 | `list_notes` | List all notes with metadata |
 | `get_note` | Read a specific note's content |
+| `get_recent_notes` | Get recently modified notes (last N days) |
 
 ### Organization
 
@@ -128,6 +132,8 @@ The MCP server provides these tools to AI assistants:
 | Tool | Description |
 |------|-------------|
 | `create_note` | Create or update a note |
+| `append_to_note` | Append content to an existing note (great for journals/logs) |
+| `move_note` | Move or rename a note |
 | `delete_note` | Delete a note |
 | `create_folder` | Create a new folder |
 
@@ -137,12 +143,69 @@ The MCP server provides these tools to AI assistants:
 |------|-------------|
 | `list_templates` | List available templates |
 | `get_template` | Get template content |
+| `create_note_from_template` | Create a note from a template with variable substitution |
 
 ### System
 
 | Tool | Description |
 |------|-------------|
 | `health_check` | Verify server connectivity |
+
+## Tool Details
+
+### `append_to_note`
+
+Append content to an existing note without overwriting. Perfect for journals, logs, or collecting ideas.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | Yes | Path to existing note |
+| `content` | string | Yes | Content to append |
+| `add_timestamp` | boolean | No | Add timestamp header before content |
+
+**Example prompt:** "Add this meeting summary to my daily-journal.md with a timestamp"
+
+---
+
+### `move_note`
+
+Move or rename a note to a different location.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `old_path` | string | Yes | Current note path |
+| `new_path` | string | Yes | New path (can include folder) |
+
+**Example prompt:** "Move draft.md to published/final-article.md"
+
+---
+
+### `get_recent_notes`
+
+Get recently modified notes. Useful for context about what you've been working on.
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `days` | integer | No | 7 | Notes modified in last N days |
+| `limit` | integer | No | 10 | Max notes to return |
+
+**Example prompt:** "What was I working on this week?"
+
+---
+
+### `create_note_from_template`
+
+Create a new note from a template with variable substitution.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `template_name` | string | Yes | Template name (e.g., "meeting-notes") |
+| `note_path` | string | Yes | Path for the new note |
+| `variables` | object | No | Variables to substitute (e.g., `{"project": "Alpha"}`) |
+
+**Built-in placeholders:** `{{date}}`, `{{time}}`, `{{datetime}}`, `{{title}}`, `{{folder}}`
+
+**Example prompt:** "Create a new meeting note for Project Alpha using the meeting-notes template"
 
 ## Usage Examples
 
@@ -165,6 +228,24 @@ Once configured, you can interact with your notes naturally:
 > **AI:** *Uses `get_notes_by_tag` to find them*
 > 
 > "You have 7 notes with the #project tag..."
+
+> **User:** "Add this to my daily journal with a timestamp"
+> 
+> **AI:** *Uses `append_to_note` with `add_timestamp: true`*
+> 
+> "Done! I've appended your entry to 'daily-journal.md' with today's timestamp."
+
+> **User:** "What was I working on last week?"
+> 
+> **AI:** *Uses `get_recent_notes` with `days: 7`*
+> 
+> "You modified 5 notes in the last week: project-roadmap.md, meeting-notes.md..."
+
+> **User:** "Create a meeting note for the design review using my template"
+> 
+> **AI:** *Uses `create_note_from_template` with the meeting-notes template*
+> 
+> "Created 'meetings/design-review-2024-03-13.md' from your meeting-notes template."
 
 ## Authentication
 

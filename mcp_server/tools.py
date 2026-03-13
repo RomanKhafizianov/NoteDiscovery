@@ -139,6 +139,86 @@ TOOLS: list[dict[str, Any]] = [
             "required": ["path"]
         }
     },
+    {
+        "name": "append_to_note",
+        "description": "Append content to an existing note without overwriting. Perfect for journals, logs, meeting notes, or collecting ideas incrementally.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to the existing note"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Content to append to the note"
+                },
+                "add_timestamp": {
+                    "type": "boolean",
+                    "description": "Whether to add a timestamp header before the appended content (default: false)"
+                }
+            },
+            "required": ["path", "content"]
+        }
+    },
+    {
+        "name": "move_note",
+        "description": "Move or rename a note to a different path. Use this to reorganize notes or rename them.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "old_path": {
+                    "type": "string",
+                    "description": "Current path of the note"
+                },
+                "new_path": {
+                    "type": "string",
+                    "description": "New path for the note (can be in a different folder)"
+                }
+            },
+            "required": ["old_path", "new_path"]
+        }
+    },
+    {
+        "name": "get_recent_notes",
+        "description": "Get recently modified notes. Useful for finding what you were working on recently.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer",
+                    "description": "Get notes modified in the last N days (default: 7)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of notes to return (default: 10)"
+                }
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "create_note_from_template",
+        "description": "Create a new note from a template with variable substitution. Variables in the template like {{variable_name}} will be replaced.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "template_name": {
+                    "type": "string",
+                    "description": "Name of the template to use (e.g., 'meeting-notes', 'daily-journal')"
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": "Path for the new note (e.g., 'meetings/2024-03-13.md')"
+                },
+                "variables": {
+                    "type": "object",
+                    "description": "Variables to substitute in the template (e.g., {\"project\": \"Alpha\", \"date\": \"2024-03-13\"})"
+                }
+            },
+            "required": ["template_name", "note_path"]
+        }
+    },
     
     # =========================================================================
     # Templates
