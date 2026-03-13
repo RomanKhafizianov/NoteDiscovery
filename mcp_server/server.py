@@ -164,6 +164,35 @@ class MCPServer:
     # Tool Implementations
     # =========================================================================
     
+    def _validate_path(self, path: str) -> tuple[bool, str]:
+        """
+        Validate a path for safety.
+        
+        Args:
+            path: The path to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not path:
+            return False, "path is required"
+        
+        # Reject path traversal attempts
+        if ".." in path:
+            return False, "path cannot contain '..'"
+        
+        # Reject absolute paths (Unix and Windows)
+        if path.startswith("/") or path.startswith("\\"):
+            return False, "path cannot be absolute"
+        if len(path) >= 2 and path[1] == ":":  # Windows drive letter (e.g., C:)
+            return False, "path cannot be absolute"
+        
+        # Reject null bytes (security)
+        if "\x00" in path:
+            return False, "path contains invalid characters"
+        
+        return True, ""
+    
     def _format_response(self, response: APIResponse) -> str:
         """Format API response as readable text."""
         if not response.success:
@@ -242,8 +271,9 @@ class MCPServer:
     def _tool_get_note(self, args: dict) -> str:
         """Get note content."""
         path = args.get("path", "")
-        if not path:
-            return "Error: path is required"
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
         
         response = self.client.get_note(path)
         
@@ -341,8 +371,9 @@ class MCPServer:
         path = args.get("path", "")
         content = args.get("content", "")
         
-        if not path:
-            return "Error: path is required"
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
         if not content:
             return "Error: content is required"
         
@@ -356,8 +387,9 @@ class MCPServer:
     def _tool_delete_note(self, args: dict) -> str:
         """Delete a note."""
         path = args.get("path", "")
-        if not path:
-            return "Error: path is required"
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
         
         response = self.client.delete_note(path)
         
@@ -369,8 +401,9 @@ class MCPServer:
     def _tool_create_folder(self, args: dict) -> str:
         """Create a folder."""
         path = args.get("path", "")
-        if not path:
-            return "Error: path is required"
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
         
         response = self.client.create_folder(path)
         
@@ -402,8 +435,10 @@ class MCPServer:
     def _tool_get_template(self, args: dict) -> str:
         """Get template content."""
         name = args.get("name", "")
-        if not name:
-            return "Error: name is required"
+        # Validate template name (same rules as paths for safety)
+        is_valid, error = self._validate_path(name)
+        if not is_valid:
+            return f"Error: {error.replace('path', 'name')}"
         
         response = self.client.get_template(name)
         
@@ -450,10 +485,22 @@ class MCPServer:
                 # Notifications don't get responses
             
             elif method == "tools/list":
+                if not self._initialized:
+                    self._send_response(
+                        request_id,
+                        error=self._error(-32002, "Server not initialized")
+                    )
+                    return
                 result = self.handle_list_tools(params)
                 self._send_response(request_id, result)
             
             elif method == "tools/call":
+                if not self._initialized:
+                    self._send_response(
+                        request_id,
+                        error=self._error(-32002, "Server not initialized")
+                    )
+                    return
                 result = self.handle_call_tool(params)
                 self._send_response(request_id, result)
             

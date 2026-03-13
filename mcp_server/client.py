@@ -6,6 +6,7 @@ with proper error handling, retries, and timeout management.
 """
 
 import json
+import time
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -82,7 +83,7 @@ class NoteDiscoveryClient:
             method=method,
         )
         
-        # Execute with retries
+        # Execute with retries and exponential backoff
         last_error = None
         for attempt in range(self.config.max_retries):
             try:
@@ -94,7 +95,7 @@ class NoteDiscoveryClient:
                         status_code=response.status,
                     )
             except urllib.error.HTTPError as e:
-                # HTTP error (4xx, 5xx)
+                # HTTP error (4xx, 5xx) - don't retry, return immediately
                 error_body = ""
                 try:
                     error_body = e.read().decode("utf-8")
@@ -109,11 +110,16 @@ class NoteDiscoveryClient:
                     status_code=e.code,
                 )
             except urllib.error.URLError as e:
-                # Network error - retry
+                # Network error - retry with backoff
                 last_error = f"Connection error: {e.reason}"
+                if attempt < self.config.max_retries - 1:
+                    time.sleep(2 ** attempt * 0.1)  # 0.1s, 0.2s, 0.4s...
                 continue
             except TimeoutError:
+                # Timeout - retry with backoff
                 last_error = f"Request timed out after {self.timeout}s"
+                if attempt < self.config.max_retries - 1:
+                    time.sleep(2 ** attempt * 0.1)  # 0.1s, 0.2s, 0.4s...
                 continue
             except json.JSONDecodeError as e:
                 return APIResponse(
