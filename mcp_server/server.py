@@ -346,15 +346,15 @@ class MCPServer:
         
         data = response.data or {}
         nodes = data.get("nodes", [])
-        links = data.get("links", [])
+        edges = data.get("edges", [])
         
-        output = [f"Knowledge Graph: {len(nodes)} nodes, {len(links)} connections\n"]
+        output = [f"Knowledge Graph: {len(nodes)} nodes, {len(edges)} connections\n"]
         
         # Find most connected notes
         connection_count: dict[str, int] = {}
-        for link in links:
-            source = link.get("source", "")
-            target = link.get("target", "")
+        for edge in edges:
+            source = edge.get("source", "")
+            target = edge.get("target", "")
             connection_count[source] = connection_count.get(source, 0) + 1
             connection_count[target] = connection_count.get(target, 0) + 1
         
