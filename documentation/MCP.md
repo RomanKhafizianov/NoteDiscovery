@@ -114,8 +114,8 @@ The MCP server provides these tools to AI assistants:
 
 | Tool | Description |
 |------|-------------|
-| `search_notes` | Full-text search across all notes |
-| `list_notes` | List all notes with metadata |
+| `search_notes` | Full-text search across all notes (supports `max_results`) |
+| `list_notes` | List all notes with metadata (supports `max_results`) |
 | `get_note` | Read a specific note's content |
 | `get_recent_notes` | Get recently modified notes (last N days) |
 
@@ -124,7 +124,7 @@ The MCP server provides these tools to AI assistants:
 | Tool | Description |
 |------|-------------|
 | `list_tags` | List all tags with note counts |
-| `get_notes_by_tag` | Find notes with a specific tag |
+| `get_notes_by_tag` | Find notes with a specific tag (supports `max_results`) |
 | `get_graph` | Get knowledge graph data |
 
 ### Note Management
@@ -152,6 +152,25 @@ The MCP server provides these tools to AI assistants:
 | `health_check` | Verify server connectivity |
 
 ## Tool Details
+
+### Pagination with `max_results` and `offset`
+
+Some tools support optional pagination parameters for large vaults:
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `search_notes` | `max_results`, `offset` | Paginate search results |
+| `list_notes` | `max_results`, `offset` | Paginate notes list |
+| `get_notes_by_tag` | `max_results`, `offset` | Paginate notes by tag |
+
+- `max_results` - Maximum items to return (omit for all)
+- `offset` - Number of items to skip (for pagination)
+
+**Example prompts:**
+- "Search for notes about Python, but just show me the first 5 results"
+- "Show me the next 5 Python notes" (uses offset)
+
+---
 
 ### `append_to_note`
 

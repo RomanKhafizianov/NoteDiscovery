@@ -8,6 +8,7 @@ This implementation uses only Python stdlib for minimal dependencies.
 """
 
 import json
+import re
 import sys
 import traceback
 from typing import Any, Optional
@@ -206,39 +207,62 @@ class MCPServer:
     
     def _tool_search_notes(self, args: dict) -> str:
         """Search notes by query."""
-        query = args.get("query", "")
-        if not query:
-            return "Error: query is required"
+        query = args.get("query", "").strip()
+        max_results = args.get("max_results")
+        offset = args.get("offset", 0)
         
-        response = self.client.search(query)
+        if not query:
+            return "No search term provided. Please specify a query."
+        
+        # Use server-side pagination if max_results is specified
+        response = self.client.search(query, limit=max_results, offset=offset)
         
         if not response.success:
             return f"Search failed: {response.error}"
         
         data = response.data or {}
         results = data.get("results", [])
+        pagination = data.get("pagination")
         
         if not results:
             return f"No notes found matching '{query}'"
         
+        # Build header with pagination info if available
+        if pagination:
+            total = pagination.get("total", len(results))
+            output = [f"Found {total} result(s) for '{query}' (showing {len(results)}):\n"]
+        else:
+            output = [f"Found {len(results)} result(s) for '{query}':\n"]
+        
         # Format search results
-        output = [f"Found {len(results)} result(s) for '{query}':\n"]
-        for i, result in enumerate(results[:20], 1):  # Limit to 20 results
+        for i, result in enumerate(results, 1):
             path = result.get("path", "unknown")
-            snippet = result.get("snippet", "")
+            matches = result.get("matches", [])
             output.append(f"{i}. **{path}**")
-            if snippet:
-                output.append(f"   {snippet[:200]}...")
+            
+            # Show snippets with line numbers
+            for match in matches[:2]:  # Limit to 2 snippets per note
+                line_num = match.get("line_number", "?")
+                context = match.get("context", "")
+                # Strip HTML tags for cleaner AI output
+                clean_context = re.sub(r'<[^>]+>', '', context)
+                if clean_context:
+                    output.append(f"   Line {line_num}: {clean_context[:150]}")
             output.append("")
         
-        if len(results) > 20:
-            output.append(f"... and {len(results) - 20} more results")
+        # Add pagination hint if there are more results
+        if pagination and pagination.get("has_more"):
+            output.append(f"... more results available (use max_results and offset to paginate)")
         
         return "\n".join(output)
     
     def _tool_list_notes(self, args: dict) -> str:
         """List all notes."""
-        response = self.client.list_notes()
+        max_results = args.get("max_results")
+        offset = args.get("offset", 0)
+        
+        # Use server-side pagination if max_results is specified
+        response = self.client.list_notes(limit=max_results, offset=offset)
         
         if not response.success:
             return f"Failed to list notes: {response.error}"
@@ -246,8 +270,14 @@ class MCPServer:
         data = response.data or {}
         notes = data.get("notes", [])
         folders = data.get("folders", [])
+        pagination = data.get("pagination")
         
-        output = [f"Found {len(notes)} note(s) in {len(folders)} folder(s):\n"]
+        # Build header with pagination info if available
+        if pagination:
+            total = pagination.get("total", len(notes))
+            output = [f"Found {total} note(s) in {len(folders)} folder(s) (showing {len(notes)}):\n"]
+        else:
+            output = [f"Found {len(notes)} note(s) in {len(folders)} folder(s):\n"]
         
         # Group notes by folder
         notes_by_folder: dict[str, list] = {}
@@ -265,6 +295,10 @@ class MCPServer:
                 modified = note.get("modified", "")
                 output.append(f"   📝 {name} (modified: {modified})")
             output.append("")
+        
+        # Add pagination hint if there are more results
+        if pagination and pagination.get("has_more"):
+            output.append(f"... more notes available (use max_results to limit)")
         
         return "\n".join(output)
     
@@ -316,25 +350,40 @@ class MCPServer:
     def _tool_get_notes_by_tag(self, args: dict) -> str:
         """Get notes with a specific tag."""
         tag = args.get("tag", "")
+        max_results = args.get("max_results")
+        offset = args.get("offset", 0)
+        
         if not tag:
             return "Error: tag is required"
-        
-        response = self.client.get_notes_by_tag(tag)
-        
+
+        # Use server-side pagination if max_results is specified
+        response = self.client.get_notes_by_tag(tag, limit=max_results, offset=offset)
+
         if not response.success:
             return f"Failed to get notes by tag: {response.error}"
-        
+
         data = response.data or {}
         notes = data.get("notes", [])
-        
+        count = data.get("count", len(notes))
+        pagination = data.get("pagination")
+
         if not notes:
             return f"No notes found with tag '#{tag}'"
+
+        # Build header with pagination info if available
+        if pagination:
+            output = [f"Notes with tag #{tag} ({count} total, showing {len(notes)}):\n"]
+        else:
+            output = [f"Notes with tag #{tag} ({count} total):\n"]
         
-        output = [f"Notes with tag #{tag}:\n"]
         for note in notes:
             path = note.get("path", "unknown")
             output.append(f"  📝 {path}")
-        
+
+        # Add pagination hint if there are more results
+        if pagination and pagination.get("has_more"):
+            output.append(f"\n... more notes available (use max_results to limit)")
+
         return "\n".join(output)
     
     def _tool_get_graph(self, args: dict) -> str:

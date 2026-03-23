@@ -42,6 +42,7 @@ from .utils import (
     get_templates,
     get_template_content,
     apply_template_placeholders,
+    paginate,
 )
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
@@ -876,23 +877,48 @@ async def list_tags():
 
 
 @api_router.get("/tags/{tag_name}", tags=["Tags"])
-async def get_notes_by_tag_endpoint(tag_name: str):
+async def get_notes_by_tag_endpoint(
+    tag_name: str,
+    limit: Optional[int] = None,
+    offset: int = 0
+):
     """
-    Get all notes that have a specific tag.
-    
+    Get all notes that have a specific tag with optional pagination.
+
     Args:
         tag_name: The tag to filter by (case-insensitive)
-        
+        limit: Maximum number of notes to return (optional, no default limit)
+        offset: Number of notes to skip (default: 0)
+
     Returns:
         List of notes matching the tag
+    
+    Examples:
+        GET /api/tags/docker              -> All notes with #docker tag
+        GET /api/tags/docker?limit=10     -> First 10 notes with #docker tag
     """
     try:
         notes = get_notes_by_tag(config['storage']['notes_dir'], tag_name)
-        return {
+        
+        # Apply pagination with consistent sorting by path
+        paginated = paginate(
+            items=notes,
+            limit=limit,
+            offset=offset,
+            sort_key=lambda x: x.get('path', '').lower()
+        )
+        
+        response = {
             "tag": tag_name,
-            "count": len(notes),
-            "notes": notes
+            "count": paginated.total,
+            "notes": paginated.items
         }
+        
+        # Include pagination metadata only when limit is specified
+        if limit is not None:
+            response["pagination"] = paginated.to_dict()
+        
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to get notes by tag"))
 
@@ -1004,11 +1030,47 @@ async def create_note_from_template(request: Request, data: dict):
 # --- Notes Endpoints ---
 
 @api_router.get("/notes", tags=["Notes"])
-async def list_notes():
-    """List all notes with metadata"""
+async def list_notes(
+    limit: Optional[int] = None,
+    offset: int = 0
+):
+    """
+    List all notes with metadata.
+    
+    Supports optional pagination for API consumers (MCP, scripts):
+    - No parameters: Returns all notes (frontend compatibility)
+    - With limit: Returns paginated results with metadata
+    
+    Args:
+        limit: Maximum number of notes to return (optional, no default limit)
+        offset: Number of notes to skip (default: 0)
+    
+    Examples:
+        GET /api/notes              -> All notes
+        GET /api/notes?limit=20     -> First 20 notes
+        GET /api/notes?limit=20&offset=20 -> Notes 21-40
+    """
     try:
         notes, folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=True)
-        return {"notes": notes, "folders": folders}
+        
+        # Apply pagination with consistent sorting by path for stable results
+        result = paginate(
+            items=notes,
+            limit=limit,
+            offset=offset,
+            sort_key=lambda x: x.get('path', '').lower()
+        )
+        
+        response = {
+            "notes": result.items,
+            "folders": folders
+        }
+        
+        # Include pagination metadata only when limit is specified
+        if limit is not None:
+            response["pagination"] = result.to_dict()
+        
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to list notes"))
 
@@ -1161,18 +1223,59 @@ async def remove_note(request: Request, note_path: str):
 
 
 @api_router.get("/search", tags=["Search"])
-async def search(q: str):
-    """Search notes by content"""
+async def search(
+    q: str,
+    limit: Optional[int] = None,
+    offset: int = 0
+):
+    """
+    Search notes by content with optional pagination.
+    
+    Args:
+        q: Search query string
+        limit: Maximum number of results to return (optional, no default limit)
+        offset: Number of results to skip (default: 0)
+    
+    Examples:
+        GET /api/search?q=docker              -> All matching results
+        GET /api/search?q=docker&limit=10     -> First 10 results
+        GET /api/search?q=docker&limit=10&offset=10 -> Results 11-20
+    """
     try:
         if not config['search']['enabled']:
             raise HTTPException(status_code=403, detail="Search is disabled")
-        
+
+        # Handle empty query gracefully
+        if not q or not q.strip():
+            return {
+                "results": [],
+                "query": q,
+                "message": "No search term provided"
+            }
+
         results = search_notes(config['storage']['notes_dir'], q)
-        
+
         # Run plugin hooks
         plugin_manager.run_hook('on_search', query=q, results=results)
+
+        # Apply pagination with consistent sorting by path
+        paginated = paginate(
+            items=results,
+            limit=limit,
+            offset=offset,
+            sort_key=lambda x: x.get('path', '').lower()
+        )
         
-        return {"results": results, "query": q}
+        response = {
+            "results": paginated.items,
+            "query": q
+        }
+        
+        # Include pagination metadata only when limit is specified
+        if limit is not None:
+            response["pagination"] = paginated.to_dict()
+        
+        return response
     except HTTPException:
         raise
     except Exception as e:
