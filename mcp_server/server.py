@@ -206,7 +206,7 @@ class MCPServer:
     
     def _tool_search_notes(self, args: dict) -> str:
         """Search notes by query."""
-        query = args.get("query", "")
+        query = args.get("query", "").strip()
         max_results = args.get("max_results")
         
         if not query:

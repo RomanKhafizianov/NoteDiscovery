@@ -1245,6 +1245,14 @@ async def search(
         if not config['search']['enabled']:
             raise HTTPException(status_code=403, detail="Search is disabled")
 
+        # Handle empty query gracefully
+        if not q or not q.strip():
+            return {
+                "results": [],
+                "query": q,
+                "message": "No search term provided"
+            }
+
         results = search_notes(config['storage']['notes_dir'], q)
 
         # Run plugin hooks
