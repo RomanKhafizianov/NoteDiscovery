@@ -114,8 +114,8 @@ The MCP server provides these tools to AI assistants:
 
 | Tool | Description |
 |------|-------------|
-| `search_notes` | Full-text search across all notes |
-| `list_notes` | List all notes with metadata |
+| `search_notes` | Full-text search across all notes (supports `max_results`) |
+| `list_notes` | List all notes with metadata (supports `max_results`) |
 | `get_note` | Read a specific note's content |
 | `get_recent_notes` | Get recently modified notes (last N days) |
 
@@ -124,7 +124,7 @@ The MCP server provides these tools to AI assistants:
 | Tool | Description |
 |------|-------------|
 | `list_tags` | List all tags with note counts |
-| `get_notes_by_tag` | Find notes with a specific tag |
+| `get_notes_by_tag` | Find notes with a specific tag (supports `max_results`) |
 | `get_graph` | Get knowledge graph data |
 
 ### Note Management
@@ -152,6 +152,22 @@ The MCP server provides these tools to AI assistants:
 | `health_check` | Verify server connectivity |
 
 ## Tool Details
+
+### Pagination with `max_results`
+
+Some tools support an optional `max_results` parameter to limit results for large vaults:
+
+| Tool | Parameter | Description |
+|------|-----------|-------------|
+| `search_notes` | `max_results` | Limit number of search results |
+| `list_notes` | `max_results` | Limit number of notes returned |
+| `get_notes_by_tag` | `max_results` | Limit number of notes returned |
+
+When omitted, all results are returned. This is useful for large note collections where you only need a subset.
+
+**Example prompt:** "Search for notes about Python, but just show me the first 5 results"
+
+---
 
 ### `append_to_note`
 

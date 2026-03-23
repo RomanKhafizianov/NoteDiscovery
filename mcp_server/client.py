@@ -139,14 +139,26 @@ class NoteDiscoveryClient:
     # Notes API
     # =========================================================================
     
-    def list_notes(self) -> APIResponse:
+    def list_notes(
+        self,
+        limit: int | None = None,
+        offset: int = 0
+    ) -> APIResponse:
         """
         List all notes with metadata.
+        
+        Args:
+            limit: Maximum number of notes to return (None = no limit)
+            offset: Number of notes to skip (default: 0)
         
         Returns:
             APIResponse with notes and folders data
         """
-        return self._request("GET", "/api/notes")
+        params: dict[str, str] = {}
+        if limit is not None:
+            params["limit"] = str(limit)
+            params["offset"] = str(offset)
+        return self._request("GET", "/api/notes", params=params if params else None)
     
     def get_note(self, path: str) -> APIResponse:
         """
@@ -255,17 +267,28 @@ class NoteDiscoveryClient:
     # Search API
     # =========================================================================
     
-    def search(self, query: str) -> APIResponse:
+    def search(
+        self,
+        query: str,
+        limit: int | None = None,
+        offset: int = 0
+    ) -> APIResponse:
         """
         Search notes by query.
         
         Args:
             query: Search query string
+            limit: Maximum number of results to return (None = no limit)
+            offset: Number of results to skip (default: 0)
             
         Returns:
             APIResponse with search results
         """
-        return self._request("GET", "/api/search", params={"q": query})
+        params: dict[str, str] = {"q": query}
+        if limit is not None:
+            params["limit"] = str(limit)
+            params["offset"] = str(offset)
+        return self._request("GET", "/api/search", params=params)
     
     # =========================================================================
     # Tags API
@@ -280,18 +303,33 @@ class NoteDiscoveryClient:
         """
         return self._request("GET", "/api/tags")
     
-    def get_notes_by_tag(self, tag: str) -> APIResponse:
+    def get_notes_by_tag(
+        self,
+        tag: str,
+        limit: int | None = None,
+        offset: int = 0
+    ) -> APIResponse:
         """
         Get notes with a specific tag.
         
         Args:
             tag: Tag name
+            limit: Maximum number of notes to return (None = no limit)
+            offset: Number of notes to skip (default: 0)
             
         Returns:
             APIResponse with matching notes
         """
         encoded_tag = urllib.parse.quote(tag, safe="")
-        return self._request("GET", f"/api/tags/{encoded_tag}")
+        params: dict[str, str] = {}
+        if limit is not None:
+            params["limit"] = str(limit)
+            params["offset"] = str(offset)
+        return self._request(
+            "GET",
+            f"/api/tags/{encoded_tag}",
+            params=params if params else None
+        )
     
     # =========================================================================
     # Folders API

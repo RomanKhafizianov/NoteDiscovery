@@ -7,12 +7,28 @@ Base URL: `http://localhost:8000`
 ### List All Notes
 ```http
 GET /api/notes
+GET /api/notes?limit=20&offset=0
 ```
 Returns all notes with their metadata and folder structure.
 
-**Example:**
+**Optional Pagination:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | - | Max notes to return (omit for all) |
+| `offset` | integer | 0 | Number of notes to skip |
+
+When `limit` is provided, the response includes pagination metadata.
+
+**Examples:**
 ```bash
+# Get all notes (default)
 curl http://localhost:8000/api/notes
+
+# Get first 20 notes
+curl "http://localhost:8000/api/notes?limit=20"
+
+# Get notes 21-40
+curl "http://localhost:8000/api/notes?limit=20&offset=20"
 ```
 
 ### Get Note Content
@@ -269,11 +285,22 @@ Content-Type: application/json
 ### Search Notes
 ```http
 GET /api/search?q={query}
+GET /api/search?q={query}&limit=10&offset=0
 ```
 
-**Example:**
+**Optional Pagination:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | - | Max results to return (omit for all) |
+| `offset` | integer | 0 | Number of results to skip |
+
+**Examples:**
 ```bash
+# Search all matches
 curl "http://localhost:8000/api/search?q=hello"
+
+# Get first 10 results
+curl "http://localhost:8000/api/search?q=hello&limit=10"
 ```
 
 ## 🎨 Themes
@@ -409,14 +436,24 @@ Returns all tags found in notes with their usage counts.
 ```
 
 ### Get Notes by Tag
-`GET /api/tags/{tag_name}`
+```http
+GET /api/tags/{tag_name}
+GET /api/tags/{tag_name}?limit=10&offset=0
+```
 
 Returns all notes that have a specific tag.
+
+**Optional Pagination:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | - | Max notes to return (omit for all) |
+| `offset` | integer | 0 | Number of notes to skip |
 
 **Response:**
 ```json
 {
   "tag": "python",
+  "count": 5,
   "notes": [
     {
       "path": "tutorials/python-basics.md",

@@ -7,9 +7,107 @@ import re
 import shutil
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any, TypeVar, Callable
 from datetime import datetime, timezone
+
+
+# ============================================================================
+# Pagination Support
+# ============================================================================
+
+@dataclass
+class PaginationResult:
+    """
+    Result of applying pagination to a list.
+    
+    Attributes:
+        items: The paginated subset of items
+        total: Total number of items before pagination
+        limit: The limit that was applied (None if no pagination)
+        offset: The offset that was applied
+        has_more: Whether there are more items after this page
+    """
+    items: List[Any]
+    total: int
+    limit: Optional[int]
+    offset: int
+    has_more: bool
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert pagination info to dict for API response."""
+        return {
+            "limit": self.limit,
+            "offset": self.offset,
+            "total": self.total,
+            "has_more": self.has_more
+        }
+
+
+T = TypeVar('T')
+
+
+def paginate(
+    items: List[T],
+    limit: Optional[int] = None,
+    offset: int = 0,
+    sort_key: Optional[Callable[[T], Any]] = None,
+    sort_reverse: bool = False
+) -> PaginationResult:
+    """
+    Apply optional pagination to a list with consistent sorting.
+    
+    This function is designed to be backward-compatible:
+    - If limit is None, returns all items (no pagination)
+    - If limit is provided, returns a paginated subset
+    
+    Sorting is always applied (when sort_key is provided) to ensure
+    stable pagination across requests.
+    
+    Args:
+        items: List of items to paginate
+        limit: Maximum number of items to return (None = no limit)
+        offset: Number of items to skip (default: 0)
+        sort_key: Function to extract sort key from item (e.g., lambda x: x['path'])
+        sort_reverse: If True, sort in descending order
+        
+    Returns:
+        PaginationResult with items and pagination metadata
+        
+    Example:
+        # No pagination (frontend compatibility)
+        result = paginate(notes)
+        
+        # With pagination (MCP usage)
+        result = paginate(notes, limit=20, offset=0, sort_key=lambda x: x['path'])
+    """
+    total = len(items)
+    
+    # Apply sorting for consistent ordering (prevents out-of-order issues)
+    if sort_key is not None:
+        items = sorted(items, key=sort_key, reverse=sort_reverse)
+    
+    # Apply pagination only if limit is specified
+    if limit is not None:
+        # Clamp offset to valid range
+        offset = max(0, min(offset, total))
+        end = offset + limit
+        paginated_items = items[offset:end]
+        has_more = end < total
+    else:
+        # No pagination - return all items
+        paginated_items = items
+        offset = 0
+        has_more = False
+    
+    return PaginationResult(
+        items=paginated_items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=has_more
+    )
 
 
 # In-memory cache for parsed tags

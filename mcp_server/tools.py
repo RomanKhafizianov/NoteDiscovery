@@ -21,6 +21,10 @@ TOOLS: list[dict[str, Any]] = [
                 "query": {
                     "type": "string",
                     "description": "Search query. Can be keywords, phrases, or natural language."
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return. Useful for large vaults. If not specified, returns all matches."
                 }
             },
             "required": ["query"]
@@ -31,7 +35,12 @@ TOOLS: list[dict[str, Any]] = [
         "description": "List all notes in the knowledge base with their metadata (title, path, last modified date, size). Use this to get an overview of available notes or find notes by browsing.",
         "inputSchema": {
             "type": "object",
-            "properties": {},
+            "properties": {
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all notes."
+                }
+            },
             "required": []
         }
     },
@@ -71,6 +80,10 @@ TOOLS: list[dict[str, Any]] = [
                 "tag": {
                     "type": "string",
                     "description": "Tag name (without the # symbol)"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all matches."
                 }
             },
             "required": ["tag"]
