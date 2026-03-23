@@ -8,6 +8,7 @@ This implementation uses only Python stdlib for minimal dependencies.
 """
 
 import json
+import re
 import sys
 import traceback
 from typing import Any, Optional
@@ -236,10 +237,17 @@ class MCPServer:
         # Format search results
         for i, result in enumerate(results, 1):
             path = result.get("path", "unknown")
-            snippet = result.get("snippet", "")
+            matches = result.get("matches", [])
             output.append(f"{i}. **{path}**")
-            if snippet:
-                output.append(f"   {snippet[:200]}...")
+            
+            # Show snippets with line numbers
+            for match in matches[:2]:  # Limit to 2 snippets per note
+                line_num = match.get("line_number", "?")
+                context = match.get("context", "")
+                # Strip HTML tags for cleaner AI output
+                clean_context = re.sub(r'<[^>]+>', '', context)
+                if clean_context:
+                    output.append(f"   Line {line_num}: {clean_context[:150]}")
             output.append("")
         
         # Add pagination hint if there are more results
