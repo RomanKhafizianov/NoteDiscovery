@@ -153,19 +153,22 @@ The MCP server provides these tools to AI assistants:
 
 ## Tool Details
 
-### Pagination with `max_results`
+### Pagination with `max_results` and `offset`
 
-Some tools support an optional `max_results` parameter to limit results for large vaults:
+Some tools support optional pagination parameters for large vaults:
 
-| Tool | Parameter | Description |
-|------|-----------|-------------|
-| `search_notes` | `max_results` | Limit number of search results |
-| `list_notes` | `max_results` | Limit number of notes returned |
-| `get_notes_by_tag` | `max_results` | Limit number of notes returned |
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `search_notes` | `max_results`, `offset` | Paginate search results |
+| `list_notes` | `max_results`, `offset` | Paginate notes list |
+| `get_notes_by_tag` | `max_results`, `offset` | Paginate notes by tag |
 
-When omitted, all results are returned. This is useful for large note collections where you only need a subset.
+- `max_results` - Maximum items to return (omit for all)
+- `offset` - Number of items to skip (for pagination)
 
-**Example prompt:** "Search for notes about Python, but just show me the first 5 results"
+**Example prompts:**
+- "Search for notes about Python, but just show me the first 5 results"
+- "Show me the next 5 Python notes" (uses offset)
 
 ---
 

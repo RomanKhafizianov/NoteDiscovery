@@ -208,12 +208,13 @@ class MCPServer:
         """Search notes by query."""
         query = args.get("query", "").strip()
         max_results = args.get("max_results")
+        offset = args.get("offset", 0)
         
         if not query:
             return "No search term provided. Please specify a query."
         
         # Use server-side pagination if max_results is specified
-        response = self.client.search(query, limit=max_results)
+        response = self.client.search(query, limit=max_results, offset=offset)
         
         if not response.success:
             return f"Search failed: {response.error}"
@@ -250,9 +251,10 @@ class MCPServer:
     def _tool_list_notes(self, args: dict) -> str:
         """List all notes."""
         max_results = args.get("max_results")
+        offset = args.get("offset", 0)
         
         # Use server-side pagination if max_results is specified
-        response = self.client.list_notes(limit=max_results)
+        response = self.client.list_notes(limit=max_results, offset=offset)
         
         if not response.success:
             return f"Failed to list notes: {response.error}"
@@ -341,12 +343,13 @@ class MCPServer:
         """Get notes with a specific tag."""
         tag = args.get("tag", "")
         max_results = args.get("max_results")
+        offset = args.get("offset", 0)
         
         if not tag:
             return "Error: tag is required"
 
         # Use server-side pagination if max_results is specified
-        response = self.client.get_notes_by_tag(tag, limit=max_results)
+        response = self.client.get_notes_by_tag(tag, limit=max_results, offset=offset)
 
         if not response.success:
             return f"Failed to get notes by tag: {response.error}"

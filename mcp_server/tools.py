@@ -25,6 +25,10 @@ TOOLS: list[dict[str, Any]] = [
                 "max_results": {
                     "type": "integer",
                     "description": "Maximum number of results to return. Useful for large vaults. If not specified, returns all matches."
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Number of results to skip. Use with max_results for pagination."
                 }
             },
             "required": ["query"]
@@ -39,6 +43,10 @@ TOOLS: list[dict[str, Any]] = [
                 "max_results": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all notes."
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Number of notes to skip. Use with max_results for pagination."
                 }
             },
             "required": []
@@ -84,6 +92,10 @@ TOOLS: list[dict[str, Any]] = [
                 "max_results": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all matches."
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Number of notes to skip. Use with max_results for pagination."
                 }
             },
             "required": ["tag"]
