@@ -158,7 +158,7 @@
   "backlinks": {
     "title": "Backlinks",
     "no_backlinks": "No backlinks found",
-    "hint": "Other notes will appear here when they link to this note using [[wikilinks]]",
+    "hint": "Other notes will appear here when they link to this note",
     "select_note": "Select a note to see backlinks",
     "more_refs": "more"
   },

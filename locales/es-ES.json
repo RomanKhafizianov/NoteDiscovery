@@ -159,7 +159,7 @@
   "backlinks": {
     "title": "Backlinks",
     "no_backlinks": "No se encontraron backlinks",
-    "hint": "Otras notas aparecerán aquí cuando enlacen a esta nota usando [[wikilinks]]",
+    "hint": "Otras notas aparecerán aquí cuando enlacen a esta nota",
     "select_note": "Selecciona una nota para ver backlinks",
     "more_refs": "más"
   },

@@ -159,7 +159,7 @@
   "backlinks": {
     "title": "Rétroliens",
     "no_backlinks": "Aucun rétrolien trouvé",
-    "hint": "D'autres notes apparaîtront ici lorsqu'elles feront référence à cette note avec des [[wikilinks]]",
+    "hint": "D'autres notes apparaîtront ici lorsqu'elles feront référence à cette note",
     "select_note": "Sélectionnez une note pour voir les rétroliens",
     "more_refs": "de plus"
   },

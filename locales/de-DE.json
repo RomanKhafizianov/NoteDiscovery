@@ -159,7 +159,7 @@
   "backlinks": {
     "title": "Rückverweise",
     "no_backlinks": "Keine Rückverweise gefunden",
-    "hint": "Andere Notizen erscheinen hier, wenn sie auf diese Notiz mit [[Wikilinks]] verweisen",
+    "hint": "Andere Notizen erscheinen hier, wenn sie auf diese Notiz verweisen",
     "select_note": "Wählen Sie eine Notiz um Rückverweise zu sehen",
     "more_refs": "mehr"
   },
