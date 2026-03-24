@@ -43,6 +43,7 @@ from .utils import (
     get_template_content,
     apply_template_placeholders,
     paginate,
+    get_backlinks,
 )
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
@@ -1076,23 +1077,28 @@ async def list_notes(
 
 
 @api_router.get("/notes/{note_path:path}", tags=["Notes"])
-async def get_note(note_path: str):
-    """Get a specific note's content"""
+async def get_note(note_path: str, include_backlinks: bool = True):
+    """Get a specific note's content with optional backlinks"""
     try:
         content = get_note_content(config['storage']['notes_dir'], note_path)
         if content is None:
             raise HTTPException(status_code=404, detail="Note not found")
-        
+
         # Run on_note_load hook (can transform content, e.g., decrypt)
         transformed_content = plugin_manager.run_hook('on_note_load', note_path=note_path, content=content)
         if transformed_content is not None:
             content = transformed_content
-        
-        return {
+
+        response = {
             "path": note_path,
             "content": content,
             "metadata": create_note_metadata(config['storage']['notes_dir'], note_path)
         }
+        
+        if include_backlinks:
+            response["backlinks"] = get_backlinks(config['storage']['notes_dir'], note_path)
+        
+        return response
     except HTTPException:
         raise
     except Exception as e:

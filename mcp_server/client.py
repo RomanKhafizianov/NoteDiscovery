@@ -354,11 +354,24 @@ class NoteDiscoveryClient:
     def get_graph(self) -> APIResponse:
         """
         Get note relationship graph data.
-        
+
         Returns:
             APIResponse with graph nodes and links
         """
         return self._request("GET", "/api/graph")
+
+    def get_backlinks(self, path: str) -> APIResponse:
+        """
+        Get backlinks (reverse links) for a specific note.
+
+        Args:
+            path: Note path (e.g., "folder/note.md")
+
+        Returns:
+            APIResponse with note info and backlinks
+        """
+        encoded_path = urllib.parse.quote(path, safe="")
+        return self._request("GET", f"/api/notes/{encoded_path}", params={"include_backlinks": "true"})
     
     # =========================================================================
     # Templates API

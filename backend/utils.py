@@ -7,6 +7,7 @@ import re
 import shutil
 import threading
 import time
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, TypeVar, Callable
@@ -983,4 +984,116 @@ def apply_template_placeholders(content: str, note_path: str) -> str:
         result = result.replace(placeholder, value)
     
     return result
+
+
+def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
+    """
+    Find all notes that link TO the specified note (reverse links / backlinks).
+    
+    Args:
+        notes_dir: Base directory containing notes
+        target_note_path: Path of the note to find backlinks for
+        
+    Returns:
+        List of backlink objects with path, context, and line_number
+    """
+    backlinks = []
+    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
+    
+    # Normalize target path for matching
+    target_path = target_note_path
+    target_path_no_ext = target_path.replace('.md', '')
+    target_name = Path(target_path).stem.lower()
+    
+    # Build set of ways to reference the target note
+    target_refs = {
+        target_path.lower(),
+        target_path_no_ext.lower(),
+        target_name,
+    }
+    
+    for note in notes:
+        if note.get('type') != 'note':
+            continue
+        
+        source_path = note['path']
+        
+        # Skip self-references
+        if source_path == target_path:
+            continue
+        
+        # Read note content
+        full_path = Path(notes_dir) / source_path
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception:
+            continue
+        
+        lines = content.split('\n')
+        found_links = []
+        
+        for line_num, line in enumerate(lines, 1):
+            # Find wikilinks: [[target]] or [[target|display]]
+            wikilink_matches = re.finditer(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', line)
+            for match in wikilink_matches:
+                link_target = match.group(1).strip().lower()
+                link_target_no_ext = link_target.replace('.md', '')
+                
+                # Check if this link points to our target
+                if link_target in target_refs or link_target_no_ext in target_refs:
+                    # Extract context around the match
+                    start = max(0, match.start() - 30)
+                    end = min(len(line), match.end() + 30)
+                    context = line[start:end]
+                    if start > 0:
+                        context = '...' + context
+                    if end < len(line):
+                        context = context + '...'
+                    
+                    found_links.append({
+                        "line_number": line_num,
+                        "context": context,
+                        "type": "wikilink"
+                    })
+            
+            # Find markdown links: [text](path)
+            markdown_matches = re.finditer(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', line)
+            for match in markdown_matches:
+                link_path = match.group(2).split('#')[0]  # Remove anchor
+                if not link_path:
+                    continue
+                
+                link_path = urllib.parse.unquote(link_path)
+                if link_path.startswith('./'):
+                    link_path = link_path[2:]
+                
+                link_path_lower = link_path.lower()
+                link_path_no_ext = link_path_lower.replace('.md', '')
+                
+                # Check if this link points to our target
+                if link_path_lower in target_refs or link_path_no_ext in target_refs:
+                    start = max(0, match.start() - 30)
+                    end = min(len(line), match.end() + 30)
+                    context = line[start:end]
+                    if start > 0:
+                        context = '...' + context
+                    if end < len(line):
+                        context = context + '...'
+                    
+                    found_links.append({
+                        "line_number": line_num,
+                        "context": context,
+                        "type": "markdown"
+                    })
+        
+        # If we found links in this note, add it to backlinks
+        if found_links:
+            backlinks.append({
+                "path": source_path,
+                "name": note['name'].replace('.md', ''),
+                "references": found_links[:3]  # Limit to 3 references per note
+            })
+    
+    return backlinks
 

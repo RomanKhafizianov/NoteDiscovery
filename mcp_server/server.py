@@ -414,6 +414,41 @@ class MCPServer:
                 output.append(f"  {note}: {count} connections")
         
         return "\n".join(output)
+
+    def _tool_get_backlinks(self, args: dict) -> str:
+        """Get backlinks (reverse links) for a note."""
+        path = args.get("path", "")
+        is_valid, error = self._validate_path(path)
+        if not is_valid:
+            return f"Error: {error}"
+
+        response = self.client.get_backlinks(path)
+
+        if not response.success:
+            return f"Failed to get backlinks: {response.error}"
+
+        data = response.data or {}
+        backlinks = data.get("backlinks", [])
+        note_path = data.get("path", path)
+
+        if not backlinks:
+            return f"No backlinks found for '{note_path}'. No other notes link to this note."
+
+        output = [f"Backlinks for '{note_path}': {len(backlinks)} note(s) link to this note\n"]
+
+        for bl in backlinks:
+            bl_path = bl.get("path", "unknown")
+            bl_name = bl.get("name", bl_path)
+            references = bl.get("references", [])
+
+            output.append(f"📄 {bl_name} ({bl_path})")
+            for ref in references:
+                line_num = ref.get("line_number", "?")
+                context = ref.get("context", "")
+                link_type = ref.get("type", "link")
+                output.append(f"   Line {line_num} [{link_type}]: {context}")
+
+        return "\n".join(output)
     
     def _tool_create_note(self, args: dict) -> str:
         """Create or update a note."""
