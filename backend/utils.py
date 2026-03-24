@@ -989,11 +989,11 @@ def apply_template_placeholders(content: str, note_path: str) -> str:
 def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
     """
     Find all notes that link TO the specified note (reverse links / backlinks).
-    
+
     Args:
         notes_dir: Base directory containing notes
         target_note_path: Path of the note to find backlinks for
-        
+
     Returns:
         List of backlink objects with path, context, and line_number
     """
@@ -1002,13 +1002,15 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
     
     # Normalize target path for matching
     target_path = target_note_path
+    target_path_lower = target_path.lower()
     target_path_no_ext = target_path.replace('.md', '')
+    target_path_no_ext_lower = target_path_no_ext.lower()
     target_name = Path(target_path).stem.lower()
     
-    # Build set of ways to reference the target note
-    target_refs = {
-        target_path.lower(),
-        target_path_no_ext.lower(),
+    # For wikilinks: global name matching (find note anywhere by name)
+    wikilink_refs = {
+        target_path_lower,
+        target_path_no_ext_lower,
         target_name,
     }
     
@@ -1021,6 +1023,11 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
         # Skip self-references
         if source_path == target_path:
             continue
+        
+        # Get source folder for resolving relative markdown links
+        source_folder = str(Path(source_path).parent).replace('\\', '/')
+        if source_folder == '.':
+            source_folder = ''
         
         # Read note content
         full_path = Path(notes_dir) / source_path
@@ -1035,14 +1042,14 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
         
         for line_num, line in enumerate(lines, 1):
             # Find wikilinks: [[target]] or [[target|display]]
+            # Wikilinks use GLOBAL matching (find note anywhere by name)
             wikilink_matches = re.finditer(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', line)
             for match in wikilink_matches:
                 link_target = match.group(1).strip().lower()
                 link_target_no_ext = link_target.replace('.md', '')
                 
-                # Check if this link points to our target
-                if link_target in target_refs or link_target_no_ext in target_refs:
-                    # Extract context around the match
+                # Check if this wikilink points to our target (global match)
+                if link_target in wikilink_refs or link_target_no_ext in wikilink_refs:
                     start = max(0, match.start() - 30)
                     end = min(len(line), match.end() + 30)
                     context = line[start:end]
@@ -1058,6 +1065,7 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
                     })
             
             # Find markdown links: [text](path)
+            # Markdown links must RESOLVE as paths (relative to source or absolute)
             markdown_matches = re.finditer(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', line)
             for match in markdown_matches:
                 link_path = match.group(2).split('#')[0]  # Remove anchor
@@ -1068,11 +1076,29 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
                 if link_path.startswith('./'):
                     link_path = link_path[2:]
                 
-                link_path_lower = link_path.lower()
-                link_path_no_ext = link_path_lower.replace('.md', '')
+                # Add .md if not present
+                link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
                 
-                # Check if this link points to our target
-                if link_path_lower in target_refs or link_path_no_ext in target_refs:
+                # Resolve the link path to get the actual target
+                resolved_path = None
+                
+                # 1. Try resolving relative to source folder
+                if source_folder and not link_path.startswith('/'):
+                    relative_path = f"{source_folder}/{link_path_with_md}"
+                    if relative_path.lower() == target_path_lower:
+                        resolved_path = target_path
+                    elif f"{source_folder}/{link_path}".lower() == target_path_no_ext_lower:
+                        resolved_path = target_path
+                
+                # 2. Try as absolute path from root
+                if not resolved_path:
+                    if link_path_with_md.lower() == target_path_lower:
+                        resolved_path = target_path
+                    elif link_path.lower() == target_path_no_ext_lower:
+                        resolved_path = target_path
+                
+                # Only add if the resolved path matches the target
+                if resolved_path:
                     start = max(0, match.start() - 30)
                     end = min(len(line), match.end() + 30)
                     context = line[start:end]

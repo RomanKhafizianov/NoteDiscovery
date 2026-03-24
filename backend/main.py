@@ -1333,6 +1333,12 @@ async def get_graph():
                     # Match links that don't start with http://, https://, mailto:, #, etc.
                     markdown_links = re.findall(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', content)
                     
+                    # Get source note's folder for resolving relative links
+                    # Use forward slashes consistently (note_paths uses forward slashes)
+                    source_folder = str(Path(note['path']).parent).replace('\\', '/')
+                    if source_folder == '.':
+                        source_folder = ''
+                    
                     # Process wikilinks
                     for target in wikilinks:
                         target = target.strip()
@@ -1341,20 +1347,34 @@ async def get_graph():
                         # Try to match target to an existing note
                         target_path = None
                         
-                        # 1. Exact path match
-                        if target in note_paths:
-                            target_path = target if target.endswith('.md') else target + '.md'
-                        # 2. Path with .md extension
-                        elif target + '.md' in note_paths:
-                            target_path = target + '.md'
-                        # 3. Case-insensitive path match (e.g., [[Folder/Note]] -> folder/note.md)
-                        elif target_lower in note_paths_lower:
-                            target_path = note_paths_lower[target_lower]
-                        elif target_lower + '.md' in note_paths_lower:
-                            target_path = note_paths_lower[target_lower + '.md']
-                        # 4. Just note name (case-insensitive)
-                        elif target_lower in note_names:
-                            target_path = note_names[target_lower]
+                        # 1. Try resolving relative to source note's folder first
+                        if source_folder and '/' not in target:
+                            relative_path = f"{source_folder}/{target}"
+                            relative_path_lower = relative_path.lower()
+                            
+                            if relative_path in note_paths:
+                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
+                            elif relative_path + '.md' in note_paths:
+                                target_path = relative_path + '.md'
+                            elif relative_path_lower in note_paths_lower:
+                                target_path = note_paths_lower[relative_path_lower]
+                            elif relative_path_lower + '.md' in note_paths_lower:
+                                target_path = note_paths_lower[relative_path_lower + '.md']
+                        
+                        # 2. Exact path match (absolute or already has folder)
+                        if not target_path:
+                            if target in note_paths:
+                                target_path = target if target.endswith('.md') else target + '.md'
+                            elif target + '.md' in note_paths:
+                                target_path = target + '.md'
+                            # 3. Case-insensitive path match (e.g., [[Folder/Note]] -> folder/note.md)
+                            elif target_lower in note_paths_lower:
+                                target_path = note_paths_lower[target_lower]
+                            elif target_lower + '.md' in note_paths_lower:
+                                target_path = note_paths_lower[target_lower + '.md']
+                            # 4. Just note name (case-insensitive) - global match
+                            elif target_lower in note_names:
+                                target_path = note_names[target_lower]
                         
                         if target_path and target_path != note['path']:
                             edges.append({
@@ -1381,34 +1401,42 @@ async def get_graph():
                         
                         # Add .md extension if not present and doesn't have other extension
                         link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
-                        link_path_lower = link_path.lower()
-                        link_path_with_md_lower = link_path_with_md.lower()
                         
                         # Try to match target to an existing note
                         target_path = None
                         
-                        # 1. Exact path match (with or without .md)
-                        if link_path in note_paths:
-                            target_path = link_path if link_path.endswith('.md') else link_path + '.md'
-                        elif link_path_with_md in note_paths:
-                            target_path = link_path_with_md
-                        # 2. Case-insensitive path match
-                        elif link_path_lower in note_paths_lower:
-                            target_path = note_paths_lower[link_path_lower]
-                        elif link_path_with_md_lower in note_paths_lower:
-                            target_path = note_paths_lower[link_path_with_md_lower]
-                        # 3. Try matching by filename only (for relative links)
-                        else:
-                            # Extract just the filename
-                            filename = link_path.split('/')[-1]
-                            filename_lower = filename.lower()
-                            filename_with_md = filename if filename.endswith('.md') else filename + '.md'
-                            filename_with_md_lower = filename_with_md.lower()
+                        # 1. First, try resolving relative to source note's folder
+                        if source_folder and not link_path.startswith('/'):
+                            relative_path = f"{source_folder}/{link_path}"
+                            relative_path_with_md = f"{source_folder}/{link_path_with_md}"
+                            relative_path_lower = relative_path.lower()
+                            relative_path_with_md_lower = relative_path_with_md.lower()
                             
-                            if filename_lower in note_names:
-                                target_path = note_names[filename_lower]
-                            elif filename_with_md_lower in note_names:
-                                target_path = note_names[filename_with_md_lower]
+                            if relative_path in note_paths:
+                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
+                            elif relative_path_with_md in note_paths:
+                                target_path = relative_path_with_md
+                            elif relative_path_lower in note_paths_lower:
+                                target_path = note_paths_lower[relative_path_lower]
+                            elif relative_path_with_md_lower in note_paths_lower:
+                                target_path = note_paths_lower[relative_path_with_md_lower]
+                        
+                        # 2. Try exact path match from root (for absolute paths or notes at root)
+                        if not target_path:
+                            link_path_lower = link_path.lower()
+                            link_path_with_md_lower = link_path_with_md.lower()
+                            
+                            if link_path in note_paths:
+                                target_path = link_path if link_path.endswith('.md') else link_path + '.md'
+                            elif link_path_with_md in note_paths:
+                                target_path = link_path_with_md
+                            # Case-insensitive path match
+                            elif link_path_lower in note_paths_lower:
+                                target_path = note_paths_lower[link_path_lower]
+                            elif link_path_with_md_lower in note_paths_lower:
+                                target_path = note_paths_lower[link_path_with_md_lower]
+                        
+                        # No global filename fallback for markdown links - they must resolve as paths
                         
                         if target_path and target_path != note['path']:
                             edges.append({
