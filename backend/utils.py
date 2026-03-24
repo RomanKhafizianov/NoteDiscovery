@@ -7,6 +7,7 @@ import re
 import shutil
 import threading
 import time
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, TypeVar, Callable
@@ -996,8 +997,6 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
     Returns:
         List of backlink objects with path, context, and line_number
     """
-    import urllib.parse
-    
     backlinks = []
     notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
     
