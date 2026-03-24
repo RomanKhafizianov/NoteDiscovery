@@ -155,6 +155,14 @@
     "hint": "Aggiungi titoli usando la sintassi #"
   },
 
+  "backlinks": {
+    "title": "Backlink",
+    "no_backlinks": "Nessun backlink trovato",
+    "hint": "Altre note appariranno qui quando fanno riferimento a questa nota usando [[wikilinks]]",
+    "select_note": "Seleziona una nota per vedere i backlink",
+    "more_refs": "altri"
+  },
+
   "stats": {
     "words": "parole",
     "reading_time": "~{{minutes}}m lettura",

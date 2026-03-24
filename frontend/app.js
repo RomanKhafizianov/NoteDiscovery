@@ -236,7 +236,10 @@ function noteApp() {
         
         // Outline (TOC) state
         outline: [], // [{level: 1, text: 'Heading', slug: 'heading'}, ...]
-        
+
+        // Backlinks state
+        backlinks: [], // [{path: 'note.md', name: 'Note', references: [{line_number: 5, context: '...', type: 'wikilink'}]}]
+
         // Scroll sync state
         isScrolling: false,
         
@@ -524,6 +527,7 @@ function noteApp() {
                     this.noteContent = '';
                     this.currentNoteName = '';
                     this.outline = [];
+                    this.backlinks = [];
                     this.shareInfo = null; // Reset share info
                     document.title = this.appName;
                     
@@ -1315,6 +1319,7 @@ function noteApp() {
         extractOutline(content) {
             if (!content) {
                 this.outline = [];
+                this.backlinks = [];
                 return;
             }
             
@@ -1428,6 +1433,11 @@ function noteApp() {
                     textarea.scrollTop = Math.max(0, scrollTop);
                 }
             }
+        },
+
+        // Navigate to a backlink (note that links to current note)
+        navigateToBacklink(backlinkPath) {
+            this.loadNote(backlinkPath);
         },
         
         // Unified filtering logic combining tags and text search
@@ -2750,7 +2760,10 @@ function noteApp() {
                 
                 // Extract outline for TOC panel
                 this.extractOutline(data.content);
-                
+
+                // Store backlinks from API response
+                this.backlinks = data.backlinks || [];
+
                 // Initialize undo/redo history for this note (with cursor at start)
                 this.undoHistory = [{ content: data.content, cursorPos: 0 }];
                 this.redoHistory = [];
@@ -5625,6 +5638,7 @@ function noteApp() {
             this.noteContent = '';
             this.currentMedia = '';
             this.outline = [];
+            this.backlinks = [];
             document.title = this.appName;
             
             // Invalidate cache to force recalculation
@@ -5647,6 +5661,7 @@ function noteApp() {
             this.noteContent = '';
             this.currentMedia = '';
             this.outline = [];
+            this.backlinks = [];
             this.mobileSidebarOpen = false;
             document.title = this.appName;
             

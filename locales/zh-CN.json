@@ -151,8 +151,16 @@
 
   "outline": {
     "title": "大纲",
-    "no_headings": "未找到标题", 
+    "no_headings": "未找到标题",
     "hint": "使用 # 语法添加标题"
+  },
+
+  "backlinks": {
+    "title": "反向链接",
+    "no_backlinks": "未找到反向链接",
+    "hint": "当其他笔记使用 [[链接]] 链接到此笔记时，它们将显示在这里",
+    "select_note": "选择一个笔记以查看反向链接",
+    "more_refs": "更多"
   },
 
   "stats": {

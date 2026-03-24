@@ -156,6 +156,14 @@
     "hint": "Fejléc hozzáadása a következővel: # "
   },
 
+  "backlinks": {
+    "title": "Visszahivatkozások",
+    "no_backlinks": "Nincsenek visszahivatkozások",
+    "hint": "Más jegyzetek itt jelennek meg, ha [[wikilink]]-kel hivatkoznak erre a jegyzetre",
+    "select_note": "Válasszon jegyzetet a visszahivatkozások megtekintéséhez",
+    "more_refs": "további"
+  },
+
   "stats": {
     "words": "szavak",
     "reading_time": "~{{minutes}} percnyi olvasás",

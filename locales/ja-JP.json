@@ -155,6 +155,14 @@
     "hint": "# 記法で見出しを追加"
   },
 
+  "backlinks": {
+    "title": "バックリンク",
+    "no_backlinks": "バックリンクが見つかりません",
+    "hint": "他のノートが [[リンク]] でこのノートにリンクすると、ここに表示されます",
+    "select_note": "バックリンクを表示するノートを選択",
+    "more_refs": "その他"
+  },
+
   "stats": {
     "words": "語",
     "reading_time": "約{{minutes}}分で読了",

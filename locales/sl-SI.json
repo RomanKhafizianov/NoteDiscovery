@@ -155,6 +155,14 @@
     "hint": "Dodajte naslove s sintakso #"
   },
 
+  "backlinks": {
+    "title": "Povratne povezave",
+    "no_backlinks": "Ni najdenih povratnih povezav",
+    "hint": "Druge beležke se bodo pojavile tukaj, ko se bodo nanašale na to beležko z [[wikilinks]]",
+    "select_note": "Izberite beležko za ogled povratnih povezav",
+    "more_refs": "več"
+  },
+
   "stats": {
     "words": "besed",
     "reading_time": "~{{minutes}} min branja",

@@ -156,6 +156,14 @@
     "hint": "Ajoutez des titres avec la syntaxe #"
   },
 
+  "backlinks": {
+    "title": "Rétroliens",
+    "no_backlinks": "Aucun rétrolien trouvé",
+    "hint": "D'autres notes apparaîtront ici lorsqu'elles feront référence à cette note avec des [[wikilinks]]",
+    "select_note": "Sélectionnez une note pour voir les rétroliens",
+    "more_refs": "de plus"
+  },
+
   "stats": {
     "words": "mots",
     "reading_time": "~{{minutes}}m de lecture",

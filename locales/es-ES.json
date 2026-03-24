@@ -156,6 +156,14 @@
     "hint": "Añade encabezados usando sintaxis #"
   },
 
+  "backlinks": {
+    "title": "Backlinks",
+    "no_backlinks": "No se encontraron backlinks",
+    "hint": "Otras notas aparecerán aquí cuando enlacen a esta nota usando [[wikilinks]]",
+    "select_note": "Selecciona una nota para ver backlinks",
+    "more_refs": "más"
+  },
+
   "stats": {
     "words": "palabras",
     "reading_time": "~{{minutes}}m de lectura",

@@ -156,6 +156,14 @@
     "hint": "Add headings using # syntax"
   },
 
+  "backlinks": {
+    "title": "Backlinks",
+    "no_backlinks": "No backlinks found",
+    "hint": "Other notes will appear here when they link to this note using [[wikilinks]]",
+    "select_note": "Select a note to see backlinks",
+    "more_refs": "more"
+  },
+
   "stats": {
     "words": "words",
     "reading_time": "~{{minutes}}m read",

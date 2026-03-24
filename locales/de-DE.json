@@ -156,6 +156,14 @@
     "hint": "Überschriften mit # hinzufügen"
   },
 
+  "backlinks": {
+    "title": "Rückverweise",
+    "no_backlinks": "Keine Rückverweise gefunden",
+    "hint": "Andere Notizen erscheinen hier, wenn sie auf diese Notiz mit [[Wikilinks]] verweisen",
+    "select_note": "Wählen Sie eine Notiz um Rückverweise zu sehen",
+    "more_refs": "mehr"
+  },
+
   "stats": {
     "words": "Wörter",
     "reading_time": "~{{minutes}} Min. Lesezeit",
