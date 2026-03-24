@@ -14,6 +14,7 @@ MCP (Model Context Protocol) is an open standard that allows AI assistants to se
 - 📂 **Organize** notes (move, rename, folders)
 - 📋 **Use templates** to create structured notes
 - 🔗 **Explore** the knowledge graph
+- 🔙 **Discover backlinks** (notes that link to a specific note)
 
 ## Quick Setup
 
@@ -126,6 +127,7 @@ The MCP server provides these tools to AI assistants:
 | `list_tags` | List all tags with note counts |
 | `get_notes_by_tag` | Find notes with a specific tag (supports pagination) |
 | `get_graph` | Get knowledge graph data |
+| `get_backlinks` | Get notes that link to a specific note (reverse links) |
 
 ### Note Management
 
@@ -169,6 +171,23 @@ Some tools support optional pagination parameters for large vaults:
 **Example prompts:**
 - "Search for notes about Python, but just show me the first 5 results"
 - "Show me the next 5 Python notes" (uses offset)
+
+---
+
+### `get_backlinks`
+
+Find all notes that link TO a specific note (reverse links / backlinks). Useful for understanding how a note connects to your knowledge base.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | Yes | Path to the note to find backlinks for |
+
+**Returns:** List of notes that contain links to the specified note, with context snippets showing where the link appears.
+
+**Example prompts:**
+- "What notes link to my Project Alpha note?"
+- "Show me the backlinks for meeting-notes.md"
+- "Find all notes that reference my API documentation"
 
 ---
 
@@ -265,6 +284,12 @@ Once configured, you can interact with your notes naturally:
 > **AI:** *Uses `create_note_from_template` with the meeting-notes template*
 > 
 > "Created 'meetings/design-review-2024-03-13.md' from your meeting-notes template."
+
+> **User:** "What notes link to my Project Alpha document?"
+> 
+> **AI:** *Uses `get_backlinks` to find reverse links*
+> 
+> "3 notes reference Project Alpha: your meeting notes from March 12, the quarterly review, and the team standup notes..."
 
 ## Authentication
 

@@ -114,6 +114,20 @@ TOOLS: list[dict[str, Any]] = [
             "required": []
         }
     },
+    {
+        "name": "get_backlinks",
+        "description": "Get all notes that link TO a specific note (backlinks/reverse links). Use this to discover what other notes reference the current note, helping understand its importance and connections in the knowledge base.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to the note to find backlinks for (e.g., 'folder/note.md' or 'note.md')"
+                }
+            },
+            "required": ["path"]
+        }
+    },
     
     # =========================================================================
     # Note Management (Write Operations)
