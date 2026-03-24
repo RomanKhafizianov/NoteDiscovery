@@ -157,11 +157,11 @@
   },
 
   "backlinks": {
-    "title": "Visszahivatkozások",
-    "no_backlinks": "Nincsenek visszahivatkozások",
+    "title": "Bejövő linkek",
+    "no_backlinks": "Nincsenek bejövő linkek",
     "hint": "Más jegyzetek itt jelennek meg, ha hivatkoznak erre a jegyzetre",
-    "select_note": "Válasszon jegyzetet a visszahivatkozások megtekintéséhez",
-    "more_refs": "további"
+    "select_note": "Válassz ki egy jegyzetet a bejövő linkek megtekintéséhez",
+    "more_refs": "továbbiak"
   },
 
   "stats": {
