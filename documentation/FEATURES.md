@@ -60,6 +60,14 @@
 - **Hierarchical view** - Indentation shows heading structure
 - **Heading count badge** - Quick indicator of document structure
 
+### Backlinks
+- **Reverse link discovery** - See which notes link TO the current note
+- **Context snippets** - Preview the surrounding text where links appear
+- **Line numbers** - Know exactly where each reference is located
+- **Link type detection** - Distinguishes wikilinks from markdown links
+- **API access** - Query backlinks programmatically via REST API
+- **MCP integration** - AI assistants can discover note relationships
+
 ### Section Link Syntax
 To link to a heading, convert the heading text to a slug: **lowercase, spaces → dashes, remove special chars**.
 
@@ -365,6 +373,7 @@ Built-in **Model Context Protocol (MCP)** server for AI assistant integration:
 - **Browse tags** - AI understands your organization
 - **Create notes** - AI can save summaries and insights
 - **Knowledge graph** - AI can explore note relationships
+- **Discover backlinks** - AI can find what notes reference a specific note
 - **Zero setup** - Works with Docker or Python, just add config to Cursor/Claude
 
 ### Quick Setup (Docker)

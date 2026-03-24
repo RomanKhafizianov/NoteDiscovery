@@ -35,11 +35,60 @@ curl "http://localhost:8000/api/notes?limit=20&offset=20"
 ```http
 GET /api/notes/{note_path}
 ```
-Retrieve the content of a specific note.
+Retrieve the content of a specific note, including metadata and backlinks.
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `include_backlinks` | boolean | `true` | Include backlinks (notes that link to this note) |
 
 **Example:**
 ```bash
 curl http://localhost:8000/api/notes/folder/mynote.md
+```
+
+**Response:**
+```json
+{
+  "path": "folder/mynote.md",
+  "content": "# My Note\n\nNote content here...",
+  "metadata": {
+    "created": "2026-03-15T10:00:00+01:00",
+    "modified": "2026-03-17T14:30:00+01:00",
+    "size": 1234,
+    "lines": 42
+  },
+  "backlinks": [
+    {
+      "path": "meetings/standup.md",
+      "name": "standup",
+      "references": [
+        {
+          "line_number": 15,
+          "context": "...discussed [[mynote]]...",
+          "type": "wikilink"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Backlinks Response Fields:**
+
+| Field | Description |
+|-------|-------------|
+| `path` | Path of the note that links to this note |
+| `name` | Display name of the linking note |
+| `references` | Array of link occurrences (max 3 per note) |
+| `references[].line_number` | Line number where the link appears |
+| `references[].context` | Text snippet around the link |
+| `references[].type` | Link type: `wikilink` or `markdown` |
+
+**Without Backlinks:**
+```bash
+curl "http://localhost:8000/api/notes/folder/mynote.md?include_backlinks=false"
 ```
 
 ### Create/Update Note
