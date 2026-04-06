@@ -223,7 +223,6 @@ function noteApp() {
 
         // Note sorting mode (a-z, z-a, newest, oldest, largest, smallest)
         sortMode: localStorage.getItem('sortMode') || 'a-z',
-        sortKey: 0, // Incremented to force tree re-render
 
         // Icon rail / panel state
         activePanel: 'files', // 'files', 'search', 'tags', 'settings'
@@ -1946,8 +1945,7 @@ function noteApp() {
         
         // Render folder recursively (helper for deep nesting)
         // Uses data-* attributes to store path/name, avoiding JS string escaping issues
-        // sortKey parameter triggers Alpine re-render when sort mode changes
-        renderFolderRecursive(folder, level = 0, isTopLevel = false, sortKey = 0) {
+        renderFolderRecursive(folder, level = 0, isTopLevel = false) {
             if (!folder) return '';
             
             let html = '';
@@ -2094,8 +2092,7 @@ function noteApp() {
         },
         
         // Render root-level items (notes and media not in any folder)
-        // sortKey parameter triggers Alpine re-render when sort mode changes
-        renderRootItems(sortKey = 0) {
+        renderRootItems() {
             const root = this.folderTree['__root__'];
             if (!root || !root.notes || root.notes.length === 0) {
                 return '';
