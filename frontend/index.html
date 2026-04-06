@@ -2037,6 +2037,24 @@
                                     </label>
                                     <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.hide_underscore_folders_desc')"></p>
                                 </div>
+
+                                <!-- Tab inserts tab -->
+                                <div class="mb-4">
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.tab_inserts_tab')"></span>
+                                        <div 
+                                            @click="toggleTabInsertsTab()"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            :style="tabInsertsTab ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
+                                        >
+                                            <div 
+                                                class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                                                :style="'background-color: var(--bg-primary);' + (tabInsertsTab ? ' transform: translateX(20px);' : '')"
+                                            ></div>
+                                        </div>
+                                    </label>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.tab_inserts_tab_desc')"></p>
+                                </div>
                                 
                                 <!-- Logout (if auth enabled) - uses authEnabled from main app state -->
                                 <div x-show="authEnabled" class="mb-4">
@@ -2639,11 +2657,12 @@
                                     x-show="syntaxHighlightEnabled"
                                     x-html="syntaxHighlightEnabled ? highlightMarkdown(noteContent) : ''"
                                 ></div>
-                                <textarea 
+                                <textarea
                                     id="note-editor"
                                     x-model="noteContent"
                                     @input="autoSave(); updateSyntaxHighlight()"
                                     @scroll="syncOverlayScroll()"
+                                    @keydown.tab="handleTabKey($event)"
                                     @drop="onEditorDrop($event)"
                                     @dragover.prevent="onEditorDragOver($event)"
                                     @dragenter="onEditorDragEnter($event)"

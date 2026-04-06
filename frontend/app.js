@@ -20,6 +20,7 @@ const LOCAL_SETTINGS = {
     favoritesExpanded: { key: 'favoritesExpanded', type: 'boolean', default: true },
     tagsExpanded: { key: 'tagsExpanded', type: 'boolean', default: false },
     hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
+    tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
     // Number settings with validation
     sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
     editorWidth: { key: 'editorWidth', type: 'number', default: 50, min: 20, max: 80 },
@@ -214,7 +215,10 @@ function noteApp() {
         // Hide underscore-prefixed folders (_attachments, _templates) from sidebar
         // Read synchronously to prevent flash on initial render
         hideUnderscoreFolders: localStorage.getItem('hideUnderscoreFolders') === 'true',
-        
+
+        // Tab key inserts tab character instead of changing focus
+        tabInsertsTab: localStorage.getItem('tabInsertsTab') === 'true',
+
         // Icon rail / panel state
         activePanel: 'files', // 'files', 'search', 'tags', 'settings'
         
@@ -826,7 +830,28 @@ function noteApp() {
             this.hideUnderscoreFolders = !this.hideUnderscoreFolders;
             localStorage.setItem('hideUnderscoreFolders', this.hideUnderscoreFolders);
         },
-        
+
+        // Tab inserts tab toggle (Tab key inserts tab character instead of changing focus)
+        toggleTabInsertsTab() {
+            this.tabInsertsTab = !this.tabInsertsTab;
+            localStorage.setItem('tabInsertsTab', this.tabInsertsTab);
+        },
+
+        // Handle Tab key in editor (inserts tab if setting enabled)
+        handleTabKey(event) {
+            if (!this.tabInsertsTab) return;
+            
+            event.preventDefault();
+            const textarea = event.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            this.noteContent = this.noteContent.substring(0, start) + '\t' + this.noteContent.substring(end);
+            this.$nextTick(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + 1;
+            });
+            this.autoSave();
+        },
+
         // Update syntax highlight overlay (debounced, called on input)
         updateSyntaxHighlight() {
             if (!this.syntaxHighlightEnabled) return;

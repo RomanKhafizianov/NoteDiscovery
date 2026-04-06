@@ -250,7 +250,9 @@
     "readable_line_length": "Lesbare Zeilenlänge",
     "readable_line_length_desc": "Vorschaubreite für bessere Lesbarkeit begrenzen",
     "hide_underscore_folders": "Systemordner ausblenden",
-    "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden"
+    "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden",
+    "tab_inserts_tab": "Tab-Taste fügt Tab ein",
+    "tab_inserts_tab_desc": "Tab drücken, um ein Tabulatorzeichen einzufügen statt den Fokus zu wechseln"
   },
 
   "homepage": {

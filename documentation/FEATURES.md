@@ -32,6 +32,7 @@
 - **Rename anything** - Files and folders, instantly
 - **Visual tree view** - Expandable/collapsible navigation
 - **Hide system folders** - Toggle to hide `_attachments`, `_templates` and other underscore-prefixed folders from sidebar
+- **Tab inserts tab** - Toggle to make Tab key insert a tab character in the editor instead of changing focus
 
 ## 🔗 Linking & Discovery
 
