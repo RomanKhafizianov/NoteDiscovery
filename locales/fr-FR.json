@@ -105,6 +105,7 @@
     "delete_note": "Supprimer la note",
     "delete_image": "Supprimer l'image",
     "export_html": "Exporter en HTML",
+    "print_preview": "Aperçu avant impression",
     "copy_link": "Copier le lien dans le presse-papiers",
     "add_favorite": "Ajouter aux favoris",
     "remove_favorite": "Retirer des favoris"
@@ -250,7 +251,9 @@
     "readable_line_length": "Longueur de ligne lisible",
     "readable_line_length_desc": "Limiter la largeur de l'aperçu pour une lecture plus facile",
     "hide_underscore_folders": "Masquer les dossiers système",
-    "hide_underscore_folders_desc": "Masquer _attachments, _templates et autres dossiers préfixés"
+    "hide_underscore_folders_desc": "Masquer _attachments, _templates et autres dossiers préfixés",
+    "tab_inserts_tab": "Tab insère une tabulation",
+    "tab_inserts_tab_desc": "Appuyez sur Tab pour insérer une tabulation au lieu de changer le focus"
   },
 
   "homepage": {

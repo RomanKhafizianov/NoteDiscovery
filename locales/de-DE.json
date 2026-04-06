@@ -105,6 +105,7 @@
     "delete_note": "Notiz löschen",
     "delete_image": "Bild löschen",
     "export_html": "Als HTML exportieren",
+    "print_preview": "Druckvorschau",
     "copy_link": "Link in Zwischenablage kopieren",
     "add_favorite": "Zu Favoriten hinzufügen",
     "remove_favorite": "Aus Favoriten entfernen"
@@ -250,7 +251,9 @@
     "readable_line_length": "Lesbare Zeilenlänge",
     "readable_line_length_desc": "Vorschaubreite für bessere Lesbarkeit begrenzen",
     "hide_underscore_folders": "Systemordner ausblenden",
-    "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden"
+    "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden",
+    "tab_inserts_tab": "Tab-Taste fügt Tab ein",
+    "tab_inserts_tab_desc": "Tab drücken, um ein Tabulatorzeichen einzufügen statt den Fokus zu wechseln"
   },
 
   "homepage": {

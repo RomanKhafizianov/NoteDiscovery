@@ -104,6 +104,7 @@
     "delete_note": "Delete note",
     "delete_image": "Delete image",
     "export_html": "Export as HTML",
+    "print_preview": "Print preview",
     "copy_link": "Copy link to clipboard",
     "add_favorite": "Add to favourites",
     "remove_favorite": "Remove from favourites"
@@ -249,7 +250,9 @@
     "readable_line_length": "Readable line length",
     "readable_line_length_desc": "Limit preview width for easier reading",
     "hide_underscore_folders": "Hide system folders",
-    "hide_underscore_folders_desc": "Hide _attachments, _templates and other underscore folders from sidebar"
+    "hide_underscore_folders_desc": "Hide _attachments, _templates and other underscore folders from sidebar",
+    "tab_inserts_tab": "Tab key inserts tab",
+    "tab_inserts_tab_desc": "Press Tab to insert a tab character instead of changing focus"
   },
 
   "homepage": {

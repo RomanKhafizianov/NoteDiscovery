@@ -444,6 +444,55 @@ Returns the relationship graph between notes with link detection.
 - **Markdown links** - `[text](note.md)` standard internal links
 - **Edge types** - `"wikilink"` or `"markdown"` to distinguish link source
 
+---
+
+## 📤 Export
+
+### Export Note as HTML
+```http
+GET /api/export/{note_path}?theme={theme_name}&download={true|false}
+```
+
+Exports a note as a standalone HTML file with all dependencies embedded for offline viewing.
+
+**Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `note_path` | path | Path to the note (e.g., `folder/note.md`) |
+| `theme` | query (optional) | Theme name for styling (defaults to `light`) |
+| `download` | query (optional) | If `true` (default), returns as file download. If `false`, displays in browser with Print/Close buttons for print preview |
+
+**Response:**
+- `download=true`: Returns an HTML file with `Content-Disposition: attachment` header
+- `download=false`: Returns inline HTML for browser display (print preview mode)
+
+**Features:**
+- Fully self-contained HTML with embedded CSS
+- Images converted to base64 data URLs
+- MathJax for LaTeX math rendering (supports `$...$`, `$$...$$`, `\(...\)`, `\[...\]`)
+- Mermaid.js for diagram rendering
+- Highlight.js for syntax highlighting
+- Wikilinks converted to decorative spans
+- YAML frontmatter stripped
+- Responsive design with print support
+- Print toolbar with Print/Close buttons (preview mode only)
+
+**Rate Limit:** 30 requests/minute
+
+**Example:**
+```bash
+# Export with default theme (downloads file)
+curl -O http://localhost:8000/api/export/notes/Welcome.md
+
+# Export with dark theme (downloads file)
+curl -O "http://localhost:8000/api/export/docs/API.md?theme=dracula"
+
+# Print preview (open in browser)
+# http://localhost:8000/api/export/docs/API.md?theme=light&download=false
+```
+
+---
+
 ## ⚙️ System
 
 ### Get Config

@@ -104,6 +104,7 @@
     "delete_note": "Удалить заметку",
     "delete_image": "Удалить изображение",
     "export_html": "Экспорт в HTML",
+    "print_preview": "Предварительный просмотр печати",
     "copy_link": "Копировать ссылку",
     "add_favorite": "Добавить в избранное",
     "remove_favorite": "Удалить из избранного"
@@ -249,7 +250,9 @@
     "readable_line_length": "Удобная длина строки",
     "readable_line_length_desc": "Ограничить ширину предпросмотра для удобства чтения",
     "hide_underscore_folders": "Скрыть системные папки",
-    "hide_underscore_folders_desc": "Скрыть _attachments, _templates и другие папки с подчёркиванием"
+    "hide_underscore_folders_desc": "Скрыть _attachments, _templates и другие папки с подчёркиванием",
+    "tab_inserts_tab": "Tab вставляет табуляцию",
+    "tab_inserts_tab_desc": "Нажмите Tab для вставки табуляции вместо переключения фокуса"
   },
 
   "homepage": {

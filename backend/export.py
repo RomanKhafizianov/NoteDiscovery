@@ -300,18 +300,20 @@ def generate_export_html(
     title: str,
     content: str,
     theme_css: str,
-    is_dark: bool = False
+    is_dark: bool = False,
+    show_print_button: bool = False
 ) -> str:
     """
     Generate a standalone HTML document for a note.
     Uses marked.js for client-side markdown rendering.
-    
+
     Args:
         title: The note title (for <title> and display)
         content: Raw markdown content (images should already be base64 embedded)
         theme_css: CSS content for theming
         is_dark: Whether using a dark theme (for Mermaid/Highlight.js)
-    
+        show_print_button: Whether to show a print button (for preview mode)
+
     Returns:
         Complete HTML document as string
     """
@@ -326,6 +328,24 @@ def generate_export_html(
     
     highlight_theme = 'github-dark' if is_dark else 'github'
     mermaid_theme = 'dark' if is_dark else 'default'
+    
+    # Print toolbar HTML (only shown in preview mode)
+    print_toolbar_html = '''
+    <div class="print-toolbar">
+        <button onclick="window.print()" title="Print">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+            </svg>
+            Print
+        </button>
+        <button onclick="window.close()" title="Close">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Close
+        </button>
+    </div>
+''' if show_print_button else ''
     
     html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -348,8 +368,8 @@ def generate_export_html(
     <script>
         MathJax = {{
             tex: {{
-                inlineMath: [['$', '$']],
-                displayMath: [['$$', '$$']],
+                inlineMath: [['\\\\(', '\\\\)'], ['$', '$']],
+                displayMath: [['\\\\[', '\\\\]'], ['$$', '$$']],
                 processEscapes: true,
                 processEnvironments: true
             }},
@@ -667,13 +687,72 @@ def generate_export_html(
                 padding: 0.5in;
                 max-width: none;
             }}
+            .print-toolbar {{
+                display: none !important;
+            }}
+        }}
+        
+        /* Print toolbar (only shown in preview mode) */
+        .print-toolbar {{
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-secondary, #f8f9fa);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-primary, #dee2e6);
+        }}
+        
+        .print-toolbar button {{
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-primary, #dee2e6);
+            border-radius: 0.375rem;
+            background: var(--bg-primary, #ffffff);
+            color: var(--text-primary, #333333);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: background-color 0.15s, border-color 0.15s;
+        }}
+        
+        .print-toolbar button:hover {{
+            background: var(--bg-tertiary, #e9ecef);
+            border-color: var(--accent-primary, #0366d6);
+        }}
+        
+        .print-toolbar button svg {{
+            width: 1rem;
+            height: 1rem;
         }}
     </style>
 </head>
 <body>
+    {print_toolbar_html}
     <div class="markdown-preview" id="content"></div>
-    
+
     <script>
+        // Protect LaTeX delimiters \\(...\\) and \\[...\\] from marked.js escaping
+        marked.use({{
+            extensions: [{{
+                name: 'protectLatexMath',
+                level: 'inline',
+                start(src) {{ return src.match(/\\\\[\\(\\[]/)?.index; }},
+                tokenizer(src) {{
+                    const match = src.match(/^(\\\\[\\(\\[])([\\s\\S]*?)(\\\\[\\)\\]])/);
+                    if (match) {{
+                        return {{ type: 'html', raw: match[0], text: match[0] }};
+                    }}
+                }}
+            }}]
+        }});
+
         // Configure marked
         marked.setOptions({{
             gfm: true,
@@ -681,7 +760,7 @@ def generate_export_html(
             headerIds: true,
             mangle: false
         }});
-        
+
         // Raw markdown content
         const markdown = `{escaped_content}`;
         
@@ -690,6 +769,11 @@ def generate_export_html(
         const rawHtml = marked.parse(markdown);
         const safeHtml = DOMPurify.sanitize(rawHtml);
         document.getElementById('content').innerHTML = safeHtml;
+        
+        // Typeset math after content is inserted
+        if (typeof MathJax !== 'undefined' && MathJax.typeset) {{
+            MathJax.typeset();
+        }}
         
         // Add copy buttons to code blocks
         document.querySelectorAll('.markdown-preview pre').forEach(pre => {{

@@ -12,7 +12,6 @@
 - **Copy code blocks** - One-click copy button on hover
 - **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax (see [MATHJAX.md](MATHJAX.md))
 - **Mermaid diagrams** - Create flowcharts, sequence diagrams, and more (see [MERMAID.md](MERMAID.md))
-- **HTML Export** - Export notes as standalone HTML files with embedded images
 - **Public Sharing** - Share notes via token-based URLs with optional QR code for mobile (see [SHARING.md](SHARING.md))
 
 ### Media Support
@@ -32,6 +31,14 @@
 - **Rename anything** - Files and folders, instantly
 - **Visual tree view** - Expandable/collapsible navigation
 - **Hide system folders** - Toggle to hide `_attachments`, `_templates` and other underscore-prefixed folders from sidebar
+- **Tab inserts tab** - Toggle to make Tab key insert a tab character in the editor instead of changing focus
+
+### Export & Print
+- **HTML Export** - Download notes as standalone HTML files with all styling, images, diagrams, and math embedded
+- **Print Preview** - Open note in new tab with Print/Close buttons for easy printing
+- **Self-contained** - Exported files work offline with no dependencies
+- **Theme-aware** - Export uses your current theme for consistent appearance
+- **Full rendering** - MathJax equations, Mermaid diagrams, and syntax highlighting included
 
 ## 🔗 Linking & Discovery
 

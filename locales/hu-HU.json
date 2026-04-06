@@ -105,6 +105,7 @@
     "delete_note": "Jegyzet törlése",
     "delete_image": "Kép törlése",
     "export_html": "Exportálás HTML-ként",
+    "print_preview": "Nyomtatási előnézet",
     "copy_link": "Link másolása",
     "add_favorite": "Hozzáadás a kedvencekhez",
     "remove_favorite": "Eltávolítás a kedvencek közül"
@@ -250,7 +251,9 @@
     "readable_line_length": "Olvasható sorhossz",
     "readable_line_length_desc": "Korlátozd az előnézeti szélességet a könnyebb olvasás érdekében",
     "hide_underscore_folders": "Rendszermappák elrejtése",
-    "hide_underscore_folders_desc": "_attachments, _templates és más aláhúzásos mappák elrejtése"
+    "hide_underscore_folders_desc": "_attachments, _templates és más aláhúzásos mappák elrejtése",
+    "tab_inserts_tab": "Tab billentyű tabulátort szúr be",
+    "tab_inserts_tab_desc": "Nyomja meg a Tab-ot tabulátor beszúrásához a fókuszváltás helyett"
   },
 
   "homepage": {

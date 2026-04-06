@@ -104,6 +104,7 @@
     "delete_note": "删除笔记",
     "delete_image": "删除图片",
     "export_html": "导出为 HTML",
+    "print_preview": "打印预览",
     "copy_link": "复制链接到剪贴板",
     "add_favorite": "添加到收藏夹",
     "remove_favorite": "从收藏夹移除"
@@ -249,7 +250,9 @@
     "readable_line_length": "可读行宽",
     "readable_line_length_desc": "限制预览宽度以便于阅读",
     "hide_underscore_folders": "隐藏系统文件夹",
-    "hide_underscore_folders_desc": "从侧边栏隐藏 _attachments、_templates 等下划线文件夹"
+    "hide_underscore_folders_desc": "从侧边栏隐藏 _attachments、_templates 等下划线文件夹",
+    "tab_inserts_tab": "Tab键插入制表符",
+    "tab_inserts_tab_desc": "按Tab键插入制表符而不是切换焦点"
   },
 
   "homepage": {

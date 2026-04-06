@@ -4,19 +4,30 @@ NoteDiscovery supports **LaTeX mathematical notation** powered by MathJax 3. Wri
 
 ## Syntax Overview
 
-### Inline Math (within text)
-Use `$...$` for inline equations:
+| Delimiter | Type | Behavior |
+|-----------|------|----------|
+| `$...$` | Inline | Flows with text, not centered |
+| `\(...\)` | Inline | Same as `$...$` (LaTeX standard) |
+| `$$...$$` | Display | Own paragraph, centered, larger |
+| `\[...\]` | Display | Same as `$$...$$` (LaTeX standard) |
 
-- `$E = mc^2$` renders as: $E = mc^2$
-- `$x^2 + y^2 = r^2$` renders as: $x^2 + y^2 = r^2$
+### Inline Math (within text)
+Inline math flows with your text: `$E = mc^2$` renders as $E = mc^2$
 
 ### Display Math (centered, on its own line)
-Use `$$...$$` for display equations:
+Display math gets its own centered paragraph:
 
 ```markdown
 $$
 x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
 $$
+```
+
+Or using LaTeX-style delimiters:
+```markdown
+\[
+x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
+\]
 ```
 
 $$

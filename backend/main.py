@@ -1228,6 +1228,95 @@ async def remove_note(request: Request, note_path: str):
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to delete note"))
 
 
+@api_router.get("/export/{note_path:path}", tags=["Export"])
+@limiter.limit("30/minute")
+async def export_note_to_html(request: Request, note_path: str, theme: Optional[str] = None, download: bool = True):
+    """
+    Export a note as a standalone HTML file.
+
+    The HTML includes all necessary CSS, MathJax, Mermaid, and syntax highlighting
+    for offline viewing. Images are embedded as base64.
+
+    Query Parameters:
+        theme: Optional theme name (defaults to current theme or 'light')
+        download: If true (default), returns as file download. If false, displays in browser with print button.
+
+    Returns:
+        HTML file (download or inline based on download parameter)
+    """
+    try:
+        notes_dir = Path(config['storage']['notes_dir'])
+        
+        # Read note content
+        content = get_note_content(str(notes_dir), note_path)
+        if content is None:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Run on_note_load hook (can transform content, e.g., decrypt)
+        transformed_content = plugin_manager.run_hook('on_note_load', note_path=note_path, content=content)
+        if transformed_content is not None:
+            content = transformed_content
+        
+        # Strip YAML frontmatter (like the preview does)
+        content = strip_frontmatter(content)
+        
+        # Get note folder for resolving relative image paths
+        note_file_path = notes_dir / note_path
+        note_folder = note_file_path.parent
+        
+        # Embed images as base64
+        content_with_images = embed_images_as_base64(content, note_folder, notes_dir)
+        
+        # Convert wikilinks to decorative HTML links
+        content_with_links = convert_wikilinks_to_html(content_with_images)
+        
+        # Get theme CSS
+        themes_dir = Path(__file__).parent.parent / "themes"
+        theme_name = theme or 'light'
+        theme_css = get_theme_css(str(themes_dir), theme_name)
+        if not theme_css:
+            theme_css = get_theme_css(str(themes_dir), "light")
+            theme_name = "light"
+        
+        # Strip data-theme selector
+        theme_css = theme_css.replace(f':root[data-theme="{theme_name}"]', ':root')
+        theme_css = theme_css.replace(':root[data-theme="light"]', ':root')
+        theme_css = theme_css.replace(':root[data-theme="dark"]', ':root')
+        
+        # Determine if dark theme
+        is_dark = 'dark' in theme_name.lower() or theme_name in ['dracula', 'nord', 'monokai', 'cobalt2', 'gruvbox-dark']
+        
+        # Get note title
+        title = Path(note_path).stem
+        
+        # Generate HTML (show print button only when not downloading)
+        html_content = generate_export_html(
+            title=title,
+            content=content_with_links,
+            theme_css=theme_css,
+            is_dark=is_dark,
+            show_print_button=not download
+        )
+        
+        # Return as downloadable file or inline (for print preview)
+        if download:
+            filename = f"{title}.html"
+            return Response(
+                content=html_content,
+                media_type="text/html",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                }
+            )
+        else:
+            # Return inline for browser display (print preview)
+            return HTMLResponse(content=html_content)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to export note"))
+
+
 @api_router.get("/search", tags=["Search"])
 async def search(
     q: str,

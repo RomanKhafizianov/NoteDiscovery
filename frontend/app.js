@@ -20,6 +20,7 @@ const LOCAL_SETTINGS = {
     favoritesExpanded: { key: 'favoritesExpanded', type: 'boolean', default: true },
     tagsExpanded: { key: 'tagsExpanded', type: 'boolean', default: false },
     hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
+    tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
     // Number settings with validation
     sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
     editorWidth: { key: 'editorWidth', type: 'number', default: 50, min: 20, max: 80 },
@@ -214,7 +215,10 @@ function noteApp() {
         // Hide underscore-prefixed folders (_attachments, _templates) from sidebar
         // Read synchronously to prevent flash on initial render
         hideUnderscoreFolders: localStorage.getItem('hideUnderscoreFolders') === 'true',
-        
+
+        // Tab key inserts tab character instead of changing focus
+        tabInsertsTab: localStorage.getItem('tabInsertsTab') === 'true',
+
         // Icon rail / panel state
         activePanel: 'files', // 'files', 'search', 'tags', 'settings'
         
@@ -826,7 +830,28 @@ function noteApp() {
             this.hideUnderscoreFolders = !this.hideUnderscoreFolders;
             localStorage.setItem('hideUnderscoreFolders', this.hideUnderscoreFolders);
         },
-        
+
+        // Tab inserts tab toggle (Tab key inserts tab character instead of changing focus)
+        toggleTabInsertsTab() {
+            this.tabInsertsTab = !this.tabInsertsTab;
+            localStorage.setItem('tabInsertsTab', this.tabInsertsTab);
+        },
+
+        // Handle Tab key in editor (inserts tab if setting enabled)
+        handleTabKey(event) {
+            if (!this.tabInsertsTab) return;
+            
+            event.preventDefault();
+            const textarea = event.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            this.noteContent = this.noteContent.substring(0, start) + '\t' + this.noteContent.substring(end);
+            this.$nextTick(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + 1;
+            });
+            this.autoSave();
+        },
+
         // Update syntax highlight overlay (debounced, called on input)
         updateSyntaxHighlight() {
             if (!this.syntaxHighlightEnabled) return;
@@ -4139,6 +4164,26 @@ function noteApp() {
                 return codeBlocks[parseInt(index)];
             });
             
+            // Protect LaTeX \(...\) and \[...\] delimiters from marked.js escaping
+            marked.use({
+                extensions: [{
+                    name: 'protectLatexMath',
+                    level: 'inline',
+                    start(src) { return src.match(/\\[\(\[]/)?.index; },
+                    tokenizer(src) {
+                        // Match \(...\) or \[...\]
+                        const match = src.match(/^(\\[\(\[])([\s\S]*?)(\\[\)\]])/);
+                        if (match) {
+                            return {
+                                type: 'html',
+                                raw: match[0],
+                                text: match[0]
+                            };
+                        }
+                    }
+                }]
+            });
+
             // Configure marked with syntax highlighting
             marked.setOptions({
                 breaks: true,
@@ -5020,7 +5065,7 @@ function noteApp() {
             }, CONFIG.SCROLL_SYNC_DELAY);
         },
         
-        // Export current note as HTML
+        // Export current note as HTML via backend API
         async exportToHTML() {
             if (!this.currentNote || !this.noteContent) {
                 alert(this.t('notes.no_content'));
@@ -5028,284 +5073,61 @@ function noteApp() {
             }
             
             try {
-                // Get the note name without extension
-                const noteName = this.currentNoteName || 'note';
-                
-                // Get current rendered HTML (this already has markdown converted and will have LaTeX delimiters)
-                let renderedHTML = this.renderedMarkdown;
-                
-                // Convert non-image media (audio, video, PDF) to placeholders first
-                // These shouldn't be embedded as base64 (too large)
-                // Use CSS variables with fallbacks for theme-aware styling (matches backend export.py)
-                const mediaPlaceholder = (type, name) => {
-                    const icons = { audio: '🎵', video: '🎬', document: '📄' };
-                    const labels = { audio: 'Audio file', video: 'Video file', document: 'PDF document' };
-                    const icon = icons[type] || '📎';
-                    const label = labels[type] || 'Media file';
-                    return `<div style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,var(--bg-tertiary,#f8f9fa) 0%,var(--bg-secondary,#e9ecef) 100%);border:1px solid var(--border-primary,#dee2e6);border-radius:0.5rem;display:flex;align-items:center;gap:1rem;">
-<span style="font-size:2rem;">${icon}</span>
-<div>
-<div style="font-weight:600;color:var(--text-primary,#212529);">${name}</div>
-<div style="font-size:0.875rem;color:var(--text-secondary,#6c757d);">${label} — not available in exported view</div>
-</div>
-</div>`;
-                };
-                
-                // Replace audio embeds with placeholders
-                renderedHTML = renderedHTML.replace(
-                    /<div class="media-embed media-audio">.*?<audio[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
-                    (match, filename) => mediaPlaceholder('audio', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
-                );
-                
-                // Replace video embeds with placeholders
-                renderedHTML = renderedHTML.replace(
-                    /<div class="media-embed media-video">.*?<video[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
-                    (match, filename) => mediaPlaceholder('video', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
-                );
-                
-                // Replace PDF embeds with placeholders
-                renderedHTML = renderedHTML.replace(
-                    /<div class="media-embed media-pdf">.*?<iframe[^>]*src="[^"]*\/([^"\/]+)"[^>]*>.*?<\/div>/gs,
-                    (match, filename) => mediaPlaceholder('document', decodeURIComponent(filename).replace(/\.[^.]+$/, ''))
-                );
-                
-                // Embed local images as base64 for fully self-contained HTML
-                // Handle both /api/media/ and legacy /api/images/ paths
-                const imgRegex = /src="\/api\/(?:media|images)\/([^"]+)"/g;
-                const imgMatches = [...renderedHTML.matchAll(imgRegex)];
-                
-                for (const match of imgMatches) {
-                    const encodedPath = match[1];
-                    // Skip non-image files (already handled above)
-                    const ext = encodedPath.split('.').pop().toLowerCase();
-                    if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-                        continue;
-                    }
-                    
-                    try {
-                        // Fetch the image
-                        const imgResponse = await fetch(`/api/media/${encodedPath}`);
-                        if (imgResponse.ok) {
-                            const blob = await imgResponse.blob();
-                            // Convert to base64 data URL
-                            const base64 = await new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => resolve(reader.result);
-                                reader.readAsDataURL(blob);
-                            });
-                            // Replace the src with base64 data URL
-                            renderedHTML = renderedHTML.replace(match[0], `src="${base64}"`);
-                        }
-                    } catch (e) {
-                        console.warn(`Failed to embed image: ${encodedPath}`, e);
-                        // Fall back to relative path
-                        const decodedPath = decodeURIComponent(encodedPath);
-                        renderedHTML = renderedHTML.replace(match[0], `src="${decodedPath}"`);
-                    }
-                }
-                
-                // Get current theme CSS
+                // Build API URL with current theme
                 const currentTheme = this.currentTheme || 'light';
-                const themeResponse = await fetch(`/api/themes/${currentTheme}`);
-                const themeText = await themeResponse.text();
+                const encodedPath = this.currentNote.split('/').map(s => encodeURIComponent(s)).join('/');
+                const url = `/api/export/${encodedPath}?theme=${encodeURIComponent(currentTheme)}`;
                 
-                // Check if response is JSON or plain CSS
-                let themeCss;
-                try {
-                    const themeJson = JSON.parse(themeText);
-                    // If it's JSON, extract the css field
-                    themeCss = themeJson.css || themeText;
-                } catch (e) {
-                    // If it's not JSON, use it as-is
-                    themeCss = themeText;
+                // Fetch the exported HTML from backend
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: 'Export failed' }));
+                    throw new Error(error.detail || 'Export failed');
                 }
                 
-                // Theme CSS uses :root[data-theme="..."] selector, but we need plain :root for export
-                // Strip the data-theme attribute selector so variables apply globally
-                themeCss = themeCss.replace(/:root\[data-theme="[^"]+"\]/g, ':root');
-                
-                // Get highlight.js theme URL from current page
-                const highlightLinkElement = document.getElementById('highlight-theme');
-                if (!highlightLinkElement || !highlightLinkElement.href) {
-                    console.warn('Could not detect highlight.js theme, export may not match preview exactly');
-                }
-                const highlightTheme = highlightLinkElement ? highlightLinkElement.href : '';
-                
-                // Extract all markdown preview styles from current page
-                let markdownStyles = '';
-                const styleSheets = Array.from(document.styleSheets);
-                
-                for (const sheet of styleSheets) {
-                    try {
-                        // Skip external stylesheets (CDN resources) to avoid CORS errors
-                        // We link them directly in the exported HTML anyway
-                        if (sheet.href && (sheet.href.startsWith('http://') || sheet.href.startsWith('https://'))) {
-                            const currentOrigin = window.location.origin;
-                            const sheetURL = new URL(sheet.href);
-                            if (sheetURL.origin !== currentOrigin) {
-                                // Skip cross-origin stylesheets (they're linked directly in export)
-                                continue;
-                            }
-                        }
-                        
-                        const rules = Array.from(sheet.cssRules || []);
-                        for (const rule of rules) {
-                            const cssText = rule.cssText;
-                            // Include rules that target markdown-preview, mjx-container, or mermaid-rendered
-                            if (cssText.includes('.markdown-preview') || 
-                                cssText.includes('mjx-container') ||
-                                cssText.includes('.MathJax') ||
-                                cssText.includes('.mermaid-rendered')) {
-                                markdownStyles += cssText + '\n';
-                            }
-                        }
-                    } catch (e) {
-                        // Gracefully skip stylesheets that can't be accessed
-                        // (This should rarely happen now that we skip external stylesheets)
-                        console.debug('Skipping stylesheet:', sheet.href);
+                // Get filename from Content-Disposition header or use note name
+                let filename = (this.currentNoteName || 'note') + '.html';
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="([^"]+)"/);
+                    if (match) {
+                        filename = match[1];
                     }
                 }
                 
-                // Create standalone HTML document with MathJax
-                const htmlDocument = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${noteName}</title>
-    
-    <!-- Highlight.js for code syntax highlighting (v11.9.0) -->
-    ${highlightTheme ? `<link rel="stylesheet" href="${highlightTheme}">` : '<!-- No highlight.js theme detected -->'}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    
-    <!-- MathJax for LaTeX math rendering (v3.2.2) -->
-    <script>
-        MathJax = {
-            tex: {
-                inlineMath: [['$', '$']],
-                displayMath: [['$$', '$$']],
-                processEscapes: true,
-                processEnvironments: true
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-            },
-            startup: {
-                pageReady: () => {
-                    return MathJax.startup.defaultPageReady().then(() => {
-                        // Highlight code blocks after MathJax is done (exclude diagram renderers)
-                        document.querySelectorAll('pre code:not(.language-mermaid)').forEach((block) => {
-                            hljs.highlightElement(block);
-                        });
-                    });
-                }
-            }
-        };
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-    
-    <!-- Mermaid.js for diagrams -->
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.esm.min.mjs';
-        const isDark = ${this.getThemeType() === 'dark'};
-        mermaid.initialize({ 
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'default',
-            securityLevel: 'strict',
-            fontFamily: 'inherit',
-            flowchart: { useMaxWidth: true },
-            sequence: { useMaxWidth: true },
-            gantt: { useMaxWidth: true },
-            state: { useMaxWidth: true },
-            er: { useMaxWidth: true },
-            pie: { useMaxWidth: true },
-            mindmap: { useMaxWidth: true },
-            gitGraph: { useMaxWidth: true }
-        });
-        
-        // Render any Mermaid code blocks
-        document.addEventListener('DOMContentLoaded', async () => {
-            const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid');
-            for (let i = 0; i < mermaidBlocks.length; i++) {
-                const block = mermaidBlocks[i];
-                const pre = block.parentElement;
-                try {
-                    const code = block.textContent;
-                    const id = 'mermaid-diagram-' + i;
-                    const { svg } = await mermaid.render(id, code);
-                    const container = document.createElement('div');
-                    container.className = 'mermaid-rendered';
-                    container.style.cssText = 'background-color: transparent; padding: 20px; text-align: center; overflow-x: auto;';
-                    container.innerHTML = svg;
-                    pre.parentElement.replaceChild(container, pre);
-                } catch (error) {
-                    console.error('Mermaid rendering error:', error);
-                }
-            }
-        });
-    </script>
-    
-    <style>
-        /* Theme CSS */
-        ${themeCss}
-        
-        /* Base styles */
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 2rem;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-        }
-        
-        /* Markdown preview styles extracted from current page */
-        ${markdownStyles}
-        
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-        }
-        
-        @media print {
-            body {
-                padding: 0.5in;
-                max-width: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="markdown-preview">
-        ${renderedHTML}
-    </div>
-</body>
-</html>`;
-                
-                // Create blob and download
-                const blob = new Blob([htmlDocument], { type: 'text/html;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
+                // Download as blob
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = `${noteName}.html`;
+                a.href = blobUrl;
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 
                 // Cleanup
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(blobUrl);
                 document.body.removeChild(a);
                 
             } catch (error) {
                 console.error('HTML export failed:', error);
                 alert(this.t('export.failed', { error: error.message }));
             }
+        },
+        
+        // Open print preview in new window
+        printPreview() {
+            if (!this.currentNote || !this.noteContent) {
+                alert(this.t('notes.no_content'));
+                return;
+            }
+            
+            // Build API URL with current theme and download=false for inline display
+            const currentTheme = this.currentTheme || 'light';
+            const encodedPath = this.currentNote.split('/').map(s => encodeURIComponent(s)).join('/');
+            const url = `/api/export/${encodedPath}?theme=${encodeURIComponent(currentTheme)}&download=false`;
+            
+            // Open in new window/tab
+            window.open(url, '_blank');
         },
         
         // Copy current note link to clipboard
