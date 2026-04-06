@@ -105,6 +105,7 @@
     "delete_note": "Supprimer la note",
     "delete_image": "Supprimer l'image",
     "export_html": "Exporter en HTML",
+    "print_preview": "Aperçu avant impression",
     "copy_link": "Copier le lien dans le presse-papiers",
     "add_favorite": "Ajouter aux favoris",
     "remove_favorite": "Retirer des favoris"

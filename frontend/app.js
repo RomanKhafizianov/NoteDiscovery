@@ -5114,6 +5114,22 @@ function noteApp() {
             }
         },
         
+        // Open print preview in new window
+        printPreview() {
+            if (!this.currentNote || !this.noteContent) {
+                alert(this.t('notes.no_content'));
+                return;
+            }
+            
+            // Build API URL with current theme and download=false for inline display
+            const currentTheme = this.currentTheme || 'light';
+            const encodedPath = this.currentNote.split('/').map(s => encodeURIComponent(s)).join('/');
+            const url = `/api/export/${encodedPath}?theme=${encodeURIComponent(currentTheme)}&download=false`;
+            
+            // Open in new window/tab
+            window.open(url, '_blank');
+        },
+        
         // Copy current note link to clipboard
         async copyNoteLink() {
             if (!this.currentNote) return;

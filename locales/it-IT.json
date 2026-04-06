@@ -104,6 +104,7 @@
     "delete_note": "Elimina nota",
     "delete_image": "Elimina immagine",
     "export_html": "Esporta come HTML",
+    "print_preview": "Anteprima di stampa",
     "copy_link": "Copia link negli appunti",
     "add_favorite": "Aggiungi ai preferiti",
     "remove_favorite": "Rimuovi dai preferiti"

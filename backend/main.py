@@ -1230,18 +1230,19 @@ async def remove_note(request: Request, note_path: str):
 
 @api_router.get("/export/{note_path:path}", tags=["Export"])
 @limiter.limit("30/minute")
-async def export_note_to_html(request: Request, note_path: str, theme: Optional[str] = None):
+async def export_note_to_html(request: Request, note_path: str, theme: Optional[str] = None, download: bool = True):
     """
     Export a note as a standalone HTML file.
-    
+
     The HTML includes all necessary CSS, MathJax, Mermaid, and syntax highlighting
     for offline viewing. Images are embedded as base64.
-    
+
     Query Parameters:
         theme: Optional theme name (defaults to current theme or 'light')
-    
+        download: If true (default), returns as file download. If false, displays in browser with print button.
+
     Returns:
-        HTML file download
+        HTML file (download or inline based on download parameter)
     """
     try:
         notes_dir = Path(config['storage']['notes_dir'])
@@ -1288,23 +1289,28 @@ async def export_note_to_html(request: Request, note_path: str, theme: Optional[
         # Get note title
         title = Path(note_path).stem
         
-        # Generate HTML
+        # Generate HTML (show print button only when not downloading)
         html_content = generate_export_html(
             title=title,
             content=content_with_links,
             theme_css=theme_css,
-            is_dark=is_dark
+            is_dark=is_dark,
+            show_print_button=not download
         )
         
-        # Return as downloadable file
-        filename = f"{title}.html"
-        return Response(
-            content=html_content,
-            media_type="text/html",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
-        )
+        # Return as downloadable file or inline (for print preview)
+        if download:
+            filename = f"{title}.html"
+            return Response(
+                content=html_content,
+                media_type="text/html",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                }
+            )
+        else:
+            # Return inline for browser display (print preview)
+            return HTMLResponse(content=html_content)
     except HTTPException:
         raise
     except Exception as e:

@@ -105,6 +105,7 @@
     "delete_note": "Jegyzet törlése",
     "delete_image": "Kép törlése",
     "export_html": "Exportálás HTML-ként",
+    "print_preview": "Nyomtatási előnézet",
     "copy_link": "Link másolása",
     "add_favorite": "Hozzáadás a kedvencekhez",
     "remove_favorite": "Eltávolítás a kedvencek közül"
