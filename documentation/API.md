@@ -444,6 +444,49 @@ Returns the relationship graph between notes with link detection.
 - **Markdown links** - `[text](note.md)` standard internal links
 - **Edge types** - `"wikilink"` or `"markdown"` to distinguish link source
 
+---
+
+## 📤 Export
+
+### Export Note as HTML
+```http
+GET /api/export/{note_path}?theme={theme_name}
+```
+
+Exports a note as a standalone HTML file with all dependencies embedded for offline viewing.
+
+**Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `note_path` | path | Path to the note (e.g., `folder/note.md`) |
+| `theme` | query (optional) | Theme name for styling (defaults to `light`) |
+
+**Response:**
+Returns an HTML file download with `Content-Disposition: attachment` header.
+
+**Features:**
+- Fully self-contained HTML with embedded CSS
+- Images converted to base64 data URLs
+- MathJax for LaTeX math rendering (supports `$...$`, `$$...$$`, `\(...\)`, `\[...\]`)
+- Mermaid.js for diagram rendering
+- Highlight.js for syntax highlighting
+- Wikilinks converted to decorative spans
+- YAML frontmatter stripped
+- Responsive design with print support
+
+**Rate Limit:** 30 requests/minute
+
+**Example:**
+```bash
+# Export with default theme
+curl -O http://localhost:8000/api/export/notes/Welcome.md
+
+# Export with dark theme
+curl -O "http://localhost:8000/api/export/docs/API.md?theme=dracula"
+```
+
+---
+
 ## ⚙️ System
 
 ### Get Config

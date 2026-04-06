@@ -348,8 +348,8 @@ def generate_export_html(
     <script>
         MathJax = {{
             tex: {{
-                inlineMath: [['$', '$']],
-                displayMath: [['$$', '$$']],
+                inlineMath: [['\\\\(', '\\\\)'], ['$', '$']],
+                displayMath: [['\\\\[', '\\\\]'], ['$$', '$$']],
                 processEscapes: true,
                 processEnvironments: true
             }},
@@ -674,6 +674,21 @@ def generate_export_html(
     <div class="markdown-preview" id="content"></div>
     
     <script>
+        // Protect LaTeX delimiters \\(...\\) and \\[...\\] from marked.js escaping
+        marked.use({{
+            extensions: [{{
+                name: 'protectLatexMath',
+                level: 'inline',
+                start(src) {{ return src.match(/\\\\[\\(\\[]/)?.index; }},
+                tokenizer(src) {{
+                    const match = src.match(/^(\\\\[\\(\\[])([\\s\\S]*?)(\\\\[\\)\\]])/);
+                    if (match) {{
+                        return {{ type: 'html', raw: match[0], text: match[0] }};
+                    }}
+                }}
+            }}]
+        }});
+
         // Configure marked
         marked.setOptions({{
             gfm: true,
@@ -681,7 +696,7 @@ def generate_export_html(
             headerIds: true,
             mangle: false
         }});
-        
+
         // Raw markdown content
         const markdown = `{escaped_content}`;
         
@@ -690,6 +705,11 @@ def generate_export_html(
         const rawHtml = marked.parse(markdown);
         const safeHtml = DOMPurify.sanitize(rawHtml);
         document.getElementById('content').innerHTML = safeHtml;
+        
+        // Typeset math after content is inserted
+        if (typeof MathJax !== 'undefined' && MathJax.typeset) {{
+            MathJax.typeset();
+        }}
         
         // Add copy buttons to code blocks
         document.querySelectorAll('.markdown-preview pre').forEach(pre => {{
