@@ -59,6 +59,7 @@
 - **Drag to link** - Drag notes or images into the editor to insert links
 - **Click to navigate** - Jump between notes seamlessly
 - **External links** - Open in new tabs automatically
+- **URI protocols** - Supports `mailto:`, `tel:`, `ssh:`, `ftp:`, `slack:`, `discord:`, `teams:`, `zoom:`, `whatsapp:`, `telegram:`, `signal:`, `spotify:`, `steam:`, `magnet:`, and more
 
 ### Outline Panel
 - **Table of Contents** - View all headings (H1-H6) in sidebar

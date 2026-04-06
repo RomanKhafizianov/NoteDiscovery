@@ -2580,7 +2580,9 @@ function noteApp() {
             if (!href) return;
             
             // Check if it's an external link or API path (media files, etc.)
-            if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('mailto:') || href.startsWith('/api/')) {
+            // Safe external protocols: http, https, mailto, tel, ssh, ftp, sftp, and app deep links
+            const externalProtocols = ['http://', 'https://', '//', 'mailto:', 'tel:', 'ssh:', 'ftp:', 'sftp:', 'slack:', 'discord:', 'teams:', 'vscode:', 'zoom:', 'whatsapp:', 'telegram:', 'signal:', 'spotify:', 'steam:', 'magnet:', '/api/'];
+            if (externalProtocols.some(p => href.startsWith(p))) {
                 return; // Let external links and API paths work normally
             }
             
