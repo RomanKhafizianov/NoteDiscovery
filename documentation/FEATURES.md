@@ -17,10 +17,10 @@
 ### Media Support
 - **Drag & drop upload** - Drop files from your file system directly into the editor
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
-- **Images** - JPG, PNG, GIF, WebP (max 10MB)
-- **Audio** - MP3, WAV, OGG, M4A (max 50MB)
-- **Video** - MP4, WebM, MOV, AVI (max 100MB)
-- **Documents** - PDF (max 20MB)
+- **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
+- **Audio** - MP3, WAV, OGG, M4A (default max 50MB, configurable)
+- **Video** - MP4, WebM, MOV, AVI (default max 100MB, configurable)
+- **Documents** - PDF (default max 20MB, configurable)
 - **In-app viewing** - View all media types directly in the sidebar
 - **Inline preview** - Audio/video players and PDF viewer embedded in notes
 
