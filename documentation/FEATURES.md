@@ -27,7 +27,7 @@
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
 - **Drag & drop** - Move notes and folders effortlessly
-- **Alphabetical sorting** - Find notes quickly
+- **Flexible sorting** - Sort notes by name (A-Z, Z-A), date (newest, oldest), or size (largest, smallest)
 - **Rename anything** - Files and folders, instantly
 - **Visual tree view** - Expandable/collapsible navigation
 - **Hide system folders** - Toggle to hide `_attachments`, `_templates` and other underscore-prefixed folders from sidebar
