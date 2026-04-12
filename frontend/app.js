@@ -857,6 +857,31 @@ function noteApp() {
             this.autoSave();
         },
 
+        /**
+         * Enter: continue blockquote / bullet / task list; second Enter on empty item exits (see editor-markdown-continue.js).
+         */
+        handleEditorEnterKey(event) {
+            if (typeof EditorMarkdownContinue === 'undefined') return;
+            const textarea = event.target;
+            if (!textarea || textarea.id !== 'note-editor') return;
+
+            const result = EditorMarkdownContinue.tryEnter(
+                this.noteContent,
+                textarea.selectionStart,
+                textarea.selectionEnd,
+                event
+            );
+            if (!result.handled) return;
+
+            event.preventDefault();
+            this.noteContent = result.text;
+            this.$nextTick(() => {
+                textarea.selectionStart = textarea.selectionEnd = result.cursor;
+            });
+            this.autoSave();
+            this.updateSyntaxHighlight();
+        },
+
         // Sort mode configuration
         sortModes: ['a-z', 'z-a', 'newest', 'oldest', 'largest', 'smallest'],
         sortModeIcons: {

@@ -2682,6 +2682,7 @@
                                     x-model="noteContent"
                                     @input="autoSave(); updateSyntaxHighlight()"
                                     @scroll="syncOverlayScroll()"
+                                    @keydown.enter="handleEditorEnterKey($event)"
                                     @keydown.tab="handleTabKey($event)"
                                     @drop="onEditorDrop($event)"
                                     @dragover.prevent="onEditorDragOver($event)"
@@ -3433,6 +3434,7 @@
         </button>
     </nav>
     
+    <script src="/static/editor-markdown-continue.js"></script>
     <script src="/static/app.js"></script>
     
     <!-- PWA Service Worker Registration -->
