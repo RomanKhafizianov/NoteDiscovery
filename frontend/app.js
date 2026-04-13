@@ -193,6 +193,7 @@ function noteApp() {
         // Preview rendering debounce
         _previewDebounceTimeout: null,
         _lastRenderedContent: '',
+        _lastRenderedNote: '',
         _cachedRenderedHTML: '',
         _mathDebounceTimeout: null,
         _mermaidDebounceTimeout: null,
@@ -1285,6 +1286,49 @@ function noteApp() {
         resolveMediaWikilink(mediaName) {
             const nameLower = mediaName.toLowerCase();
             return this._mediaLookup.get(nameLower) || null;
+        },
+        
+        // Resolve a Markdown image path to a vault-relative path (forward slashes).
+        // Relative paths use the note file's directory as base (same rules as CommonMark / browsers).
+        // A leading "/" (not "//") means vault-root-relative.
+        resolveMarkdownMediaPathForNote(noteVaultPath, rawSrc) {
+            const pathPart = rawSrc.split('#')[0].split('?')[0];
+            if (!pathPart) return '';
+            if (pathPart.startsWith('/') && !pathPart.startsWith('//')) {
+                return pathPart.replace(/^\/+/, '');
+            }
+            if (!noteVaultPath) {
+                return pathPart;
+            }
+            const dir = noteVaultPath.includes('/')
+                ? noteVaultPath.slice(0, noteVaultPath.lastIndexOf('/'))
+                : '';
+            const base = `https://vn.invalid/${dir ? `${dir}/` : ''}`;
+            try {
+                const u = new URL(pathPart, base);
+                let p = u.pathname;
+                if (p.startsWith('/')) p = p.slice(1);
+                return p.split('/').filter(seg => seg !== '').map(seg => {
+                    try {
+                        return decodeURIComponent(seg);
+                    } catch (e) {
+                        return seg;
+                    }
+                }).join('/');
+            } catch (e) {
+                return pathPart;
+            }
+        },
+        
+        encodeVaultRelativePathForMediaApi(vaultRelativePath) {
+            if (!vaultRelativePath) return '';
+            return vaultRelativePath.split('/').map(segment => {
+                try {
+                    return encodeURIComponent(decodeURIComponent(segment));
+                } catch (e) {
+                    return encodeURIComponent(segment);
+                }
+            }).join('/');
         },
         
         // Load all tags
@@ -2858,6 +2902,7 @@ function noteApp() {
                 
                 this.currentNote = notePath;
                 this._lastRenderedContent = ''; // Clear render cache for new note
+                this._lastRenderedNote = '';
                 this._cachedRenderedHTML = '';
                 this._initializedVideoSources = new Set(); // Clear video cache for new note
                 this.noteContent = data.content;
@@ -3962,6 +4007,7 @@ function noteApp() {
                         this.noteContent = '';
                         this.currentNoteName = '';
                         this._lastRenderedContent = ''; // Clear render cache
+                        this._lastRenderedNote = '';
                         this._cachedRenderedHTML = '';
                         document.title = this.appName;
                         // Redirect to root
@@ -4133,7 +4179,9 @@ function noteApp() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
             
             // Performance: Return cached HTML if content hasn't changed
-            if (this.noteContent === this._lastRenderedContent && this._cachedRenderedHTML) {
+            if (this.noteContent === this._lastRenderedContent &&
+                this.currentNote === this._lastRenderedNote &&
+                this._cachedRenderedHTML) {
                 return this._cachedRenderedHTML;
             }
             
@@ -4327,14 +4375,10 @@ function noteApp() {
                     
                     // Transform relative paths to /api/media/ for serving
                     if (isLocal && !src.startsWith('/api/media/')) {
-                        // URL-encode path segments to handle spaces and special characters
-                        const encodedPath = src.split('/').map(segment => {
-                            try {
-                                return encodeURIComponent(decodeURIComponent(segment));
-                            } catch (e) {
-                                return encodeURIComponent(segment);
-                            }
-                        }).join('/');
+                        const vaultRelative = self.currentNote
+                            ? self.resolveMarkdownMediaPathForNote(self.currentNote, src)
+                            : src.split('#')[0].split('?')[0];
+                        const encodedPath = self.encodeVaultRelativePathForMediaApi(vaultRelative);
                         src = `/api/media/${encodedPath}`;
                         img.setAttribute('src', src);
                     }
@@ -4434,6 +4478,7 @@ function noteApp() {
             
             // Cache the result for performance
             this._lastRenderedContent = this.noteContent;
+            this._lastRenderedNote = this.currentNote;
             this._cachedRenderedHTML = html;
             
             return html;
