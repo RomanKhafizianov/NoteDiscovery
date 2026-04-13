@@ -23,6 +23,7 @@
 - **Documents** - PDF (default max 20MB, configurable)
 - **In-app viewing** - View all media types directly in the sidebar
 - **Inline preview** - Audio/video players and PDF viewer embedded in notes
+- **Relative media paths** - For `![alt](path)`, paths resolve from the note’s folder
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
