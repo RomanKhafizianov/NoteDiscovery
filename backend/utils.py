@@ -526,7 +526,11 @@ def create_note_metadata(notes_dir: str, note_path: str) -> Dict:
     """Get metadata for a note"""
     full_path = Path(notes_dir) / note_path
     
-    if not full_path.exists():
+    if not full_path.exists() or not full_path.is_file():
+        return {}
+    
+    # Security check: ensure the path is within notes_dir (same as get_note_content)
+    if not validate_path_security(notes_dir, full_path):
         return {}
     
     stat = full_path.stat()
