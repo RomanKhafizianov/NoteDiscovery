@@ -49,7 +49,9 @@ def get_available_themes(themes_dir: str) -> List[Dict[str, str]]:
         "cobalt2": "🌊",
         "vs-blue": "🔷",
         "gruvbox-dark": "🟫",
-        "matcha-light": "🍵"
+        "matcha-light": "🍵",
+        "hacker": "🖥️",
+        "ubuntu": "🟠"
     }
     
     # Load all themes from themes folder

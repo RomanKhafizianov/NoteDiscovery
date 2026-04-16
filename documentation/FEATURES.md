@@ -33,7 +33,7 @@
 - **Visual tree view** - Expandable/collapsible navigation
 - **Hide system folders** - Toggle to hide `_attachments`, `_templates` and other underscore-prefixed folders from sidebar
 - **Tab inserts tab** - Toggle to make Tab key insert a tab character in the editor instead of changing focus
-- **List & quote continuation (Enter)** - At the end of a line, Enter continues blockquotes (`>`), bullets (`-` / `*` / `+`), and task lists (`- [ ]` / `- [x]`); pressing Enter again on an empty continued line exits the list or quote. Disabled inside fenced code blocks and when using Shift+Enter (plain newline)
+- **List & quote continuation (Enter)** - At the end of a line, Enter continues blockquotes (`>`), bullets (`-` / `*` / `+`), ordered lists (`1.` / `1)`), and task lists (`- [ ]` / `- [x]`); pressing Enter again on an empty continued line exits the list or quote. Disabled inside fenced code blocks and when using Shift+Enter (plain newline)
 
 ### Export & Print
 - **HTML Export** - Download notes as standalone HTML files with all styling, images, diagrams, and math embedded
@@ -100,7 +100,7 @@ To link to a heading, convert the heading text to a slug: **lowercase, spaces �
 ## 🎨 Customization
 
 ### Themes
-- **8 built-in themes** - Light, Dark, Dracula, Nord, Monokai, Vue High Contrast, Cobalt2, VS Blue
+- **Several built-in themes** - Multiple light and dark options out of the box (see **Settings → Theme** or the `themes/` directory)
 - **Theme persistence** - Remembers your choice
 - **Custom themes** - Create your own CSS themes
 - **Instant switching** - No reload required
@@ -360,7 +360,7 @@ NoteDiscovery can be installed as a standalone app on your device:
 
 ## 🌍 Internationalization
 
-- **Multiple languages** - English, Spanish, German, French built-in
+- **Multiple interface languages** - Bundled locale files under `locales/`; pick one in **Settings → Language**
 - **Easy to add** - Drop JSON files in `locales/` folder
 - **Instant switch** - Change language in Settings without reload
 - **Community translations** - Contributions welcome!

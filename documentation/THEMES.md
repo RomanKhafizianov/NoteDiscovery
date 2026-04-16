@@ -2,20 +2,9 @@
 
 ## Built-in Themes
 
-NoteDiscovery comes with **10 beautiful themes** out of the box:
+NoteDiscovery ships with **several built-in themes** (light and dark styles). Open **Settings → Theme** to browse what is available; your choice is saved automatically.
 
-- 🌞 **Light** - Clean, professional, easy on the eyes
-- 🌙 **Dark** - Modern dark mode for night owls
-- 🧛 **Dracula** - Popular purple-tinted dark theme
-- ❄️ **Nord** - Cool, Arctic-inspired color palette
-- 🎨 **Monokai** - Vibrant, high-contrast theme inspired by the classic code editor theme
-- 💚 **Vue High Contrast** - Dark theme with distinctive greenish tint and Vue.js aesthetics
-- 🌊 **Cobalt2** - Deep ocean blue with vibrant yellow highlights, inspired by Wes Bos
-- 🔷 **VS Blue** - Classic Visual Studio 2015 light blue professional theme
-- 🟫 **Gruvbox Dark** - A retro groove color scheme for Vim lovers
-- 🍵 **Matcha Light** - A vibrant, green-tinted light theme inspired by Doki Theme
-
-Switch themes anytime from the sidebar dropdown. Your preference is saved automatically!
+The set can grow over time—see the `themes/` folder in the repository for the current files. You can also add your own (see below) or override themes when self-hosting.
 
 ## Create Custom Themes
 
@@ -139,7 +128,7 @@ All these CSS variables **must** be defined for your theme to work properly:
 - Shadows: `shadow-sm`, `shadow-md`, `shadow-lg`
 
 ### 📋 Quick Start
-1. Copy an existing theme file (e.g., `dracula.css`)
+1. Copy an existing theme file from `themes/` (any `.css` file)
 2. Rename it to your theme name
 3. Update the `data-theme` attribute to match
 4. Modify the colors
