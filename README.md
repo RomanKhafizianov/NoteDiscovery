@@ -252,13 +252,7 @@ Want to learn more?
 
 ## 🌍 Multiple Languages
 
-NoteDiscovery supports multiple languages! Currently available:
-- 🇺🇸 English (en-US) - Default
-- 🇪🇸 Español (es-ES)
-- 🇩🇪 Deutsch (de-DE)
-- 🇫🇷 Français (fr-FR)
-
-**To change language:** Go to Settings (gear icon) → Language dropdown.
+NoteDiscovery supports multiple interface languages via JSON locale files in `locales/`. Open **Settings** (gear icon) → **Language** to choose one; the list reflects whatever locales are installed (bundled files, mounts, or your own additions).
 
 **To add your own language:** See the [Contributing Guidelines](CONTRIBUTING.md#-contributing-translations) for instructions on creating translation files.
 
