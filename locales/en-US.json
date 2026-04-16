@@ -28,6 +28,11 @@
     "failed": "Failed to {{action}}. Please try again."
   },
 
+  "toast": {
+    "region_label": "Notifications",
+    "dismiss": "Dismiss"
+  },
+
   "sidebar": {
     "title": "FILES",
     "favorites_title": "Favorites",

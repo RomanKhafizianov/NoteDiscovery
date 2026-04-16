@@ -28,6 +28,11 @@
     "failed": "Hiba a(z) {{action}} során. Kérlek, próbáld újra."
   },
 
+  "toast": {
+    "region_label": "Értesítések",
+    "dismiss": "Bezárás"
+  },
+
   "sidebar": {
     "title": "FÁJLOK",
     "favorites_title": "Kedvencek",

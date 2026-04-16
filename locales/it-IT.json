@@ -28,6 +28,11 @@
     "failed": "Impossibile {{action}}. Riprova."
   },
 
+  "toast": {
+    "region_label": "Notifiche",
+    "dismiss": "Chiudi"
+  },
+
   "sidebar": {
     "title": "FILE",
     "favorites_title": "Preferiti",

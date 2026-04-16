@@ -28,6 +28,11 @@
     "failed": "{{action}} fehlgeschlagen. Bitte versuche es erneut."
   },
 
+  "toast": {
+    "region_label": "Benachrichtigungen",
+    "dismiss": "Schließen"
+  },
+
   "sidebar": {
     "title": "DATEIEN",
     "favorites_title": "Favoriten",

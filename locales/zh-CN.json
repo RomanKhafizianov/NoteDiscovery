@@ -28,6 +28,11 @@
     "failed": "{{action}} 失败。请重试。"
   },
 
+  "toast": {
+    "region_label": "通知",
+    "dismiss": "关闭"
+  },
+
   "sidebar": {
     "title": "文件",
     "favorites_title": "收藏夹",

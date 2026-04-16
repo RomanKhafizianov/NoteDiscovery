@@ -28,6 +28,11 @@
     "failed": "Не удалось {{action}}. Попробуйте снова."
   },
 
+  "toast": {
+    "region_label": "Уведомления",
+    "dismiss": "Закрыть"
+  },
+
   "sidebar": {
     "title": "ФАЙЛЫ",
     "favorites_title": "Избранное",

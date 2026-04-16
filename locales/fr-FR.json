@@ -28,6 +28,11 @@
     "failed": "Échec de {{action}}. Veuillez réessayer."
   },
 
+  "toast": {
+    "region_label": "Notifications",
+    "dismiss": "Fermer"
+  },
+
   "sidebar": {
     "title": "FICHIERS",
     "favorites_title": "Favoris",

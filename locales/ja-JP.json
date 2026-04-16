@@ -28,6 +28,11 @@
     "failed": "{{action}}に失敗しました。もう一度お試しください。"
   },
 
+  "toast": {
+    "region_label": "通知",
+    "dismiss": "閉じる"
+  },
+
   "sidebar": {
     "title": "ファイル",
     "favorites_title": "お気に入り",

@@ -10,6 +10,11 @@ const CONFIG = {
     SCROLL_SYNC_RETRY_INTERVAL: 100,   // ms - Time between setupScrollSync retries
     MAX_UNDO_HISTORY: 50,              // Maximum number of undo steps to keep
     DEFAULT_SIDEBAR_WIDTH: 256,        // px - Default sidebar width (w-64 in Tailwind)
+    TOAST_MAX_VISIBLE: 4,              // Max stacked toasts; oldest dropped when exceeded
+    TOAST_DURATION_ERROR_MS: 7000,
+    TOAST_DURATION_WARNING_MS: 5500,
+    TOAST_DURATION_INFO_MS: 4500,
+    TOAST_DURATION_SUCCESS_MS: 3500,
 };
 
 // localStorage settings configuration - centralized definition of all persisted settings
@@ -38,17 +43,15 @@ const ErrorHandler = {
      * Handle errors consistently across the app
      * @param {string} operation - The operation that failed (e.g., "load notes", "save note")
      * @param {Error} error - The error object
-     * @param {boolean} showAlert - Whether to show an alert to the user
+     * @param {boolean} notify - Whether to show a toast (listens on notediscovery:toast)
      */
-    handle(operation, error, showAlert = true) {
-        // Always log to console for debugging
+    handle(operation, error, notify = true) {
         console.error(`Failed to ${operation}:`, error);
-        
-        // Show user-friendly alert if requested
-        if (showAlert) {
-            // Note: ErrorHandler doesn't have access to Alpine's t() function
-            // This message remains in English as a fallback
-            alert(`Failed to ${operation}. Please try again.`);
+        if (notify) {
+            const message = `Failed to ${operation}. Please try again.`;
+            window.dispatchEvent(new CustomEvent('notediscovery:toast', {
+                detail: { message, type: 'error' }
+            }));
         }
     }
 };
@@ -309,6 +312,10 @@ function noteApp() {
         quickSwitcherQuery: '',
         quickSwitcherIndex: 0,
         quickSwitcherResults: [],
+        
+        // Non-blocking notifications (replaces window.alert)
+        toasts: [],
+        _toastIdSeq: 0,
         
         // Homepage state
         selectedHomepageFolder: '',
@@ -725,6 +732,19 @@ function noteApp() {
                     this.viewMode = this.previousViewMode;
                 }
             });
+            
+            // Toasts from ErrorHandler and code paths without Alpine `this`
+            if (!window.__noteapp_toast_listener) {
+                window.__noteapp_toast_listener = true;
+                window.addEventListener('notediscovery:toast', (e) => {
+                    const d = e.detail || {};
+                    if (typeof d.message !== 'string' || !d.message) return;
+                    this.toast(d.message, {
+                        type: d.type || 'error',
+                        durationMs: d.durationMs
+                    });
+                });
+            }
         },
         
         // Load app configuration
@@ -1131,6 +1151,46 @@ function noteApp() {
         },
         
         /**
+         * Non-blocking toast (replaces window.alert). Types map to theme CSS variables.
+         * @param {string} message
+         * @param {{ type?: 'error'|'warning'|'info'|'success', durationMs?: number }} [options]
+         * @returns {number|undefined} toast id
+         */
+        toast(message, options = {}) {
+            if (typeof message !== 'string' || !message) return;
+            const type = ['error', 'warning', 'info', 'success'].includes(options.type)
+                ? options.type
+                : 'info';
+            let durationMs = options.durationMs;
+            if (durationMs == null || typeof durationMs !== 'number' || durationMs < 0) {
+                durationMs = type === 'error' ? CONFIG.TOAST_DURATION_ERROR_MS
+                    : type === 'warning' ? CONFIG.TOAST_DURATION_WARNING_MS
+                        : type === 'success' ? CONFIG.TOAST_DURATION_SUCCESS_MS
+                            : CONFIG.TOAST_DURATION_INFO_MS;
+            }
+            const id = ++this._toastIdSeq;
+            const entry = { id, message, type, _tid: null };
+            this.toasts.push(entry);
+            while (this.toasts.length > CONFIG.TOAST_MAX_VISIBLE) {
+                const first = this.toasts.shift();
+                if (first && first._tid) clearTimeout(first._tid);
+            }
+            entry._tid = setTimeout(() => this.dismissToast(id), durationMs);
+            return id;
+        },
+        
+        dismissToast(id) {
+            const idx = this.toasts.findIndex((t) => t.id === id);
+            if (idx === -1) return;
+            const entry = this.toasts[idx];
+            if (entry._tid) {
+                clearTimeout(entry._tid);
+                entry._tid = null;
+            }
+            this.toasts.splice(idx, 1);
+        },
+        
+        /**
          * Get localized error message from FilenameValidator result
          * @param {object} validation - The validation result from FilenameValidator
          * @param {string} type - 'note' or 'folder'
@@ -1338,7 +1398,7 @@ function noteApp() {
                 const data = await response.json();
                 this.allTags = data.tags || {};
             } catch (error) {
-                ErrorHandler.handle('load tags', error, false); // Don't show alert, tags are optional
+                ErrorHandler.handle('load tags', error, false); // Optional: no toast
             }
         },
         
@@ -1379,7 +1439,7 @@ function noteApp() {
                 const data = await response.json();
                 this.availableTemplates = data.templates || [];
             } catch (error) {
-                ErrorHandler.handle('load templates', error, false); // Don't show alert, templates are optional
+                ErrorHandler.handle('load templates', error, false); // Optional: no toast
             }
         },
         
@@ -1393,7 +1453,7 @@ function noteApp() {
                 // Validate the note name
                 const validation = FilenameValidator.validateFilename(this.newTemplateNoteName);
                 if (!validation.valid) {
-                    alert(this.getValidationErrorMessage(validation, 'note'));
+                    this.toast(this.getValidationErrorMessage(validation, 'note'), { type: 'warning' });
                     return;
                 }
                 
@@ -1419,7 +1479,7 @@ function noteApp() {
                 // CRITICAL: Check if note already exists
                 const existingNote = this.notes.find(note => note.path === notePath);
                 if (existingNote) {
-                    alert(this.t('notes.already_exists', { name: validation.sanitized }));
+                    this.toast(this.t('notes.already_exists', { name: validation.sanitized }), { type: 'warning' });
                     return;
                 }
                 
@@ -1435,7 +1495,7 @@ function noteApp() {
                 
                 if (!response.ok) {
                     const error = await response.json();
-                    alert(error.detail || this.t('templates.create_failed'));
+                    this.toast(error.detail || this.t('templates.create_failed'), { type: 'error' });
                     return;
                 }
                 
@@ -2409,7 +2469,7 @@ function noteApp() {
         // Handle media files dropped into editor
         async handleMediaDrop(event) {
             if (!this.currentNote) {
-                alert(this.t('notes.open_first'));
+                this.toast(this.t('notes.open_first'), { type: 'info' });
                 return;
             }
             
@@ -2429,7 +2489,7 @@ function noteApp() {
             const mediaFiles = files.filter(file => allowedTypes.includes(file.type.toLowerCase()));
             
             if (mediaFiles.length === 0) {
-                alert(this.t('media.no_valid_files'));
+                this.toast(this.t('media.no_valid_files'), { type: 'warning' });
                 return;
             }
             
@@ -2768,7 +2828,7 @@ function noteApp() {
                 // Prevent dropping folder into itself or its subfolders
                 if (targetFolderPath === draggedPath || 
                     targetFolderPath.startsWith(draggedPath + '/')) {
-                    alert(this.t('folders.cannot_move_into_self'));
+                    this.toast(this.t('folders.cannot_move_into_self'), { type: 'warning' });
                     return;
                 }
                 
@@ -2813,11 +2873,11 @@ function noteApp() {
                         }
                     } else {
                         const errorData = await response.json().catch(() => ({}));
-                        alert(errorData.detail || this.t('move.failed_folder'));
+                        this.toast(errorData.detail || this.t('move.failed_folder'), { type: 'error' });
                     }
                 } catch (error) {
                     console.error('Failed to move folder:', error);
-                    alert(this.t('move.failed_folder'));
+                    this.toast(this.t('move.failed_folder'), { type: 'error' });
                 }
                 return;
             }
@@ -2866,12 +2926,12 @@ function noteApp() {
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
-                    alert(errorData.detail || this.t(errorKey));
+                    this.toast(errorData.detail || this.t(errorKey), { type: 'error' });
                 }
             } catch (error) {
                 console.error(`Failed to move ${isMedia ? 'media' : 'note'}:`, error);
                 const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
-                alert(this.t(errorKey));
+                this.toast(this.t(errorKey), { type: 'error' });
             }
         },
         
@@ -3313,7 +3373,7 @@ function noteApp() {
                     : FilenameValidator.validatePath(noteName);
                 
                 if (!validation.valid) {
-                    alert(this.getValidationErrorMessage(validation, 'note'));
+                    this.toast(this.getValidationErrorMessage(validation, 'note'), { type: 'warning' });
                     return;
                 }
                 
@@ -3329,7 +3389,7 @@ function noteApp() {
             // CRITICAL: Check if note already exists (applies to both prompt and direct path)
             const existingNote = this.notes.find(note => note.path === notePath);
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: notePath }));
+                this.toast(this.t('notes.already_exists', { name: notePath }), { type: 'warning' });
                 return;
             }
             
@@ -3381,7 +3441,7 @@ function noteApp() {
                 : FilenameValidator.validatePath(folderName);
             
             if (!validation.valid) {
-                alert(this.getValidationErrorMessage(validation, 'folder'));
+                this.toast(this.getValidationErrorMessage(validation, 'folder'), { type: 'warning' });
                 return;
             }
             
@@ -3391,7 +3451,7 @@ function noteApp() {
             // Check if folder already exists
             const existingFolder = this.allFolders.find(folder => folder === folderPath);
             if (existingFolder) {
-                alert(this.t('folders.already_exists', { name: validatedName }));
+                this.toast(this.t('folders.already_exists', { name: validatedName }), { type: 'warning' });
                 return;
             }
             
@@ -3427,7 +3487,7 @@ function noteApp() {
             // Validate the new name (single segment, no path separators)
             const validation = FilenameValidator.validateFilename(newName);
             if (!validation.valid) {
-                alert(this.getValidationErrorMessage(validation, 'folder'));
+                this.toast(this.getValidationErrorMessage(validation, 'folder'), { type: 'warning' });
                 return;
             }
             
@@ -3917,14 +3977,14 @@ function noteApp() {
             const newName = this.currentNoteName.trim();
             
             if (!newName) {
-                alert(this.t('notes.empty_name'));
+                this.toast(this.t('notes.empty_name'), { type: 'warning' });
                 return;
             }
             
             // Validate the new name (single segment, no path separators)
             const validation = FilenameValidator.validateFilename(newName);
             if (!validation.valid) {
-                alert(this.getValidationErrorMessage(validation, 'note'));
+                this.toast(this.getValidationErrorMessage(validation, 'note'), { type: 'warning' });
                 // Reset the name in the UI
                 this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
                 return;
@@ -3939,7 +3999,7 @@ function noteApp() {
             // Check if a note with the new name already exists
             const existingNote = this.notes.find(n => n.path.toLowerCase() === newPath.toLowerCase());
             if (existingNote) {
-                alert(this.t('notes.already_exists', { name: validatedName }));
+                this.toast(this.t('notes.already_exists', { name: validatedName }), { type: 'warning' });
                 // Reset the name in the UI
                 this.currentNoteName = oldPath.split('/').pop().replace('.md', '');
                 return;
@@ -5199,7 +5259,7 @@ function noteApp() {
         // Export current note as HTML via backend API
         async exportToHTML() {
             if (!this.currentNote || !this.noteContent) {
-                alert(this.t('notes.no_content'));
+                this.toast(this.t('notes.no_content'), { type: 'info' });
                 return;
             }
             
@@ -5241,14 +5301,14 @@ function noteApp() {
                 
             } catch (error) {
                 console.error('HTML export failed:', error);
-                alert(this.t('export.failed', { error: error.message }));
+                this.toast(this.t('export.failed', { error: error.message }), { type: 'error' });
             }
         },
         
         // Open print preview in new window
         printPreview() {
             if (!this.currentNote || !this.noteContent) {
-                alert(this.t('notes.no_content'));
+                this.toast(this.t('notes.no_content'), { type: 'info' });
                 return;
             }
             
@@ -5468,11 +5528,11 @@ function noteApp() {
                     this._sharedNotePaths.add(this.currentNote);
                 } else {
                     const error = await response.json();
-                    alert(this.t('share.error_creating', { error: error.detail || 'Unknown error' }));
+                    this.toast(this.t('share.error_creating', { error: error.detail || 'Unknown error' }), { type: 'error' });
                 }
             } catch (error) {
                 console.error('Failed to create share link:', error);
-                alert(this.t('share.error_creating', { error: error.message }));
+                this.toast(this.t('share.error_creating', { error: error.message }), { type: 'error' });
             } finally {
                 this.shareLoading = false;
             }
@@ -5521,11 +5581,11 @@ function noteApp() {
                     this._sharedNotePaths.delete(this.currentNote);
                 } else {
                     const error = await response.json();
-                    alert(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }));
+                    this.toast(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }), { type: 'error' });
                 }
             } catch (error) {
                 console.error('Failed to revoke share link:', error);
-                alert(this.t('share.error_revoking', { error: error.message }));
+                this.toast(this.t('share.error_revoking', { error: error.message }), { type: 'error' });
             } finally {
                 this.shareLoading = false;
             }

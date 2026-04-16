@@ -28,6 +28,11 @@
     "failed": "Error al {{action}}. Por favor, inténtalo de nuevo."
   },
 
+  "toast": {
+    "region_label": "Notificaciones",
+    "dismiss": "Cerrar"
+  },
+
   "sidebar": {
     "title": "ARCHIVOS",
     "favorites_title": "Favoritos",

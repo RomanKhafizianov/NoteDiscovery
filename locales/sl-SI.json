@@ -28,6 +28,11 @@
     "failed": "Napaka pri {{action}}. Prosimo, poskusite znova."
   },
 
+  "toast": {
+    "region_label": "Obvestila",
+    "dismiss": "Zapri"
+  },
+
   "sidebar": {
     "title": "DATOTEKE",
     "favorites_title": "Priljubljene",
