@@ -311,6 +311,15 @@ function noteApp() {
         renameFolderOldName: '',
         renameFolderInput: '',
         
+        // Generic confirm dialog (replaces window.confirm)
+        showConfirmModal: false,
+        confirmModalTitle: '',
+        confirmModalMessage: '',
+        confirmModalDanger: true,
+        confirmModalConfirmLabel: '',
+        confirmModalCancelLabel: '',
+        _confirmModalResolve: null,
+        
         // Share state
         showShareModal: false,
         shareInfo: null,
@@ -2689,7 +2698,10 @@ function noteApp() {
         // Delete a media file (image, audio, video, PDF)
         async deleteMedia(mediaPath) {
             const filename = mediaPath.split('/').pop();
-            if (!confirm(this.t('media.confirm_delete', { name: filename }))) return;
+            const ok = await this.confirmModalAsk({
+                message: this.t('media.confirm_delete', { name: filename }),
+            });
+            if (!ok) return;
             
             try {
                 const response = await fetch(`/api/notes/${encodeURIComponent(mediaPath)}`, {
@@ -2777,9 +2789,15 @@ function noteApp() {
                         setTimeout(() => this.scrollToAnchor(anchor), 100);
                     }
                 });
-            } else if (confirm(this.t('notes.create_from_link', { path: notePath }))) {
-                // Note doesn't exist - create it (reuses createNote with duplicate check)
-                this.createNote(null, notePath);
+            } else {
+                this.confirmModalAsk({
+                    message: this.t('notes.create_from_link', { path: notePath }),
+                    danger: false,
+                    title: this.t('sidebar.new_note'),
+                    confirmLabel: this.t('common.create'),
+                }).then((ok) => {
+                    if (ok) this.createNote(null, notePath);
+                });
             }
         },
         
@@ -3558,6 +3576,42 @@ function noteApp() {
             this.closeRenameFolderModal();
         },
         
+        /**
+         * Theme-styled confirm dialog (replaces window.confirm).
+         * @param {{ message: string, title?: string, danger?: boolean, confirmLabel?: string, cancelLabel?: string }} options
+         * @returns {Promise<boolean>}
+         */
+        confirmModalAsk(options = {}) {
+            const { message, title, danger = true, confirmLabel, cancelLabel } = options;
+            return new Promise((resolve) => {
+                this.confirmModalTitle = title || this.t('common.confirm_title');
+                this.confirmModalMessage = message || '';
+                this.confirmModalDanger = danger;
+                this.confirmModalConfirmLabel = confirmLabel
+                    || (danger ? this.t('common.delete') : this.t('common.ok'));
+                this.confirmModalCancelLabel = cancelLabel || this.t('common.cancel');
+                this._confirmModalResolve = resolve;
+                this.showConfirmModal = true;
+                this.mobileSidebarOpen = false;
+            });
+        },
+        
+        confirmModalConfirm() {
+            this._confirmModalFinish(true);
+        },
+        
+        confirmModalCancel() {
+            this._confirmModalFinish(false);
+        },
+        
+        _confirmModalFinish(ok) {
+            if (!this._confirmModalResolve) return;
+            this.showConfirmModal = false;
+            const fn = this._confirmModalResolve;
+            this._confirmModalResolve = null;
+            fn(!!ok);
+        },
+        
         async submitRenameFolderModal() {
             const folderPath = this.renameFolderPath;
             const currentName = this.renameFolderOldName;
@@ -3630,9 +3684,10 @@ function noteApp() {
         
         // Delete folder
         async deleteFolder(folderPath, folderName) {
-            const confirmation = confirm(this.t('folders.confirm_delete', { name: folderName }));
-            
-            if (!confirmation) return;
+            const ok = await this.confirmModalAsk({
+                message: this.t('folders.confirm_delete', { name: folderName }),
+            });
+            if (!ok) return;
             
             try {
                 const response = await fetch(`/api/folders/${encodeURIComponent(folderPath)}`, {
@@ -4128,7 +4183,10 @@ function noteApp() {
         
         // Delete any note from sidebar
         async deleteNote(notePath, noteName) {
-            if (!confirm(this.t('notes.confirm_delete', { name: noteName }))) return;
+            const ok = await this.confirmModalAsk({
+                message: this.t('notes.confirm_delete', { name: noteName }),
+            });
+            if (!ok) return;
             
             try {
                 const response = await fetch(`/api/notes/${notePath}`, {
@@ -5647,7 +5705,12 @@ function noteApp() {
         async revokeShareLink() {
             if (!this.currentNote) return;
             
-            if (!confirm(this.t('share.confirm_revoke'))) return;
+            const ok = await this.confirmModalAsk({
+                message: this.t('share.confirm_revoke'),
+                danger: false,
+                confirmLabel: this.t('common.yes'),
+            });
+            if (!ok) return;
             
             this.shareLoading = true;
             

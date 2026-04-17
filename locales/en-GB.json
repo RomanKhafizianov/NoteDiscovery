@@ -16,6 +16,7 @@
     "rename": "Rename",
     "create": "Create",
     "close": "Close",
+    "confirm_title": "Confirm",
     "yes": "✓ Yes",
     "no": "✗ No",
     "ok": "OK",
