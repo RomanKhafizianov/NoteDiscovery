@@ -16,6 +16,7 @@
     "rename": "重命名",
     "create": "创建",
     "close": "关闭",
+    "confirm_title": "确认",
     "yes": "✓ 是",
     "no": "✗ 否",
     "ok": "确定",
@@ -26,6 +27,11 @@
     "copied": "已复制!",
     "copy_to_clipboard": "复制到剪贴板",
     "failed": "{{action}} 失败。请重试。"
+  },
+
+  "toast": {
+    "region_label": "通知",
+    "dismiss": "关闭"
   },
 
   "sidebar": {
@@ -99,6 +105,9 @@
     "prompt_name_in_folder": "在 \"{{folder}}\" 中创建子文件夹。\n输入文件夹名称：",
     "prompt_name_with_path": "创建新文件夹。\n输入文件夹路径（例如 \"Projects\" 或 \"Work/2025\"）：",
     "prompt_rename": "将文件夹 \"{{name}}\" 重命名为：",
+    "rename_modal_title": "重命名文件夹",
+    "rename_modal_description": "为文件夹 \"{{name}}\" 输入新名称。",
+    "rename_modal_label": "新名称",
     "invalid_name": "无效的文件夹名称。",
     "cannot_move_into_self": "无法将文件夹移动到其自身或其子文件夹中。",
     "empty": "空"

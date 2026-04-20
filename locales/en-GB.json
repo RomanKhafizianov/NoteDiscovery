@@ -16,6 +16,7 @@
     "rename": "Rename",
     "create": "Create",
     "close": "Close",
+    "confirm_title": "Confirm",
     "yes": "✓ Yes",
     "no": "✗ No",
     "ok": "OK",
@@ -26,6 +27,11 @@
     "copied": "Copied!",
     "copy_to_clipboard": "Copy to clipboard",
     "failed": "Failed to {{action}}. Please try again."
+  },
+
+  "toast": {
+    "region_label": "Notifications",
+    "dismiss": "Dismiss"
   },
 
   "sidebar": {
@@ -99,6 +105,9 @@
     "prompt_name_in_folder": "Create subfolder in \"{{folder}}\".\nEnter folder name:",
     "prompt_name_with_path": "Create new folder.\nEnter folder path (e.g., \"Projects\" or \"Work/2025\"):",
     "prompt_rename": "Rename folder \"{{name}}\" to:",
+    "rename_modal_title": "Rename folder",
+    "rename_modal_description": "Enter the new name for the folder \"{{name}}\".",
+    "rename_modal_label": "New name",
     "invalid_name": "Invalid folder name.",
     "cannot_move_into_self": "Cannot move folder into itself or its subfolder.",
     "empty": "empty"
