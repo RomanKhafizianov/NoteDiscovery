@@ -2141,7 +2141,7 @@ function noteApp() {
                                 onclick="window.$root.handleNewItemClick(this, event)"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="Add item here"
+                                title="${esc(this.t('sidebar.new_note'))}"
                             >+</button>
                             <button 
                                 data-path="${esc(folder.path)}"
@@ -2149,7 +2149,7 @@ function noteApp() {
                                 onclick="window.$root.handleRenameFolderClick(this, event)"
                                 class="px-1.5 py-0.5 text-xs rounded hover:brightness-110"
                                 style="background-color: var(--bg-tertiary); color: var(--text-secondary);"
-                                title="Rename folder"
+                                title="${esc(this.t('sidebar.rename_folder'))}"
                             >✏️</button>
                             <button 
                                 data-path="${esc(folder.path)}"
@@ -2157,7 +2157,7 @@ function noteApp() {
                                 onclick="window.$root.handleDeleteFolderClick(this, event)"
                                 class="px-1 py-0.5 text-xs rounded hover:brightness-110"
                                 style="color: var(--error);"
-                                title="Delete folder"
+                                title="${esc(this.t('sidebar.delete_folder'))}"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2206,7 +2206,7 @@ function noteApp() {
             
             // Share icon for shared notes
             const isShared = !isMediaFile && this.isNoteShared(note.path);
-            const shareIcon = isShared ? '<svg title="Shared" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
+            const shareIcon = isShared ? '<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
             const icon = this.getMediaIcon(note.type);
             
             return `
@@ -2231,7 +2231,7 @@ function noteApp() {
                         onclick="window.$root.handleDeleteItemClick(this, event)"
                         class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                         style="opacity: 0; color: var(--error);"
-                        title="${isMediaFile ? 'Delete file' : 'Delete note'}"
+                        title="${esc(isMediaFile ? this.t('toolbar.delete_image') : this.t('toolbar.delete_note'))}"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>

@@ -42,6 +42,8 @@
     "new_note": "Neue Notiz",
     "new_folder": "Neuer Ordner",
     "new_from_template": "Neu aus Vorlage",
+    "rename_folder": "Ordner umbenennen",
+    "delete_folder": "Ordner löschen",
     "search_placeholder": "Notizen durchsuchen...",
     "search_hint": "Tippe, um deine Notizen zu durchsuchen",
     "clear_search": "Suche löschen",
