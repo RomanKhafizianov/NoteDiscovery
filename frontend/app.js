@@ -3443,7 +3443,7 @@ function noteApp() {
         
         createNameModalLabel() {
             return this.createNameModalKind === 'note'
-                ? this.t('templates.note_name')
+                ? this.t('notes.prompt_name')
                 : this.t('folders.prompt_name');
         },
         
