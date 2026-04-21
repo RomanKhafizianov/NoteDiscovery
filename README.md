@@ -64,25 +64,10 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 🧮 **Math Support** - LaTeX/MathJax for beautiful equations
 - 📄 **HTML Export & Print** - Export notes as standalone HTML or print
 - 🕸️ **Graph View** - Interactive visualization of connected notes
-- ✏️ **Drawing editor** - In-app canvas for sketches and annotations saved as `drawing-*.png` — **see the next section**
+- ✏️ **Drawing editor** - In-app sketches as `drawing-*.png` next to your notes — see [documentation/DRAWING.md](documentation/DRAWING.md)
 - ⭐ **Favorites** - Star your most-used notes for instant access
 - 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
 - 🤖 **AI Assistant Ready** - MCP integration for Claude, Cursor & more
-
-## ✏️ Drawing editor
-
-NoteDiscovery isn’t only markdown—you can **sketch, diagram, and mark up ideas** without a separate app. Use **+ New → New drawing** in the sidebar: the app creates a **`drawing-{timestamp}.png`** in the folder you choose, next to your `.md` files. Open it from the tree like any image; files named `drawing-*.png` open in the **drawing viewer** instead of the static image viewer.
-
-**What you get**
-
-| | |
-|--|--|
-| **Tools** | Pencil, line, rectangle, ellipse, **eraser** (paints with the canvas background), **eyedropper** (sample color from the pixel under the cursor), **clear** (replace with a blank white image—confirmed, then saved). |
-| **Toolbar** | Color picker and stroke width next to the tools; main bar still has **undo/redo** for strokes when the drawing is focused. |
-| **Saving** | **Autosave** shortly after you release the pointer from a stroke; **Ctrl+S** / **Cmd+S** saves the PNG immediately (same key as saving a note). |
-| **On disk** | Ordinary PNG files—embed in notes with `![]()`, version in Git, back up with the rest of your vault. |
-
-> 📖 **Reference:** [documentation/DRAWING.md](documentation/DRAWING.md) · Also covered in [FEATURES.md](documentation/FEATURES.md)
 
 ## 🤖 AI-Powered Note Management
 

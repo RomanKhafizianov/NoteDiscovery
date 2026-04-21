@@ -15,7 +15,7 @@
 - **Public Sharing** - Share notes via token-based URLs with optional QR code for mobile (see [SHARING.md](SHARING.md))
 
 ### Media Support
-- **Drawing editor** - Create and edit **`drawing-*.png`** sketches next to your notes (pencil, shapes, eraser, eyedropper, autosave); see [DRAWING.md](DRAWING.md)
+- **Drawing editor** — In-app **`drawing-*.png`** sketches next to your notes ([overview](#drawing-editor)); full guide: **[DRAWING.md](DRAWING.md)**
 - **Drag & drop upload** - Drop files from your file system directly into the editor
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
 - **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
@@ -42,6 +42,16 @@
 - **Self-contained** - Exported files work offline with no dependencies
 - **Theme-aware** - Export uses your current theme for consistent appearance
 - **Full rendering** - MathJax equations, Mermaid diagrams, and syntax highlighting included
+
+## ✏️ Drawing editor
+
+Sketch beside your notes without leaving NoteDiscovery. **+ New → New drawing** creates a **`drawing-{timestamp}.png`** next to your markdown files; those open in the drawing viewer, other images open as usual.
+
+- **Tools** — Pencil, lines, rectangles, ellipses, eraser, eyedropper, clear; color and stroke width on the toolbar; undo/redo while you work.
+- **Saving** — Autosave and **Ctrl+S** / **Cmd+S** like the rest of the app.
+- **Files** — Plain PNGs in your vault—link them in notes and back them up with everything else.
+
+For file naming, API notes, and more: **[DRAWING.md](DRAWING.md)**
 
 ## 🔗 Linking & Discovery
 
