@@ -626,7 +626,7 @@ async def get_media(media_path: str):
 
 
 @api_router.put("/media/{media_path:path}", tags=["Media"])
-@limiter.limit("30/minute")
+@limiter.limit("120/minute")
 async def put_media(media_path: str, request: Request):
     """
     Overwrite an existing media file in place (used for saving drawing PNGs).
@@ -661,6 +661,10 @@ async def put_media(media_path: str, request: Request):
                 status_code=400,
                 detail=f"File too large. Maximum size: {UPLOAD_MAX_IMAGE_MB}MB",
             )
+
+        # Reject non-PNG payloads (defense in depth; path already restricts to .png)
+        if len(body) < 8 or body[:8] != b"\x89PNG\r\n\x1a\n":
+            raise HTTPException(status_code=400, detail="Body must be a valid PNG image")
 
         try:
             with open(full_path, 'wb') as f:

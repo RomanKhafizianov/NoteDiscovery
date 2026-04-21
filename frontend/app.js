@@ -508,6 +508,10 @@ function noteApp() {
         drawingIsPointerDown: false,
         /** True after the PNG from disk has been decoded into _drawingBaseImage; false after Clear. */
         drawingHasRasterFromFile: false,
+        /** Prevents overlapping drawingSave() runs (Ctrl+S + autosave + fast retries). */
+        _drawingSaveInFlight: false,
+        /** If true, run drawingSave again after the current one finishes (coalesce). */
+        _drawingSaveQueued: false,
         _drawingAutosaveTimeout: null,
         
         // DOM element cache (to avoid repeated querySelector calls)
@@ -3268,43 +3272,60 @@ function noteApp() {
          */
         async drawingSave() {
             if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
-            this._drawingCancelAutosave();
-            const canvas = this._drawingCanvasEl;
-            const ctx = this._drawingCtx;
-            if (!canvas || !ctx) return;
-            this.drawingDraft = null;
-            this.drawingIsPointerDown = false;
-            this.drawingRedraw();
-            await new Promise((r) => requestAnimationFrame(r));
-            const blob = await new Promise((resolve, reject) => {
-                canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
-            });
-            this.isSaving = true;
+            if (this._drawingSaveInFlight) {
+                this._drawingSaveQueued = true;
+                return;
+            }
+            this._drawingSaveInFlight = true;
             try {
-                const enc = this._drawingEncodeMediaPath();
-                const res = await fetch(`/api/media/${enc}`, {
-                    method: 'PUT',
-                    body: blob,
-                    headers: { 'Content-Type': 'image/png' },
-                    credentials: 'same-origin',
+                this._drawingCancelAutosave();
+                const canvas = this._drawingCanvasEl;
+                const ctx = this._drawingCtx;
+                if (!canvas || !ctx) return;
+                this.drawingDraft = null;
+                this.drawingIsPointerDown = false;
+                this.drawingRedraw();
+                await new Promise((r) => requestAnimationFrame(r));
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
                 });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    let detail = err.detail;
-                    if (Array.isArray(detail)) {
-                        detail = detail.map((d) => d.msg || d).join(', ');
+                this.isSaving = true;
+                try {
+                    const enc = this._drawingEncodeMediaPath();
+                    const res = await fetch(`/api/media/${enc}`, {
+                        method: 'PUT',
+                        body: blob,
+                        headers: { 'Content-Type': 'image/png' },
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        let detail = err.detail;
+                        if (Array.isArray(detail)) {
+                            detail = detail.map((d) => d.msg || d).join(', ');
+                        }
+                        throw new Error(detail || res.statusText);
                     }
-                    throw new Error(detail || res.statusText);
+                    await this.loadNotes();
+                    this.lastSaved = true;
+                    setTimeout(() => {
+                        this.lastSaved = false;
+                    }, CONFIG.SAVE_INDICATOR_DURATION);
+                } catch (error) {
+                    ErrorHandler.handle('save drawing', error);
+                } finally {
+                    this.isSaving = false;
                 }
-                await this.loadNotes();
-                this.lastSaved = true;
-                setTimeout(() => {
-                    this.lastSaved = false;
-                }, CONFIG.SAVE_INDICATOR_DURATION);
-            } catch (error) {
-                ErrorHandler.handle('save drawing', error);
             } finally {
-                this.isSaving = false;
+                this._drawingSaveInFlight = false;
+                if (this._drawingSaveQueued) {
+                    this._drawingSaveQueued = false;
+                    queueMicrotask(() => {
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            this.drawingSave();
+                        }
+                    });
+                }
             }
         },
         
