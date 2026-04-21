@@ -3,6 +3,8 @@
 // Configuration constants
 const CONFIG = {
     AUTOSAVE_DELAY: 1000,              // ms - Debounce before note save (autoSave) and drawing PNG autosave (_drawingScheduleAutosave)
+    /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
+    DRAWING_BACKGROUND: '#ffffff',
     SEARCH_DEBOUNCE_DELAY: 500,        // ms - Delay before running note search while typing
     SAVE_INDICATOR_DURATION: 2000,     // ms - How long to show "saved" indicator
     SCROLL_SYNC_DELAY: 50,             // ms - Delay to prevent scroll sync interference
@@ -504,6 +506,8 @@ function noteApp() {
         drawingRedoStack: [],
         drawingDraft: null,
         drawingIsPointerDown: false,
+        /** True after the PNG from disk has been decoded into _drawingBaseImage; false after Clear. */
+        drawingHasRasterFromFile: false,
         _drawingAutosaveTimeout: null,
         
         // DOM element cache (to avoid repeated querySelector calls)
@@ -2904,7 +2908,7 @@ function noteApp() {
             const dpr = this._drawingDpr;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = CONFIG.DRAWING_BACKGROUND;
             ctx.fillRect(0, 0, w, h);
             if (this._drawingBaseImage && this._drawingBaseImage.complete) {
                 ctx.drawImage(this._drawingBaseImage, 0, 0, w, h);
@@ -3016,6 +3020,7 @@ function noteApp() {
             this.drawingDraft = null;
             this.drawingIsPointerDown = false;
             this._drawingBaseImage = null;
+            this.drawingHasRasterFromFile = false;
             this._drawingLoadToken = Symbol();
             const token = this._drawingLoadToken;
             
@@ -3050,28 +3055,98 @@ function noteApp() {
                 });
                 if (token !== this._drawingLoadToken) return;
                 this._drawingBaseImage = img;
+                this.drawingHasRasterFromFile = true;
                 this._drawingLayoutCanvas();
             } catch (e) {
                 if (token !== this._drawingLoadToken) return;
                 ErrorHandler.handle('load drawing', e);
+                this.drawingHasRasterFromFile = false;
                 this._drawingLayoutCanvas();
             }
         },
         
+        _drawingRgbToHex(r, g, b) {
+            const h = (n) => {
+                const s = n.toString(16);
+                return s.length === 1 ? `0${s}` : s;
+            };
+            return `#${h(r)}${h(g)}${h(b)}`;
+        },
+
+        /** Sample visible canvas color at logical (css) coordinates; sets drawingColor. */
+        drawingSampleColor(e) {
+            const canvas = this._drawingCanvasEl;
+            const ctx = this._drawingCtx;
+            if (!canvas || !ctx) return;
+            const { x, y } = this._drawingCanvasCoords(e);
+            this.drawingRedraw();
+            const dpr = this._drawingDpr || 1;
+            let ix = Math.floor(x * dpr);
+            let iy = Math.floor(y * dpr);
+            ix = Math.max(0, Math.min(ix, canvas.width - 1));
+            iy = Math.max(0, Math.min(iy, canvas.height - 1));
+            const pix = ctx.getImageData(ix, iy, 1, 1).data;
+            this.drawingColor = this._drawingRgbToHex(pix[0], pix[1], pix[2]);
+        },
+
+        /** True when there is a loaded bitmap and/or session strokes to clear away. */
+        drawingClearEnabled() {
+            if (this.currentMediaType !== 'drawing') return false;
+            return !!(this.drawingHasRasterFromFile || (this.drawingOps && this.drawingOps.length > 0));
+        },
+
+        /**
+         * Replace the in-memory drawing with a blank canvas and schedule save so the file on disk
+         * becomes a fresh white PNG (same dimensions as the viewer). Drops the loaded raster.
+         */
+        async drawingClear() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            if (!this._drawingBaseImage && this.drawingOps.length === 0) return;
+            const ok = await this.confirmModalAsk({
+                title: this.t('drawing.clear_title'),
+                message: this.t('drawing.clear_confirm'),
+                danger: true,
+                confirmLabel: this.t('drawing.clear'),
+            });
+            if (!ok) return;
+            this._drawingCancelAutosave();
+            if (this._drawingObjectURL) {
+                try {
+                    URL.revokeObjectURL(this._drawingObjectURL);
+                } catch (_) {
+                    /* ignore */
+                }
+                this._drawingObjectURL = null;
+            }
+            this._drawingBaseImage = null;
+            this.drawingHasRasterFromFile = false;
+            this.drawingDraft = null;
+            this.drawingIsPointerDown = false;
+            this.drawingOps = [];
+            this.drawingRedoStack = [];
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+
         drawingPointerDown(e) {
             if (this.currentMediaType !== 'drawing' || e.button !== 0) return;
             const canvas = this._drawingCanvasEl;
             if (!canvas) return;
+            const tool = this.drawingTool;
+            if (tool === 'eyedropper') {
+                e.preventDefault();
+                this.drawingSampleColor(e);
+                return;
+            }
             this._drawingCancelAutosave();
             canvas.setPointerCapture(e.pointerId);
             this._drawingPointerId = e.pointerId;
             const { x, y } = this._drawingCanvasCoords(e);
             this.drawingIsPointerDown = true;
             this.drawingRedoStack = [];
-            const color = this.drawingColor;
             const lw = this.drawingLineWidth;
-            const tool = this.drawingTool;
-            if (tool === 'freehand') {
+            const color = tool === 'eraser' ? CONFIG.DRAWING_BACKGROUND : this.drawingColor;
+            if (tool === 'freehand' || tool === 'eraser') {
                 this.drawingDraft = { type: 'stroke', color, lineWidth: lw, points: [[x, y]] };
             } else if (tool === 'line') {
                 this.drawingDraft = { type: 'line', color, lineWidth: lw, x1: x, y1: y, x2: x, y2: y };
@@ -3187,7 +3262,7 @@ function noteApp() {
         },
         
         /**
-         * Persist the flattened canvas to disk (Ctrl+S, toolbar, autosave). Same feedback as saveNote:
+         * Persist the flattened canvas to disk (Ctrl+S, autosave). Same feedback as saveNote:
          * header "Saved" only — never clears stroke undo/redo or reloads the image; stacks reset when
          * opening another drawing via initDrawingViewer().
          */

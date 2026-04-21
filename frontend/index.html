@@ -2705,27 +2705,77 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </button>
-                        <div class="w-px h-5 mx-1" style="background-color: var(--border-primary);"></div>
-                        <label class="flex items-center gap-1 text-xs cursor-pointer" style="color: var(--text-secondary);">
-                            <span x-text="t('drawing.color')"></span>
-                            <input type="color" x-model="drawingColor" class="w-8 h-7 p-0 border rounded cursor-pointer" style="border-color: var(--border-primary);" />
-                        </label>
-                        <label class="flex items-center gap-1 text-xs" style="color: var(--text-secondary);">
-                            <span x-text="t('drawing.width')"></span>
-                            <input type="range" min="1" max="32" x-model.number="drawingLineWidth" class="w-24 md:w-32 align-middle" />
-                            <span class="tabular-nums w-5" x-text="drawingLineWidth"></span>
-                        </label>
                         <button
                             type="button"
-                            class="p-2 rounded-lg ml-auto transition-colors"
-                            style="background-color: var(--accent-primary); color: white;"
-                            @click="drawingSave()"
-                            :title="t('drawing.save_hint')"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'eraser' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'eraser'"
+                            :title="t('drawing.tool_eraser')"
                         >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21M22 21H7M5 11l9 9" />
                             </svg>
                         </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'eyedropper' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'eyedropper'"
+                            :title="t('drawing.tool_eyedropper')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 11.25 1.425 1.425c.671.671.671 1.757 0 2.428l-1.06 1.06c-.671.671-1.757.671-2.428 0l-1.425-1.425m6-6 1.425-1.425c.671-.671 1.757-.671 2.428 0l1.06 1.06c.671.671.671 1.757 0 2.428L21 15.75m-6-6L8.25 3.75a2.121 2.121 0 0 0-3 3L12 15.75l3-3m-3-3-6 6" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :class="!drawingClearEnabled() ? 'opacity-40 cursor-not-allowed' : ''"
+                            :style="!drawingClearEnabled()
+                                ? 'border-color: var(--border-primary); color: var(--text-secondary);'
+                                : 'border-color: var(--border-primary); color: var(--text-secondary); background-color: var(--bg-tertiary);'"
+                            :disabled="!drawingClearEnabled()"
+                            @click="drawingClear()"
+                            :title="t('drawing.clear_hint')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <label
+                            class="flex h-9 items-center gap-2 rounded-lg border px-2 shrink-0 cursor-pointer"
+                            style="border-color: var(--border-primary); background-color: var(--bg-tertiary);"
+                            :title="t('drawing.color')"
+                        >
+                            <span class="text-xs select-none" style="color: var(--text-secondary);" x-text="t('drawing.color')"></span>
+                            <input
+                                type="color"
+                                x-model="drawingColor"
+                                class="h-7 w-8 shrink-0 cursor-pointer rounded border p-0"
+                                style="border-color: var(--border-primary);"
+                                :aria-label="t('drawing.color')"
+                            />
+                        </label>
+                        <div
+                            class="flex h-9 min-w-0 shrink items-center gap-2 rounded-lg border px-2"
+                            style="border-color: var(--border-primary); background-color: var(--bg-tertiary);"
+                            :title="t('drawing.width')"
+                        >
+                            <span class="text-xs whitespace-nowrap select-none shrink-0" style="color: var(--text-secondary);" x-text="t('drawing.width')"></span>
+                            <input
+                                type="range"
+                                min="1"
+                                max="32"
+                                x-model.number="drawingLineWidth"
+                                class="w-24 md:w-36 align-middle min-w-0 flex-1"
+                                style="accent-color: var(--accent-primary);"
+                                :aria-label="t('drawing.width')"
+                                :aria-valuemin="1"
+                                :aria-valuemax="32"
+                                :aria-valuenow="drawingLineWidth"
+                            />
+                            <span class="text-xs tabular-nums shrink-0 w-5 text-right" style="color: var(--text-secondary);" x-text="drawingLineWidth"></span>
+                        </div>
                     </div>
                     
                     <!-- Editor/Preview/Graph -->
@@ -3011,7 +3061,9 @@
                                             <canvas
                                                 x-ref="drawingCanvas"
                                                 class="drawing-surface block w-full h-full"
-                                                style="touch-action: none; cursor: crosshair; background: #fff;"
+                                                :style="drawingTool === 'eyedropper'
+                                                    ? 'touch-action: none; cursor: copy; background: #fff;'
+                                                    : 'touch-action: none; cursor: crosshair; background: #fff;'"
                                                 @pointerdown.prevent="drawingPointerDown($event)"
                                                 @pointermove.prevent="drawingPointerMove($event)"
                                                 @pointerup.prevent="drawingPointerUp($event)"

@@ -215,7 +215,12 @@
     "tool_ellipse": "Cercle",
     "color": "Couleur",
     "width": "Épaisseur du trait",
-    "save_hint": "Enregistrer le dessin (Ctrl+S)"
+    "tool_eraser": "Gomme (peint avec la couleur de fond)",
+    "tool_eyedropper": "Pipette — choisir une couleur sur le canevas",
+    "clear": "Effacer",
+    "clear_hint": "Remplacer par une image vide",
+    "clear_title": "Remplacer par un canevas vide ?",
+    "clear_confirm": "Le PNG enregistré et tous les traits de cette session seront remplacés par une image blanche vide. Cette action est irréversible."
   },
   "media": {
     "confirm_delete": "Supprimer \"{{name}}\" ?",

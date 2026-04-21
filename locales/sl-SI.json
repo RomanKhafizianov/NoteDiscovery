@@ -214,7 +214,12 @@
     "tool_ellipse": "Krog",
     "color": "Barva",
     "width": "Debelina črte",
-    "save_hint": "Shrani risbo (Ctrl+S)"
+    "tool_eraser": "Radirka (riše z barvo ozadja)",
+    "tool_eyedropper": "Kapalka — vzemi barvo s platna",
+    "clear": "Počisti",
+    "clear_hint": "Zamenjaj s prazno sliko",
+    "clear_title": "Zamenjaj s praznim platnom?",
+    "clear_confirm": "Shranjena datoteka PNG in vse poteze v tej seji bodo zamenjane s prazno belo sliko. Tega ni mogoče razveljaviti."
   },
   "media": {
     "confirm_delete": "Izbrišem \"{{name}}\"?",

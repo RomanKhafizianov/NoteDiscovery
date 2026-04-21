@@ -215,7 +215,12 @@
     "tool_ellipse": "Kreis",
     "color": "Farbe",
     "width": "Strichstärke",
-    "save_hint": "Zeichnung speichern (Strg+S)"
+    "tool_eraser": "Radierer (malt mit Hintergrundfarbe)",
+    "tool_eyedropper": "Pipette — Farbe vom Bild aufnehmen",
+    "clear": "Leeren",
+    "clear_hint": "Durch leeres Bild ersetzen",
+    "clear_title": "Durch leere Leinwand ersetzen?",
+    "clear_confirm": "Die gespeicherte PNG-Datei und alle Striche in dieser Sitzung werden durch ein weißes Bild ersetzt. Dies kann nicht rückgängig gemacht werden."
   },
   "media": {
     "confirm_delete": "\"{{name}}\" löschen?",

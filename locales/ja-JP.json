@@ -214,7 +214,12 @@
     "tool_ellipse": "円",
     "color": "色",
     "width": "線の太さ",
-    "save_hint": "お絵かきを保存（Ctrl+S）"
+    "tool_eraser": "消しゴム（背景色で塗る）",
+    "tool_eyedropper": "スポイト — キャンバスから色を取得",
+    "clear": "クリア",
+    "clear_hint": "白紙の画像に置き換え",
+    "clear_title": "白紙のキャンバスに置き換えますか？",
+    "clear_confirm": "保存済みのPNGとこの作業中の線は、白い空白画像に置き換えられます。元に戻せません。"
   },
   "media": {
     "confirm_delete": "「{{name}}」を削除しますか？",

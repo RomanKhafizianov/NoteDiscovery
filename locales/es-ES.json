@@ -215,7 +215,12 @@
     "tool_ellipse": "Círculo",
     "color": "Color",
     "width": "Grosor del trazo",
-    "save_hint": "Guardar dibujo (Ctrl+S)"
+    "tool_eraser": "Borrador (pinta con el color de fondo)",
+    "tool_eyedropper": "Cuentagotas — tomar color del lienzo",
+    "clear": "Borrar",
+    "clear_hint": "Sustituir por imagen en blanco",
+    "clear_title": "¿Sustituir por lienzo en blanco?",
+    "clear_confirm": "El PNG guardado y todos los trazos de esta sesión se sustituirán por una imagen en blanco. No se puede deshacer."
   },
   "media": {
     "confirm_delete": "¿Eliminar \"{{name}}\"?",

@@ -214,7 +214,12 @@
     "tool_ellipse": "Cerchio",
     "color": "Colore",
     "width": "Spessore tratto",
-    "save_hint": "Salva disegno (Ctrl+S)"
+    "tool_eraser": "Gomma (disegna col colore di sfondo)",
+    "tool_eyedropper": "Contagocce — prendi un colore dal canvas",
+    "clear": "Svuota",
+    "clear_hint": "Sostituisci con immagine vuota",
+    "clear_title": "Sostituire con tela bianca?",
+    "clear_confirm": "Il PNG salvato e tutti i tratti di questa sessione saranno sostituiti da un'immagine bianca vuota. Non è possibile annullare."
   },
   "media": {
     "confirm_delete": "Eliminare \"{{name}}\"?",

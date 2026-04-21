@@ -215,7 +215,12 @@
     "tool_ellipse": "Kör",
     "color": "Szín",
     "width": "Vonalvastagság",
-    "save_hint": "Rajz mentése (Ctrl+S)"
+    "tool_eraser": "Radír (háttérszínnel fest)",
+    "tool_eyedropper": "Pipetta — szín mintavétele a vászonról",
+    "clear": "Törlés",
+    "clear_hint": "Üres képre cserélés",
+    "clear_title": "Üres vászonra cserélés?",
+    "clear_confirm": "A mentett PNG és az ebben a munkamenetben rajzolt vonalak fehér üres képre cserélődnek. Ez nem vonható vissza."
   },
   "media": {
     "confirm_delete": "Biztos törlöd a következőt:  \"{{name}}\"?",

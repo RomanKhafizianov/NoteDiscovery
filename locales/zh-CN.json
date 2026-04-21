@@ -214,7 +214,12 @@
     "tool_ellipse": "圆形",
     "color": "颜色",
     "width": "线条粗细",
-    "save_hint": "保存绘图（Ctrl+S）"
+    "tool_eraser": "橡皮擦（使用背景色绘制）",
+    "tool_eyedropper": "吸管 — 从画布取色",
+    "clear": "清除",
+    "clear_hint": "替换为空白图像",
+    "clear_title": "替换为空白画布？",
+    "clear_confirm": "已保存的 PNG 和本会话中的笔划都将被替换为空白白色图像，且无法撤销。"
   },
   "media": {
     "confirm_delete": "删除 \"{{name}}\"？",

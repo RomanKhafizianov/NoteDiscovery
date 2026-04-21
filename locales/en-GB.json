@@ -214,7 +214,12 @@
     "tool_ellipse": "Circle",
     "color": "Colour",
     "width": "Stroke width",
-    "save_hint": "Save drawing (Ctrl+S)"
+    "tool_eraser": "Eraser (paints with background colour)",
+    "tool_eyedropper": "Eyedropper — pick a colour from the canvas",
+    "clear": "Clear",
+    "clear_hint": "Replace with a blank image",
+    "clear_title": "Replace with a blank canvas?",
+    "clear_confirm": "The saved PNG and all strokes in this session will be replaced with a blank white image. You cannot undo this."
   },
   "media": {
     "confirm_delete": "Delete \"{{name}}\"?",
