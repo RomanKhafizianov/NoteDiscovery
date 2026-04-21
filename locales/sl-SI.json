@@ -42,6 +42,7 @@
     "new_note": "Nov zapis",
     "new_folder": "Nova mapa",
     "new_from_template": "Novo iz predloge",
+    "new_drawing": "Nov risba",
     "rename_folder": "Preimenuj mapo",
     "delete_folder": "Izbriši mapo",
     "search_placeholder": "Išči zapiske...",
@@ -123,6 +124,7 @@
     "redo": "Ponovi (Ctrl+Y)",
     "delete_note": "Izbriši zapis",
     "delete_image": "Izbriši sliko",
+    "delete_drawing": "Izbriši risbo",
     "export_html": "Izvozi kot HTML",
     "print_preview": "Predogled tiskanja",
     "copy_link": "Kopiraj povezavo v odložišče",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 Odkleni",
     "footer": "🔒 Varno in samostojno gostovano",
     "error_incorrect_password": "Napačno geslo. Prosimo, poskusite znova."
+  },
+
+  "drawing": {
+    "tool_freehand": "Svinčnik — prostoročno",
+    "tool_line": "Ravna črta",
+    "tool_rect": "Pravokotnik",
+    "tool_ellipse": "Krog",
+    "color": "Barva",
+    "width": "Debelina črte",
+    "saved": "Risba shranjena",
+    "save_hint": "Shrani risbo (Ctrl+S)"
   },
 
   "media": {

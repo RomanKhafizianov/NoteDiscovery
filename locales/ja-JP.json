@@ -42,6 +42,7 @@
     "new_note": "新規ノート",
     "new_folder": "新規フォルダ",
     "new_from_template": "テンプレートから作成",
+    "new_drawing": "新規お絵かき",
     "rename_folder": "フォルダの名前を変更",
     "delete_folder": "フォルダを削除",
     "search_placeholder": "ノートを検索...",
@@ -123,6 +124,7 @@
     "redo": "やり直す (Ctrl+Y)",
     "delete_note": "ノートを削除",
     "delete_image": "画像を削除",
+    "delete_drawing": "お絵かきを削除",
     "export_html": "HTMLとしてエクスポート",
     "print_preview": "印刷プレビュー",
     "copy_link": "リンクをクリップボードにコピー",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 ロック解除",
     "footer": "🔒 安全なセルフホスト",
     "error_incorrect_password": "パスワードが正しくありません。もう一度お試しください。"
+  },
+
+  "drawing": {
+    "tool_freehand": "鉛筆（フリーハンド）",
+    "tool_line": "直線",
+    "tool_rect": "長方形",
+    "tool_ellipse": "円",
+    "color": "色",
+    "width": "線の太さ",
+    "saved": "保存しました",
+    "save_hint": "お絵かきを保存（Ctrl+S）"
   },
 
   "media": {

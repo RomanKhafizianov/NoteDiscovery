@@ -42,6 +42,7 @@
     "new_note": "新建笔记",
     "new_folder": "新建文件夹",
     "new_from_template": "从模板新建",
+    "new_drawing": "新建绘图",
     "rename_folder": "重命名文件夹",
     "delete_folder": "删除文件夹",
     "search_placeholder": "搜索笔记...",
@@ -123,6 +124,7 @@
     "redo": "重做 (Ctrl+Y)",
     "delete_note": "删除笔记",
     "delete_image": "删除图片",
+    "delete_drawing": "删除绘图",
     "export_html": "导出为 HTML",
     "print_preview": "打印预览",
     "copy_link": "复制链接到剪贴板",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 解锁",
     "footer": "🔒 安全且自托管",
     "error_incorrect_password": "密码错误。请重试。"
+  },
+
+  "drawing": {
+    "tool_freehand": "铅笔 — 自由绘制",
+    "tool_line": "直线",
+    "tool_rect": "矩形",
+    "tool_ellipse": "圆形",
+    "color": "颜色",
+    "width": "线条粗细",
+    "saved": "绘图已保存",
+    "save_hint": "保存绘图（Ctrl+S）"
   },
 
   "media": {

@@ -42,6 +42,7 @@
     "new_note": "Новая заметка",
     "new_folder": "Новая папка",
     "new_from_template": "Из шаблона",
+    "new_drawing": "Новый рисунок",
     "rename_folder": "Переименовать папку",
     "delete_folder": "Удалить папку",
     "search_placeholder": "Поиск заметок...",
@@ -123,6 +124,7 @@
     "redo": "Повторить (Ctrl+Y)",
     "delete_note": "Удалить заметку",
     "delete_image": "Удалить изображение",
+    "delete_drawing": "Удалить рисунок",
     "export_html": "Экспорт в HTML",
     "print_preview": "Предварительный просмотр печати",
     "copy_link": "Копировать ссылку",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 Разблокировать",
     "footer": "🔒 Безопасно и локально",
     "error_incorrect_password": "Неверный пароль. Попробуйте снова."
+  },
+
+  "drawing": {
+    "tool_freehand": "Карандаш — от руки",
+    "tool_line": "Прямая линия",
+    "tool_rect": "Прямоугольник",
+    "tool_ellipse": "Круг",
+    "color": "Цвет",
+    "width": "Толщина линии",
+    "saved": "Рисунок сохранён",
+    "save_hint": "Сохранить рисунок (Ctrl+S)"
   },
 
   "media": {

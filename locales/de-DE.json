@@ -42,6 +42,7 @@
     "new_note": "Neue Notiz",
     "new_folder": "Neuer Ordner",
     "new_from_template": "Neu aus Vorlage",
+    "new_drawing": "Neue Zeichnung",
     "rename_folder": "Ordner umbenennen",
     "delete_folder": "Ordner löschen",
     "search_placeholder": "Notizen durchsuchen...",
@@ -124,6 +125,7 @@
     "redo": "Wiederholen (Strg+Y)",
     "delete_note": "Notiz löschen",
     "delete_image": "Bild löschen",
+    "delete_drawing": "Zeichnung löschen",
     "export_html": "Als HTML exportieren",
     "print_preview": "Druckvorschau",
     "copy_link": "Link in Zwischenablage kopieren",
@@ -224,6 +226,17 @@
     "unlock_button": "🔓 Entsperren",
     "footer": "🔒 Sicher & Selbstgehostet",
     "error_incorrect_password": "Falsches Passwort. Bitte versuche es erneut."
+  },
+
+  "drawing": {
+    "tool_freehand": "Stift — Freihand",
+    "tool_line": "Gerade Linie",
+    "tool_rect": "Rechteck",
+    "tool_ellipse": "Kreis",
+    "color": "Farbe",
+    "width": "Strichstärke",
+    "saved": "Zeichnung gespeichert",
+    "save_hint": "Zeichnung speichern (Strg+S)"
   },
 
   "media": {

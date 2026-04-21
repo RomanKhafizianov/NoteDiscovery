@@ -42,6 +42,7 @@
     "new_note": "New Note",
     "new_folder": "New Folder",
     "new_from_template": "New from Template",
+    "new_drawing": "New Drawing",
     "rename_folder": "Rename folder",
     "delete_folder": "Delete folder",
     "search_placeholder": "Search notes...",
@@ -123,6 +124,7 @@
     "redo": "Redo (Ctrl+Y)",
     "delete_note": "Delete note",
     "delete_image": "Delete image",
+    "delete_drawing": "Delete drawing",
     "export_html": "Export as HTML",
     "print_preview": "Print preview",
     "copy_link": "Copy link to clipboard",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 Unlock",
     "footer": "🔒 Secure & Self-Hosted",
     "error_incorrect_password": "Incorrect password. Please try again."
+  },
+
+  "drawing": {
+    "tool_freehand": "Pencil — freehand drawing",
+    "tool_line": "Straight line",
+    "tool_rect": "Rectangle",
+    "tool_ellipse": "Circle",
+    "color": "Colour",
+    "width": "Stroke width",
+    "saved": "Drawing saved",
+    "save_hint": "Save drawing (Ctrl+S)"
   },
 
   "media": {

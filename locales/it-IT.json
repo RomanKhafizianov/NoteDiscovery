@@ -42,6 +42,7 @@
     "new_note": "Nuova Nota",
     "new_folder": "Nuova Cartella",
     "new_from_template": "Nuovo da Modello",
+    "new_drawing": "Nuovo disegno",
     "rename_folder": "Rinomina cartella",
     "delete_folder": "Elimina cartella",
     "search_placeholder": "Cerca note...",
@@ -123,6 +124,7 @@
     "redo": "Ripeti (Ctrl+Y)",
     "delete_note": "Elimina nota",
     "delete_image": "Elimina immagine",
+    "delete_drawing": "Elimina disegno",
     "export_html": "Esporta come HTML",
     "print_preview": "Anteprima di stampa",
     "copy_link": "Copia link negli appunti",
@@ -223,6 +225,17 @@
     "unlock_button": "🔓 Sblocca",
     "footer": "🔒 Sicuro e ospitato localmente",
     "error_incorrect_password": "Password errata. Riprova."
+  },
+
+  "drawing": {
+    "tool_freehand": "Matita — mano libera",
+    "tool_line": "Linea retta",
+    "tool_rect": "Rettangolo",
+    "tool_ellipse": "Cerchio",
+    "color": "Colore",
+    "width": "Spessore tratto",
+    "saved": "Disegno salvato",
+    "save_hint": "Salva disegno (Ctrl+S)"
   },
 
   "media": {

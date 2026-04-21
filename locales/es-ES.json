@@ -42,6 +42,7 @@
     "new_note": "Nueva Nota",
     "new_folder": "Nueva Carpeta",
     "new_from_template": "Nueva desde Plantilla",
+    "new_drawing": "Nuevo dibujo",
     "rename_folder": "Renombrar carpeta",
     "delete_folder": "Eliminar carpeta",
     "search_placeholder": "Buscar notas...",
@@ -124,6 +125,7 @@
     "redo": "Rehacer (Ctrl+Y)",
     "delete_note": "Eliminar nota",
     "delete_image": "Eliminar imagen",
+    "delete_drawing": "Eliminar dibujo",
     "export_html": "Exportar como HTML",
     "print_preview": "Vista previa de impresión",
     "copy_link": "Copiar enlace al portapapeles",
@@ -224,6 +226,17 @@
     "unlock_button": "🔓 Desbloquear",
     "footer": "🔒 Seguro y Autoalojado",
     "error_incorrect_password": "Contraseña incorrecta. Por favor, inténtalo de nuevo."
+  },
+
+  "drawing": {
+    "tool_freehand": "Lápiz — trazo libre",
+    "tool_line": "Línea recta",
+    "tool_rect": "Rectángulo",
+    "tool_ellipse": "Círculo",
+    "color": "Color",
+    "width": "Grosor del trazo",
+    "saved": "Dibujo guardado",
+    "save_hint": "Guardar dibujo (Ctrl+S)"
   },
 
   "media": {

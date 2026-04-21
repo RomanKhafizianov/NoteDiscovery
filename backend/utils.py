@@ -671,8 +671,13 @@ ALL_MEDIA_EXTENSIONS = set().union(*MEDIA_EXTENSIONS.values())
 def get_media_type(filename: str) -> Optional[str]:
     """
     Determine the media type based on file extension.
-    Returns: 'image', 'audio', 'video', 'document', or None if not a media file.
+    Returns: 'image', 'audio', 'video', 'document', 'drawing', or None if not a media file.
+
+    Drawings are PNG files stored like images but named drawing-*.png (editable canvas in the app).
     """
+    name_lower = Path(filename).name.lower()
+    if name_lower.startswith('drawing-') and name_lower.endswith('.png'):
+        return 'drawing'
     ext = Path(filename).suffix.lower()
     for media_type, extensions in MEDIA_EXTENSIONS.items():
         if ext in extensions:

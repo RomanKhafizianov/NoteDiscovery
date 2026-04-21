@@ -2408,7 +2408,7 @@
                                                 style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s; color: var(--error); padding: 4px; border-radius: 4px; background-color: var(--bg-secondary);"
                                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                                 onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
-                                                :title="note.type !== 'note' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                                :title="note.type === 'note' ? t('toolbar.delete_note') : (note.type === 'drawing' ? t('toolbar.delete_drawing') : t('toolbar.delete_image'))"
                                             >
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2467,12 +2467,12 @@
                                 class="text-xl font-semibold border-none focus:outline-none focus:ring-2 rounded px-3 py-1.5"
                                 :style="'background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary); min-width: 150px; max-width: 300px;' + (!currentNote ? ' cursor: default; opacity: 0.9;' : '')"
                             >
-                            <!-- Undo Button -->
+                            <!-- Undo Button (note history or drawing strokes when viewing a drawing) -->
                             <button 
-                                @click="undo()"
-                                :disabled="undoHistory.length <= 1"
+                                @click="currentMediaType === 'drawing' ? drawingUndo() : undo()"
+                                :disabled="currentMediaType === 'drawing' ? drawingOps.length === 0 : undoHistory.length <= 1"
                                 class="p-2 rounded-lg"
-                                :style="undoHistory.length <= 1 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                :style="(currentMediaType === 'drawing' ? drawingOps.length === 0 : undoHistory.length <= 1) ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
                                 onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
                                 :title="t('toolbar.undo')"
@@ -2484,10 +2484,10 @@
                             
                             <!-- Redo Button -->
                             <button 
-                                @click="redo()"
-                                :disabled="redoHistory.length === 0"
+                                @click="currentMediaType === 'drawing' ? drawingRedo() : redo()"
+                                :disabled="currentMediaType === 'drawing' ? drawingRedoStack.length === 0 : redoHistory.length === 0"
                                 class="p-2 rounded-lg"
-                                :style="redoHistory.length === 0 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                :style="(currentMediaType === 'drawing' ? drawingRedoStack.length === 0 : redoHistory.length === 0) ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
                                 onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
                                 :title="t('toolbar.redo')"
@@ -2504,7 +2504,7 @@
                                 style="color: var(--error);"
                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
-                                :title="currentMedia ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                :title="currentMedia ? (currentMediaType === 'drawing' ? t('toolbar.delete_drawing') : t('toolbar.delete_image')) : t('toolbar.delete_note')"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2652,6 +2652,80 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Drawing tools (below main toolbar; undo/redo use icons above) -->
+                    <div 
+                        x-show="currentMedia && currentMediaType === 'drawing'"
+                        class="px-4 py-2 flex flex-wrap gap-2 items-center border-b flex-shrink-0 zen-hide"
+                        style="background-color: var(--bg-secondary); border-color: var(--border-primary);"
+                        x-cloak
+                    >
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'freehand' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'freehand'"
+                            :title="t('drawing.tool_freehand')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'line' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'line'"
+                            :title="t('drawing.tool_line')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20L20 4" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'rect' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'rect'"
+                            :title="t('drawing.tool_rect')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'ellipse' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'ellipse'"
+                            :title="t('drawing.tool_ellipse')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <div class="w-px h-5 mx-1" style="background-color: var(--border-primary);"></div>
+                        <label class="flex items-center gap-1 text-xs cursor-pointer" style="color: var(--text-secondary);">
+                            <span x-text="t('drawing.color')"></span>
+                            <input type="color" x-model="drawingColor" class="w-8 h-7 p-0 border rounded cursor-pointer" style="border-color: var(--border-primary);" />
+                        </label>
+                        <label class="flex items-center gap-1 text-xs" style="color: var(--text-secondary);">
+                            <span x-text="t('drawing.width')"></span>
+                            <input type="range" min="1" max="32" x-model.number="drawingLineWidth" class="w-24 md:w-32 align-middle" />
+                            <span class="tabular-nums w-5" x-text="drawingLineWidth"></span>
+                        </label>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg ml-auto transition-colors"
+                            style="background-color: var(--accent-primary); color: white;"
+                            @click="drawingSave()"
+                            :title="t('drawing.save_hint')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </button>
                     </div>
                     
                     <!-- Editor/Preview/Graph -->
@@ -2875,8 +2949,9 @@
                         <!-- Media Viewer (images, audio, video, PDF) -->
                         <template x-if="currentMedia">
                             <div 
-                                class="flex-1 flex items-center justify-center overflow-auto"
-                                style="background-color: var(--bg-primary); min-height: 0;"
+                                class="flex-1 flex overflow-auto min-h-0"
+                                :class="currentMediaType === 'drawing' ? 'items-stretch justify-stretch' : 'items-center justify-center'"
+                                style="background-color: var(--bg-primary);"
                             >
                                 <!-- Image -->
                                 <template x-if="currentMediaType === 'image'">
@@ -2920,6 +2995,30 @@
                                         style="width: 100%; height: 100%; border: none;"
                                         :title="currentMedia.split('/').pop()"
                                     ></iframe>
+                                </template>
+                                
+                                <!-- Drawing (PNG named drawing-*.png); tools row is in header area above -->
+                                <template x-if="currentMediaType === 'drawing'">
+                                    <div 
+                                        class="flex flex-col flex-1 w-full min-w-0 min-h-0 self-stretch" 
+                                        :key="currentMedia"
+                                    >
+                                        <div 
+                                            x-ref="drawingCanvasWrap"
+                                            class="flex-1 w-full min-h-0 min-w-0"
+                                            style="min-height: 0;"
+                                        >
+                                            <canvas
+                                                x-ref="drawingCanvas"
+                                                class="drawing-surface block w-full h-full"
+                                                style="touch-action: none; cursor: crosshair; background: #fff;"
+                                                @pointerdown.prevent="drawingPointerDown($event)"
+                                                @pointermove.prevent="drawingPointerMove($event)"
+                                                @pointerup.prevent="drawingPointerUp($event)"
+                                                @pointercancel.prevent="drawingPointerUp($event)"
+                                            ></canvas>
+                                        </div>
+                                    </div>
                                 </template>
                             </div>
                         </template>
@@ -3114,6 +3213,16 @@
             >
                 <span class="text-lg">📄</span>
                 <span x-text="t('sidebar.new_from_template')"></span>
+            </button>
+            <button 
+                @click="createNewDrawing()"
+                class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                style="color: var(--text-primary);"
+                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                onmouseout="this.style.backgroundColor='transparent'"
+            >
+                <span class="text-lg">✏️</span>
+                <span x-text="t('sidebar.new_drawing')"></span>
             </button>
         </div>
     </div>

@@ -42,6 +42,7 @@
     "new_note": "Új Jegyzet",
     "new_folder": "Új Mappa",
     "new_from_template": "Új Sablonból",
+    "new_drawing": "Új rajz",
     "rename_folder": "Mappa átnevezése",
     "delete_folder": "Mappa törlése",
     "search_placeholder": "Jegyzetek keresése...",
@@ -124,6 +125,7 @@
     "redo": "Helyrehoz (Ctrl+Y)",
     "delete_note": "Jegyzet törlése",
     "delete_image": "Kép törlése",
+    "delete_drawing": "Rajz törlése",
     "export_html": "Exportálás HTML-ként",
     "print_preview": "Nyomtatási előnézet",
     "copy_link": "Link másolása",
@@ -224,6 +226,17 @@
     "unlock_button": "🔓 Kinyit",
     "footer": "🔒 Biztonságos & Saját Kiszolgálású",
     "error_incorrect_password": "Helytelen jelszó. Próbáld újra."
+  },
+
+  "drawing": {
+    "tool_freehand": "Ceruza — szabadkézi",
+    "tool_line": "Egyenes vonal",
+    "tool_rect": "Téglalap",
+    "tool_ellipse": "Kör",
+    "color": "Szín",
+    "width": "Vonalvastagság",
+    "saved": "Rajz elmentve",
+    "save_hint": "Rajz mentése (Ctrl+S)"
   },
 
   "media": {

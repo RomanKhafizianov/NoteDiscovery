@@ -42,6 +42,7 @@
     "new_note": "Nouvelle Note",
     "new_folder": "Nouveau Dossier",
     "new_from_template": "Nouveau depuis Modèle",
+    "new_drawing": "Nouveau dessin",
     "rename_folder": "Renommer le dossier",
     "delete_folder": "Supprimer le dossier",
     "search_placeholder": "Rechercher des notes...",
@@ -124,6 +125,7 @@
     "redo": "Rétablir (Ctrl+Y)",
     "delete_note": "Supprimer la note",
     "delete_image": "Supprimer l'image",
+    "delete_drawing": "Supprimer le dessin",
     "export_html": "Exporter en HTML",
     "print_preview": "Aperçu avant impression",
     "copy_link": "Copier le lien dans le presse-papiers",
@@ -224,6 +226,17 @@
     "unlock_button": "🔓 Déverrouiller",
     "footer": "🔒 Sécurisé et Auto-Hébergé",
     "error_incorrect_password": "Mot de passe incorrect. Veuillez réessayer."
+  },
+
+  "drawing": {
+    "tool_freehand": "Crayon — main levée",
+    "tool_line": "Ligne droite",
+    "tool_rect": "Rectangle",
+    "tool_ellipse": "Cercle",
+    "color": "Couleur",
+    "width": "Épaisseur du trait",
+    "saved": "Dessin enregistré",
+    "save_hint": "Enregistrer le dessin (Ctrl+S)"
   },
 
   "media": {

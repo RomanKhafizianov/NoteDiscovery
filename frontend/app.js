@@ -494,7 +494,16 @@ function noteApp() {
         
         // Media viewer state
         currentMedia: '',  // Path to current media file (kept as 'currentMedia' for compatibility)
-        currentMediaType: 'image',  // 'image', 'audio', 'video', 'document'
+        currentMediaType: 'image',  // 'image', 'audio', 'video', 'document', 'drawing'
+        
+        // Drawing canvas (drawing-*.png only) — ops are session-only until Save flattens to PNG
+        drawingTool: 'freehand',
+        drawingColor: '#1a1a1a',
+        drawingLineWidth: 4,
+        drawingOps: [],
+        drawingRedoStack: [],
+        drawingDraft: null,
+        drawingIsPointerDown: false,
         
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
@@ -638,10 +647,15 @@ function noteApp() {
                 window.addEventListener('keydown', (e) => {
                     // Use e.key (not e.code) for letter keys to support non-QWERTY keyboard layouts
                     
-                    // Ctrl/Cmd + S to save
+                    // Ctrl/Cmd + S to save (drawing saves PNG; notes save markdown)
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-                        e.preventDefault();
-                        this.saveNote();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingSave();
+                        } else {
+                            e.preventDefault();
+                            this.saveNote();
+                        }
                     }
                     
                     // Ctrl/Cmd + Alt + P for Quick Switcher
@@ -663,21 +677,35 @@ function noteApp() {
                         this.createFolder();
                     }
                     
-                    // Ctrl/Cmd + Z for undo (without shift or alt)
-                    // Use e.key instead of e.code to support non-QWERTY keyboard layouts
+                    // Ctrl/Cmd + Z for undo (drawing vs note editor)
                     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        this.undo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingUndo();
+                        } else {
+                            e.preventDefault();
+                            this.undo();
+                        }
                     }
                     
                     // Ctrl/Cmd + Y OR Ctrl/Cmd+Shift+Z for redo
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-                        e.preventDefault();
-                        this.redo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingRedo();
+                        } else {
+                            e.preventDefault();
+                            this.redo();
+                        }
                     }
                     if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        this.redo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingRedo();
+                        } else {
+                            e.preventDefault();
+                            this.redo();
+                        }
                     }
                     
                     // F3 for next search match
@@ -1484,13 +1512,7 @@ function noteApp() {
                     notePath += '.md';
                 }
                 
-                // Determine target folder: use dropdown context if set, otherwise homepage folder
-                let targetFolder;
-                if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
-                    targetFolder = this.dropdownTargetFolder; // Can be '' for root or a folder path
-                } else {
-                    targetFolder = this.selectedHomepageFolder || '';
-                }
+                const targetFolder = this.inferredNewItemTargetFolder();
                 
                 // If we have a target folder, create note in that folder
                 if (targetFolder) {
@@ -2082,7 +2104,7 @@ function noteApp() {
         },
         handleDeleteItemClick(el, event) {
             event.stopPropagation();
-            if (el.dataset.type === 'image') {
+            if (el.dataset.type !== 'note') {
                 this.deleteMedia(el.dataset.path);
             } else {
                 this.deleteNote(el.dataset.path, el.dataset.name);
@@ -2208,6 +2230,11 @@ function noteApp() {
             const isShared = !isMediaFile && this.isNoteShared(note.path);
             const shareIcon = isShared ? '<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
             const icon = this.getMediaIcon(note.type);
+            const deleteTitle = !isMediaFile
+                ? this.t('toolbar.delete_note')
+                : note.type === 'drawing'
+                    ? this.t('toolbar.delete_drawing')
+                    : this.t('toolbar.delete_image');
             
             return `
                 <div 
@@ -2231,7 +2258,7 @@ function noteApp() {
                         onclick="window.$root.handleDeleteItemClick(this, event)"
                         class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                         style="opacity: 0; color: var(--error);"
-                        title="${esc(isMediaFile ? this.t('toolbar.delete_image') : this.t('toolbar.delete_note'))}"
+                        title="${esc(deleteTitle)}"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2487,13 +2514,22 @@ function noteApp() {
             this.draggedItem = null;
         },
         
+        /**
+         * Backend `get_attachment_dir` uses the parent folder of `note_path`.
+         * With no note open, infer a synthetic path from `currentMedia` so uploads go to the same
+         * `_attachments` folder as the file being viewed (or vault root when appropriate).
+         */
+        resolveUploadNotePath() {
+            if (this.currentNote) return this.currentNote;
+            if (!this.currentMedia) return '';
+            const parts = this.currentMedia.split('/').filter(Boolean);
+            const ai = parts.indexOf('_attachments');
+            if (ai === -1 || ai === 0) return '';
+            return `${parts.slice(0, ai).join('/')}/_.md`;
+        },
+        
         // Handle media files dropped into editor
         async handleMediaDrop(event) {
-            if (!this.currentNote) {
-                this.toast(this.t('notes.open_first'), { type: 'info' });
-                return;
-            }
-            
             const files = Array.from(event.dataTransfer.files);
             
             // Filter for allowed media types
@@ -2515,20 +2551,30 @@ function noteApp() {
             }
             
             const textarea = event.target;
-            // Calculate cursor position from drop coordinates
-            let cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
-            if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
+            const notePath = this.resolveUploadNotePath();
+            // Calculate cursor position from drop coordinates (only meaningful when a note is open)
+            let cursorPos = 0;
+            if (this.currentNote && textarea && textarea.tagName === 'TEXTAREA') {
+                cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
+                if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
+            }
             
-            // Upload each media file
+            let uploaded = false;
             for (const file of mediaFiles) {
                 try {
-                    const mediaPath = await this.uploadMedia(file, this.currentNote);
+                    const mediaPath = await this.uploadMedia(file, notePath);
                     if (mediaPath) {
-                        await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
+                        uploaded = true;
+                        if (this.currentNote) {
+                            await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
+                        }
                     }
                 } catch (error) {
                     ErrorHandler.handle(`upload file ${file.name}`, error);
                 }
+            }
+            if (uploaded && !this.currentNote) {
+                await this.loadNotes();
             }
         },
         
@@ -2536,7 +2582,7 @@ function noteApp() {
         async uploadMedia(file, notePath) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('note_path', notePath);
+            formData.append('note_path', notePath || '');
             
             try {
                 const response = await fetch('/api/upload-media', {
@@ -2621,9 +2667,13 @@ function noteApp() {
             }
         },
         
-        // Media type detection based on file extension
+        // Media type detection based on file extension (and drawing-*.png convention)
         getMediaType(filename) {
             if (!filename) return null;
+            const base = filename.split('/').pop().toLowerCase();
+            if (base.startsWith('drawing-') && base.endsWith('.png')) {
+                return 'drawing';
+            }
             const ext = filename.split('.').pop().toLowerCase();
             const mediaTypes = {
                 image: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
@@ -2641,6 +2691,7 @@ function noteApp() {
         getMediaIcon(type) {
             const icons = {
                 image: '🖼️',
+                drawing: '✏️',
                 audio: '🎵',
                 video: '🎬',
                 document: '📄',
@@ -2662,6 +2713,9 @@ function noteApp() {
         
         // View a media file (image, audio, video, PDF) in the main pane
         viewMedia(mediaPath, mediaType = null, updateHistory = true) {
+            if (this.currentMediaType === 'drawing') {
+                this._drawingDisconnectResizeObserver();
+            }
             this.showGraph = false; // Ensure graph is closed
             this.currentNote = '';
             this.currentNoteName = '';
@@ -2687,6 +2741,14 @@ function noteApp() {
                     '',
                     `/${encodedPath}`
                 );
+            }
+            
+            // Drawing: Alpine x-init on the canvas runs only on first mount; switching from one drawing
+            // to another keeps currentMediaType === 'drawing', so we must reload the PNG here.
+            if (this.currentMediaType === 'drawing') {
+                this.$nextTick(() => {
+                    this.initDrawingViewer();
+                });
             }
         },
         
@@ -2720,6 +2782,399 @@ function noteApp() {
                 }
             } catch (error) {
                 ErrorHandler.handle('delete media', error);
+            }
+        },
+        
+        /**
+         * Create a blank drawing PNG and open it for editing.
+         * Attachment folder matches "New note" / "New folder" from the same + menu (root vs folder row vs homepage folder).
+         */
+        async createNewDrawing() {
+            const targetFolder = this.inferredNewItemTargetFolder();
+            this.closeDropdown();
+            const w = 1200;
+            const h = 675;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            let blob;
+            try {
+                blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+                });
+            } catch (e) {
+                ErrorHandler.handle('create drawing', e);
+                return;
+            }
+            const file = new File([blob], 'drawing.png', { type: 'image/png' });
+            try {
+                const notePath = targetFolder ? `${targetFolder}/_.md` : '';
+                const path = await this.uploadMedia(file, notePath);
+                await this.loadNotes();
+                this.viewMedia(path, 'drawing');
+            } catch (error) {
+                ErrorHandler.handle('upload drawing', error);
+            }
+        },
+        
+        _drawingEncodeMediaPath() {
+            return this.currentMedia.split('/').map((s) => encodeURIComponent(s)).join('/');
+        },
+        
+        _drawingCanvasCoords(event) {
+            const canvas = this._drawingCanvasEl;
+            if (!canvas) return { x: 0, y: 0 };
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = this._drawingCssW / rect.width;
+            const scaleY = this._drawingCssH / rect.height;
+            return {
+                x: (event.clientX - rect.left) * scaleX,
+                y: (event.clientY - rect.top) * scaleY,
+            };
+        },
+        
+        _drawingDrawOp(ctx, op) {
+            if (!op) return;
+            if (op.type === 'stroke') {
+                const pts = op.points;
+                if (!pts || pts.length < 2) return;
+                ctx.save();
+                ctx.strokeStyle = op.color;
+                ctx.lineWidth = op.lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(pts[0][0], pts[0][1]);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i][0], pts[i][1]);
+                }
+                ctx.stroke();
+                ctx.restore();
+                return;
+            }
+            ctx.save();
+            ctx.strokeStyle = op.color;
+            ctx.lineWidth = op.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            if (op.type === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(op.x1, op.y1);
+                ctx.lineTo(op.x2, op.y2);
+                ctx.stroke();
+            } else if (op.type === 'rect') {
+                const nx = op.w < 0 ? op.x + op.w : op.x;
+                const ny = op.h < 0 ? op.y + op.h : op.y;
+                ctx.strokeRect(nx, ny, Math.abs(op.w), Math.abs(op.h));
+            } else if (op.type === 'ellipse') {
+                const nx = op.w < 0 ? op.x + op.w : op.x;
+                const ny = op.h < 0 ? op.y + op.h : op.y;
+                const rw = Math.abs(op.w) / 2;
+                const rh = Math.abs(op.h) / 2;
+                const cx = nx + rw;
+                const cy = ny + rh;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        },
+        
+        drawingRedraw() {
+            const canvas = this._drawingCanvasEl;
+            const ctx = this._drawingCtx;
+            if (!canvas || !ctx) return;
+            const w = this._drawingCssW;
+            const h = this._drawingCssH;
+            const dpr = this._drawingDpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            if (this._drawingBaseImage && this._drawingBaseImage.complete) {
+                ctx.drawImage(this._drawingBaseImage, 0, 0, w, h);
+            }
+            for (const op of this.drawingOps) {
+                this._drawingDrawOp(ctx, op);
+            }
+            if (this.drawingDraft) {
+                this._drawingDrawOp(ctx, this.drawingDraft);
+            }
+        },
+        
+        _drawingScheduleRedraw() {
+            if (this._drawingRaf) return;
+            this._drawingRaf = requestAnimationFrame(() => {
+                this._drawingRaf = null;
+                this.drawingRedraw();
+            });
+        },
+        
+        _drawingDisconnectResizeObserver() {
+            if (this._drawingResizeObserver) {
+                try {
+                    this._drawingResizeObserver.disconnect();
+                } catch (_) {
+                    /* ignore */
+                }
+                this._drawingResizeObserver = null;
+            }
+        },
+        
+        /** Size canvas to drawingCanvasWrap and redraw (fills available pane). */
+        _drawingLayoutCanvas() {
+            const wrap = this.$refs.drawingCanvasWrap;
+            const canvas = this.$refs.drawingCanvas;
+            if (!wrap || !canvas || this.currentMediaType !== 'drawing') return;
+            let cssW = wrap.clientWidth;
+            let cssH = wrap.clientHeight;
+            if (cssW < 32) cssW = Math.max(320, wrap.parentElement ? wrap.parentElement.clientWidth : 320);
+            if (cssH < 32) {
+                const col = wrap.closest('.flex-1.flex.flex-col') || wrap.closest('.flex-1');
+                const h = col ? col.clientHeight : 0;
+                cssH = h > 64 ? h : Math.max(240, Math.floor((cssW || 400) * 0.5));
+            }
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width = `${cssW}px`;
+            canvas.style.height = `${cssH}px`;
+            canvas.width = Math.round(cssW * dpr);
+            canvas.height = Math.round(cssH * dpr);
+            this._drawingCanvasEl = canvas;
+            this._drawingCssW = cssW;
+            this._drawingCssH = cssH;
+            this._drawingDpr = dpr;
+            if (!this._drawingCtx) {
+                this._drawingCtx = canvas.getContext('2d');
+            }
+            this._drawingCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            this.drawingRedraw();
+        },
+        
+        async initDrawingViewer() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            this._drawingDisconnectResizeObserver();
+            await this.$nextTick();
+            if (this._drawingObjectURL) {
+                URL.revokeObjectURL(this._drawingObjectURL);
+                this._drawingObjectURL = null;
+            }
+            const canvas = this.$refs.drawingCanvas;
+            const wrap = this.$refs.drawingCanvasWrap;
+            if (!canvas || !wrap) return;
+            this._drawingCtx = canvas.getContext('2d');
+            this.drawingOps = [];
+            this.drawingRedoStack = [];
+            this.drawingDraft = null;
+            this.drawingIsPointerDown = false;
+            this._drawingBaseImage = null;
+            this._drawingLoadToken = Symbol();
+            const token = this._drawingLoadToken;
+            
+            this._drawingResizeObserver = new ResizeObserver(() => {
+                if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+                this._drawingLayoutCanvas();
+            });
+            this._drawingResizeObserver.observe(wrap);
+            
+            requestAnimationFrame(() => {
+                if (token !== this._drawingLoadToken) return;
+                this._drawingLayoutCanvas();
+                requestAnimationFrame(() => {
+                    if (token !== this._drawingLoadToken) return;
+                    this._drawingLayoutCanvas();
+                });
+            });
+            
+            try {
+                const enc = this._drawingEncodeMediaPath();
+                const res = await fetch(`/api/media/${enc}`, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('Failed to load drawing');
+                const blob = await res.blob();
+                if (token !== this._drawingLoadToken) return;
+                const url = URL.createObjectURL(blob);
+                this._drawingObjectURL = url;
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+                if (token !== this._drawingLoadToken) return;
+                this._drawingBaseImage = img;
+                this._drawingLayoutCanvas();
+            } catch (e) {
+                if (token !== this._drawingLoadToken) return;
+                ErrorHandler.handle('load drawing', e);
+                this._drawingLayoutCanvas();
+            }
+        },
+        
+        drawingPointerDown(e) {
+            if (this.currentMediaType !== 'drawing' || e.button !== 0) return;
+            const canvas = this._drawingCanvasEl;
+            if (!canvas) return;
+            canvas.setPointerCapture(e.pointerId);
+            this._drawingPointerId = e.pointerId;
+            const { x, y } = this._drawingCanvasCoords(e);
+            this.drawingIsPointerDown = true;
+            this.drawingRedoStack = [];
+            const color = this.drawingColor;
+            const lw = this.drawingLineWidth;
+            const tool = this.drawingTool;
+            if (tool === 'freehand') {
+                this.drawingDraft = { type: 'stroke', color, lineWidth: lw, points: [[x, y]] };
+            } else if (tool === 'line') {
+                this.drawingDraft = { type: 'line', color, lineWidth: lw, x1: x, y1: y, x2: x, y2: y };
+            } else if (tool === 'rect') {
+                this.drawingDraft = { type: 'rect', color, lineWidth: lw, x, y, w: 0, h: 0 };
+            } else if (tool === 'ellipse') {
+                this.drawingDraft = { type: 'ellipse', color, lineWidth: lw, x, y, w: 0, h: 0 };
+            }
+            this.drawingRedraw();
+        },
+        
+        drawingPointerMove(e) {
+            if (!this.drawingIsPointerDown || this.currentMediaType !== 'drawing') return;
+            const { x, y } = this._drawingCanvasCoords(e);
+            const d = this.drawingDraft;
+            if (!d) return;
+            if (d.type === 'stroke') {
+                const pts = d.points;
+                const last = pts[pts.length - 1];
+                const dx = x - last[0];
+                const dy = y - last[1];
+                if (dx * dx + dy * dy < 1) return;
+                pts.push([x, y]);
+                this._drawingScheduleRedraw();
+                return;
+            }
+            if (d.type === 'line') {
+                d.x2 = x;
+                d.y2 = y;
+            } else if (d.type === 'rect' || d.type === 'ellipse') {
+                d.w = x - d.x;
+                d.h = y - d.y;
+            }
+            this._drawingScheduleRedraw();
+        },
+        
+        drawingPointerUp(e) {
+            if (!this.drawingIsPointerDown || this.currentMediaType !== 'drawing') return;
+            const canvas = this._drawingCanvasEl;
+            if (canvas && this._drawingPointerId === e.pointerId) {
+                try {
+                    canvas.releasePointerCapture(e.pointerId);
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+            this._drawingPointerId = null;
+            this.drawingIsPointerDown = false;
+            const d = this.drawingDraft;
+            this.drawingDraft = null;
+            if (!d) {
+                this.drawingRedraw();
+                return;
+            }
+            if (d.type === 'stroke') {
+                if (!d.points || d.points.length < 2) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: 'stroke',
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    points: d.points.slice(),
+                });
+            } else if (d.type === 'line') {
+                const dx = d.x2 - d.x1;
+                const dy = d.y2 - d.y1;
+                if (dx * dx + dy * dy < 4) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: 'line',
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    x1: d.x1,
+                    y1: d.y1,
+                    x2: d.x2,
+                    y2: d.y2,
+                });
+            } else if (d.type === 'rect' || d.type === 'ellipse') {
+                if (Math.abs(d.w) < 2 && Math.abs(d.h) < 2) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: d.type,
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    x: d.x,
+                    y: d.y,
+                    w: d.w,
+                    h: d.h,
+                });
+            }
+            this.drawingRedraw();
+        },
+        
+        drawingUndo() {
+            if (this.drawingOps.length === 0) return;
+            this.drawingRedoStack.push(this.drawingOps.pop());
+            this.drawingRedraw();
+        },
+        
+        drawingRedo() {
+            if (this.drawingRedoStack.length === 0) return;
+            this.drawingOps.push(this.drawingRedoStack.pop());
+            this.drawingRedraw();
+        },
+        
+        async drawingSave() {
+            if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
+            const canvas = this._drawingCanvasEl;
+            const ctx = this._drawingCtx;
+            if (!canvas || !ctx) return;
+            this.drawingDraft = null;
+            this.drawingIsPointerDown = false;
+            this.drawingRedraw();
+            await new Promise((r) => requestAnimationFrame(r));
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+            });
+            try {
+                const enc = this._drawingEncodeMediaPath();
+                const res = await fetch(`/api/media/${enc}`, {
+                    method: 'PUT',
+                    body: blob,
+                    headers: { 'Content-Type': 'image/png' },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    let detail = err.detail;
+                    if (Array.isArray(detail)) {
+                        detail = detail.map((d) => d.msg || d).join(', ');
+                    }
+                    throw new Error(detail || res.statusText);
+                }
+                await this.loadNotes();
+                if (this._drawingObjectURL) {
+                    URL.revokeObjectURL(this._drawingObjectURL);
+                    this._drawingObjectURL = null;
+                }
+                this.drawingOps = [];
+                this.drawingRedoStack = [];
+                await this.initDrawingViewer();
+                this.toast(this.t('drawing.saved'), { type: 'success' });
+            } catch (error) {
+                ErrorHandler.handle('save drawing', error);
             }
         },
         
@@ -2981,6 +3436,9 @@ function noteApp() {
                         window.history.replaceState({ homepageFolder: this.selectedHomepageFolder || '' }, '', '/');
                         this.currentNote = '';
                         this.noteContent = '';
+                        if (this.currentMediaType === 'drawing') {
+                            this._drawingDisconnectResizeObserver();
+                        }
                         this.currentMedia = '';
                         document.title = this.appName;
                         return;
@@ -2997,6 +3455,9 @@ function noteApp() {
                 this._initializedVideoSources = new Set(); // Clear video cache for new note
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
+                if (this.currentMediaType === 'drawing') {
+                    this._drawingDisconnectResizeObserver();
+                }
                 this.currentMedia = ''; // Clear image viewer when loading a note
                 this.shareInfo = null; // Reset share info for new note
                 
@@ -3353,6 +3814,17 @@ function noteApp() {
             this.dropdownTargetFolder = null; // Reset folder context
         },
         
+        /**
+         * Parent folder for new note/folder/drawing from the + menu when no explicit path is passed.
+         * Same rules as the create-name modal: '' = vault root; otherwise a folder path (e.g. folder1/sub).
+         */
+        inferredNewItemTargetFolder() {
+            if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
+                return this.dropdownTargetFolder;
+            }
+            return this.selectedHomepageFolder || '';
+        },
+        
         // =====================================================
         // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
         // =====================================================
@@ -3391,14 +3863,8 @@ function noteApp() {
          * @param {string|undefined} explicitTargetFolder - if set, use as parent folder context ("" = root)
          */
         openCreateNameModal(kind, explicitTargetFolder = undefined) {
-            let targetFolder;
-            if (explicitTargetFolder !== undefined) {
-                targetFolder = explicitTargetFolder;
-            } else if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
-                targetFolder = this.dropdownTargetFolder;
-            } else {
-                targetFolder = this.selectedHomepageFolder || '';
-            }
+            const targetFolder =
+                explicitTargetFolder !== undefined ? explicitTargetFolder : this.inferredNewItemTargetFolder();
             this.closeDropdown();
             this.mobileSidebarOpen = false;
             this.createNameModalKind = kind;
