@@ -2,7 +2,7 @@
 
 // Configuration constants
 const CONFIG = {
-    AUTOSAVE_DELAY: 1000,              // ms - Delay before triggering autosave
+    AUTOSAVE_DELAY: 1000,              // ms - Debounce before note save (autoSave) and drawing PNG autosave (_drawingScheduleAutosave)
     SEARCH_DEBOUNCE_DELAY: 500,        // ms - Delay before running note search while typing
     SAVE_INDICATOR_DURATION: 2000,     // ms - How long to show "saved" indicator
     SCROLL_SYNC_DELAY: 50,             // ms - Delay to prevent scroll sync interference
@@ -504,6 +504,7 @@ function noteApp() {
         drawingRedoStack: [],
         drawingDraft: null,
         drawingIsPointerDown: false,
+        _drawingAutosaveTimeout: null,
         
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
@@ -2579,10 +2580,18 @@ function noteApp() {
         },
         
         // Upload a media file (image, audio, video, PDF)
-        async uploadMedia(file, notePath) {
+        // Use options.nextToNotes + options.contentFolder to save a new drawing PNG next to .md files (not in _attachments).
+        async uploadMedia(file, notePath, options = {}) {
+            const { nextToNotes, contentFolder } = options;
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('note_path', notePath || '');
+            if (nextToNotes) {
+                formData.append('next_to_notes', '1');
+                formData.append('content_folder', contentFolder != null ? contentFolder : '');
+                formData.append('note_path', '');
+            } else {
+                formData.append('note_path', notePath || '');
+            }
             
             try {
                 const response = await fetch('/api/upload-media', {
@@ -2715,6 +2724,7 @@ function noteApp() {
         viewMedia(mediaPath, mediaType = null, updateHistory = true) {
             if (this.currentMediaType === 'drawing') {
                 this._drawingDisconnectResizeObserver();
+                this._drawingCancelAutosave();
             }
             this.showGraph = false; // Ensure graph is closed
             this.currentNote = '';
@@ -2811,12 +2821,14 @@ function noteApp() {
             }
             const file = new File([blob], 'drawing.png', { type: 'image/png' });
             try {
-                const notePath = targetFolder ? `${targetFolder}/_.md` : '';
-                const path = await this.uploadMedia(file, notePath);
+                const path = await this.uploadMedia(file, '', {
+                    nextToNotes: true,
+                    contentFolder: targetFolder,
+                });
                 await this.loadNotes();
                 this.viewMedia(path, 'drawing');
             } catch (error) {
-                ErrorHandler.handle('upload drawing', error);
+                ErrorHandler.handle('create drawing', error);
             }
         },
         
@@ -2924,6 +2936,40 @@ function noteApp() {
             }
         },
         
+        _drawingCancelAutosave() {
+            if (this._drawingAutosaveTimeout) {
+                clearTimeout(this._drawingAutosaveTimeout);
+                this._drawingAutosaveTimeout = null;
+            }
+        },
+        
+        /**
+         * Debounced PNG save (same delay as notes). Never runs while the primary button is held
+         * (active stroke/shape); pending timers are cleared when a new stroke starts.
+         */
+        _drawingScheduleAutosave() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            if (this._drawingAutosaveTimeout) {
+                clearTimeout(this._drawingAutosaveTimeout);
+                this._drawingAutosaveTimeout = null;
+            }
+            const path = this.currentMedia;
+            const pollMs = 150;
+            const attemptSave = () => {
+                if (this.currentMedia !== path || this.currentMediaType !== 'drawing') {
+                    this._drawingAutosaveTimeout = null;
+                    return;
+                }
+                if (this.drawingIsPointerDown) {
+                    this._drawingAutosaveTimeout = setTimeout(attemptSave, pollMs);
+                    return;
+                }
+                this._drawingAutosaveTimeout = null;
+                this.drawingSave({ silent: true });
+            };
+            this._drawingAutosaveTimeout = setTimeout(attemptSave, CONFIG.AUTOSAVE_DELAY);
+        },
+        
         /** Size canvas to drawingCanvasWrap and redraw (fills available pane). */
         _drawingLayoutCanvas() {
             const wrap = this.$refs.drawingCanvasWrap;
@@ -3016,6 +3062,7 @@ function noteApp() {
             if (this.currentMediaType !== 'drawing' || e.button !== 0) return;
             const canvas = this._drawingCanvasEl;
             if (!canvas) return;
+            this._drawingCancelAutosave();
             canvas.setPointerCapture(e.pointerId);
             this._drawingPointerId = e.pointerId;
             const { x, y } = this._drawingCanvasCoords(e);
@@ -3122,22 +3169,27 @@ function noteApp() {
                 });
             }
             this.drawingRedraw();
+            this._drawingScheduleAutosave();
         },
         
         drawingUndo() {
             if (this.drawingOps.length === 0) return;
             this.drawingRedoStack.push(this.drawingOps.pop());
             this.drawingRedraw();
+            this._drawingScheduleAutosave();
         },
         
         drawingRedo() {
             if (this.drawingRedoStack.length === 0) return;
             this.drawingOps.push(this.drawingRedoStack.pop());
             this.drawingRedraw();
+            this._drawingScheduleAutosave();
         },
         
-        async drawingSave() {
+        async drawingSave(options = {}) {
+            const { silent = false } = options;
             if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
+            this._drawingCancelAutosave();
             const canvas = this._drawingCanvasEl;
             const ctx = this._drawingCtx;
             if (!canvas || !ctx) return;
@@ -3148,6 +3200,7 @@ function noteApp() {
             const blob = await new Promise((resolve, reject) => {
                 canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
             });
+            this.isSaving = true;
             try {
                 const enc = this._drawingEncodeMediaPath();
                 const res = await fetch(`/api/media/${enc}`, {
@@ -3172,9 +3225,18 @@ function noteApp() {
                 this.drawingOps = [];
                 this.drawingRedoStack = [];
                 await this.initDrawingViewer();
-                this.toast(this.t('drawing.saved'), { type: 'success' });
+                if (!silent) {
+                    this.toast(this.t('drawing.saved'), { type: 'success' });
+                } else {
+                    this.lastSaved = true;
+                    setTimeout(() => {
+                        this.lastSaved = false;
+                    }, CONFIG.SAVE_INDICATOR_DURATION);
+                }
             } catch (error) {
                 ErrorHandler.handle('save drawing', error);
+            } finally {
+                this.isSaving = false;
             }
         },
         

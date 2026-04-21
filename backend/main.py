@@ -677,9 +677,16 @@ async def put_media(media_path: str, request: Request):
 
 @api_router.post("/upload-media", tags=["Media"])
 @limiter.limit("20/minute")
-async def upload_media(request: Request, file: UploadFile = File(...), note_path: str = Form("")):
+async def upload_media(
+    request: Request,
+    file: UploadFile = File(...),
+    note_path: str = Form(""),
+    content_folder: str = Form(""),
+    next_to_notes: str = Form(""),
+):
     """
-    Upload a media file (image, audio, video, PDF) and save it to the attachments directory.
+    Upload a media file (image, audio, video, PDF) and save it to the attachments directory,
+    or (when next_to_notes=1) save a new drawing PNG next to markdown notes in content_folder.
     Returns the relative path for markdown linking.
     """
     try:
@@ -726,6 +733,32 @@ async def upload_media(request: Request, file: UploadFile = File(...), note_path
                 status_code=400,
                 detail=f"File too large. Maximum size for {media_type or 'this type'}: {max_size // (1024*1024)}MB. Uploaded: {len(file_data) / 1024 / 1024:.2f}MB"
             )
+        
+        if (next_to_notes or "").strip() == "1":
+            is_png = file.content_type in ("image/png",) or (file.filename and file.filename.lower().endswith(".png"))
+            if not is_png:
+                raise HTTPException(
+                    status_code=400,
+                    detail="next_to_notes requires a PNG file",
+                )
+            file_path = save_uploaded_image(
+                config["storage"]["notes_dir"],
+                "",
+                file.filename or "drawing.png",
+                file_data,
+                sibling_folder=content_folder or "",
+            )
+            if not file_path:
+                raise HTTPException(status_code=500, detail="Failed to save drawing")
+            out_name = Path(file_path).name
+            media_type = get_media_type(out_name) or "drawing"
+            return {
+                "success": True,
+                "path": file_path,
+                "filename": out_name,
+                "type": media_type,
+                "message": "Drawing created",
+            }
         
         # Save the file (reusing image save function - it works for any file)
         file_path = save_uploaded_image(
