@@ -4,11 +4,9 @@
     "name": "Deutsch",
     "flag": "🇩🇪"
   },
-
   "app": {
     "tagline": "Deine selbstgehostete Wissensdatenbank"
   },
-
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "In Zwischenablage kopieren",
     "failed": "{{action}} fehlgeschlagen. Bitte versuche es erneut."
   },
-
   "toast": {
     "region_label": "Benachrichtigungen",
     "dismiss": "Schließen"
   },
-
   "sidebar": {
     "title": "DATEIEN",
     "favorites_title": "Favoriten",
@@ -73,7 +69,6 @@
     "settings_title": "EINSTELLUNGEN",
     "filtered_notes": "Gefilterte Notizen"
   },
-
   "editor": {
     "placeholder": "Schreibe in Markdown...",
     "drop_hint": "💡 Hier ablegen, um an Cursorposition einzufügen...",
@@ -86,7 +81,6 @@
     "hours_ago": "vor {{count}}h",
     "days_ago": "vor {{count}}T"
   },
-
   "notes": {
     "confirm_delete": "\"{{name}}\" löschen?",
     "already_exists": "Eine Notiz mit dem Namen \"{{name}}\" existiert bereits an diesem Ort.\nBitte wähle einen anderen Namen.",
@@ -102,7 +96,6 @@
     "no_content": "Kein Inhalt zum Exportieren",
     "open_first": "Bitte öffne zuerst eine Notiz, bevor du Bilder hochlädst."
   },
-
   "folders": {
     "confirm_delete": "⚠️ WARNUNG ⚠️\n\nBist du sicher, dass du den Ordner \"{{name}}\" löschen möchtest?\n\nDies LÖSCHT DAUERHAFT:\n• Alle Notizen in diesem Ordner\n• Alle Unterordner und deren Inhalte\n\nDiese Aktion kann NICHT rückgängig gemacht werden!",
     "already_exists": "Ein Ordner mit dem Namen \"{{name}}\" existiert bereits an diesem Ort.\nBitte wähle einen anderen Namen.",
@@ -119,7 +112,6 @@
     "cannot_move_into_self": "Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden.",
     "empty": "leer"
   },
-
   "toolbar": {
     "undo": "Rückgängig (Strg+Z)",
     "redo": "Wiederholen (Strg+Y)",
@@ -132,14 +124,12 @@
     "add_favorite": "Zu Favoriten hinzufügen",
     "remove_favorite": "Aus Favoriten entfernen"
   },
-
   "zen_mode": {
     "title": "Zen-Modus",
     "tooltip": "Zen-Modus (Strg+Alt+Z)",
     "exit": "Zen-Modus beenden",
     "exit_hint": "Zen-Modus beenden (Esc)"
   },
-
   "share": {
     "button_tooltip": "Notiz teilen",
     "modal_title": "Notiz teilen",
@@ -154,7 +144,6 @@
     "show_qr": "QR-Code anzeigen",
     "hide_qr": "QR-Code ausblenden"
   },
-
   "quick_switcher": {
     "placeholder": "Notizen suchen...",
     "no_results": "Keine Ergebnisse",
@@ -163,7 +152,6 @@
     "open": "öffnen",
     "close": "schließen"
   },
-
   "tags": {
     "title": "Tags",
     "no_tags": "Keine Tags gefunden",
@@ -172,13 +160,11 @@
     "clear_all": "Tag-Filter löschen",
     "filter_by": "Nach {{tag}} filtern ({{count}} Notizen)"
   },
-
   "outline": {
     "title": "Gliederung",
     "no_headings": "Keine Überschriften gefunden",
     "hint": "Überschriften mit # hinzufügen"
   },
-
   "backlinks": {
     "title": "Rückverweise",
     "no_backlinks": "Keine Rückverweise gefunden",
@@ -186,21 +172,18 @@
     "select_note": "Wählen Sie eine Notiz um Rückverweise zu sehen",
     "more_refs": "mehr"
   },
-
   "stats": {
     "words": "Wörter",
     "reading_time": "~{{minutes}} Min. Lesezeit",
     "links": "{{count}} Links",
     "click_details": "▼ Klicken für Details"
   },
-
   "graph": {
     "title": "Graphansicht",
     "empty": "Keine Verbindungen anzuzeigen",
     "markdown_links": "Markdown-Links",
     "click_hint": "Klick: auswählen • Doppelklick: öffnen"
   },
-
   "templates": {
     "title": "Vorlagen",
     "select": "Vorlage auswählen...",
@@ -214,11 +197,9 @@
     "available_placeholders": "Verfügbare Platzhalter",
     "create_note": "Notiz erstellen"
   },
-
   "export": {
     "failed": "HTML-Export fehlgeschlagen: {{error}}"
   },
-
   "login": {
     "title": "Anmelden",
     "tagline": "Deine selbstgehostete Wissensdatenbank",
@@ -227,7 +208,6 @@
     "footer": "🔒 Sicher & Selbstgehostet",
     "error_incorrect_password": "Falsches Passwort. Bitte versuche es erneut."
   },
-
   "drawing": {
     "tool_freehand": "Stift — Freihand",
     "tool_line": "Gerade Linie",
@@ -235,23 +215,19 @@
     "tool_ellipse": "Kreis",
     "color": "Farbe",
     "width": "Strichstärke",
-    "saved": "Zeichnung gespeichert",
     "save_hint": "Zeichnung speichern (Strg+S)"
   },
-
   "media": {
     "confirm_delete": "\"{{name}}\" löschen?",
     "upload_failed": "Datei-Upload fehlgeschlagen",
     "no_valid_files": "Keine gültigen Dateien gefunden. Unterstützt: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Verschieben der Notiz fehlgeschlagen.",
     "failed_folder": "Verschieben des Ordners fehlgeschlagen.",
     "failed_media": "Verschieben der Mediendatei fehlgeschlagen."
   },
-
   "search": {
     "previous": "Vorheriger (Umschalt+F3)",
     "next": "Nächster (F3)",
@@ -262,22 +238,18 @@
     "no_results": "Keine Notizen enthalten \"{{query}}\"",
     "searching": "Suche nach \"{{query}}\"..."
   },
-
   "theme": {
     "title": "Design"
   },
-
   "language": {
     "title": "Sprache"
   },
-
   "syntax_highlight": {
     "title": "Syntax-Highlighting",
     "description": "Markdown-Syntax im Editor einfärben",
     "enable": "Syntax-Highlighting aktivieren",
     "disable": "Syntax-Highlighting deaktivieren"
   },
-
   "settings": {
     "account": "Konto",
     "logout": "Abmelden",
@@ -288,7 +260,6 @@
     "tab_inserts_tab": "Tab-Taste fügt Tab ein",
     "tab_inserts_tab_desc": "Tab drücken, um ein Tabulatorzeichen einzufügen statt den Fokus zu wechseln"
   },
-
   "homepage": {
     "title": "Startseite",
     "welcome": "Willkommen bei NoteDiscovery",
@@ -301,7 +272,6 @@
     "folder_singular": "Ordner",
     "folder_plural": "Ordner"
   },
-
   "format": {
     "bold": "Fett",
     "italic": "Kursiv",
@@ -317,23 +287,19 @@
     "checkbox": "Kontrollkästchen",
     "table": "Tabelle"
   },
-
   "validation": {
     "forbidden_chars": "Der Name enthält unzulässige Zeichen: {{chars}}",
     "reserved_name": "Dieser Name ist vom Betriebssystem reserviert.",
     "invalid_dot": "Der Name darf nicht nur ein Punkt sein.",
     "trailing_dot_space": "Der Name darf nicht mit einem Punkt oder Leerzeichen enden."
   },
-
   "support": {
     "enjoying_demo": "Unterstütze dieses Projekt",
     "deploy_own": "Eigene Instanz bereitstellen",
     "thank_you": "Danke für deine Unterstützung! 💚"
   },
-
   "demo": {
     "title": "DEMO-MODUS",
     "warning": "Inhalte werden täglich zurückgesetzt. Änderungen können von anderen Benutzern überschrieben werden."
   }
 }
-

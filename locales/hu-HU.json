@@ -4,11 +4,9 @@
     "name": "Magyar",
     "flag": "🇭🇺"
   },
-
   "app": {
     "tagline": "A Saját, Önálló Tudásbázisod"
   },
-
   "common": {
     "save": "Mentés",
     "cancel": "Mégse",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "Másolás",
     "failed": "Hiba a(z) {{action}} során. Kérlek, próbáld újra."
   },
-
   "toast": {
     "region_label": "Értesítések",
     "dismiss": "Bezárás"
   },
-
   "sidebar": {
     "title": "FÁJLOK",
     "favorites_title": "Kedvencek",
@@ -73,7 +69,6 @@
     "settings_title": "BEÁLLÍTÁSOK",
     "filtered_notes": "Szűrt jegyzetek"
   },
-
   "editor": {
     "placeholder": "Kezdj el írni markdown-ban...",
     "drop_hint": "💡 Beszúrás ide...",
@@ -86,7 +81,6 @@
     "hours_ago": "{{count}} órája",
     "days_ago": "{{count}} napja"
   },
-
   "notes": {
     "confirm_delete": "Biztos törlöd a következőt: \"{{name}}\"?",
     "already_exists": "A(z) \"{{name}}\" nevű jegyzet már létezik.\nKérlek válassz egy másik nevet.",
@@ -102,7 +96,6 @@
     "no_content": "Nincs exportálható jegyzettartalom",
     "open_first": "Kérlek előbb nyiss meg egy jegyzetet, mielőtt képeket töltenél fel."
   },
-
   "folders": {
     "confirm_delete": "⚠️ FIGYELMEZTETÉS ⚠️\n\nBiztosan törölni szeretnéd a(z) \"{{name}}\" mappát?\n\nEz VÉGLEGESEN törli a következőket:\n• A mappában található összes jegyzet\n• Az összes almappa és azok tartalma \n\nEz a művelet NEM vonható vissza!",
     "already_exists": "A(z) \"{{name}}\" nevű mappa már létezik.\nKérlek válassz egy másik nevet.",
@@ -119,7 +112,6 @@
     "cannot_move_into_self": "A mappa nem mozgatható saját magába vagy bármelyik almappájába.",
     "empty": "üres"
   },
-
   "toolbar": {
     "undo": "Visszavon (Ctrl+Z)",
     "redo": "Helyrehoz (Ctrl+Y)",
@@ -132,14 +124,12 @@
     "add_favorite": "Hozzáadás a kedvencekhez",
     "remove_favorite": "Eltávolítás a kedvencek közül"
   },
-
   "zen_mode": {
     "title": "Zen Mód",
     "tooltip": "Zen Mód (Ctrl+Alt+Z)",
     "exit": "Kilépés a Zen Módból",
     "exit_hint": "Kilépés a Zen Módból (Esc)"
   },
-
   "share": {
     "button_tooltip": "Jegyzet megosztása",
     "modal_title": "Jegyzet Megosztása",
@@ -154,7 +144,6 @@
     "show_qr": "QR-Kód Megjelenítése",
     "hide_qr": "QR-Kód Elrejtése"
   },
-
   "quick_switcher": {
     "placeholder": "Írj a jegyzetek kereséséhez...",
     "no_results": "Nincs találat",
@@ -163,7 +152,6 @@
     "open": "nyit",
     "close": "csuk"
   },
-
   "tags": {
     "title": "Címkék",
     "no_tags": "Nem találhatók címkék",
@@ -172,13 +160,11 @@
     "clear_all": "Szűrők törlése",
     "filter_by": "Szűrés {{tag}} ({{count}} jegyzetek)"
   },
-
   "outline": {
     "title": "Fejlécek",
     "no_headings": "Nincsenek fejlécek",
     "hint": "Fejléc hozzáadása a következővel: # "
   },
-
   "backlinks": {
     "title": "Bejövő linkek",
     "no_backlinks": "Nincsenek bejövő linkek",
@@ -186,21 +172,18 @@
     "select_note": "Válassz ki egy jegyzetet a bejövő linkek megtekintéséhez",
     "more_refs": "továbbiak"
   },
-
   "stats": {
     "words": "szavak",
     "reading_time": "~{{minutes}} percnyi olvasás",
     "links": "{{count}} hivatkozások",
     "click_details": "▼ Kattints a részletekért"
   },
-
   "graph": {
     "title": "Grafikon nézet",
     "empty": "Nincsenek megjeleníthető kapcsolatok",
     "markdown_links": "Markdown hivatkozások",
     "click_hint": "Kattints: kiválasztás • Dupla kattintás: megnyitás"
   },
-
   "templates": {
     "title": "Sablonok",
     "select": "Válassz egy sablont...",
@@ -214,11 +197,9 @@
     "available_placeholders": "Elérhető helyőrzők",
     "create_note": "Jegyzet létrehozása"
   },
-
   "export": {
     "failed": "Hiba a HTML exportálása során: {{error}}"
   },
-
   "login": {
     "title": "Bejelentkezés",
     "tagline": "A Saját, Önálló Tudásbázisod",
@@ -227,7 +208,6 @@
     "footer": "🔒 Biztonságos & Saját Kiszolgálású",
     "error_incorrect_password": "Helytelen jelszó. Próbáld újra."
   },
-
   "drawing": {
     "tool_freehand": "Ceruza — szabadkézi",
     "tool_line": "Egyenes vonal",
@@ -235,23 +215,19 @@
     "tool_ellipse": "Kör",
     "color": "Szín",
     "width": "Vonalvastagság",
-    "saved": "Rajz elmentve",
     "save_hint": "Rajz mentése (Ctrl+S)"
   },
-
   "media": {
     "confirm_delete": "Biztos törlöd a következőt:  \"{{name}}\"?",
     "upload_failed": "Hiba a fájl feltöltése során",
     "no_valid_files": "Nem található érvényes fájl. Támogatott formátumok: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Hiba a jegyzet mozgatásánál.",
     "failed_folder": "Hiba a mappa mozgatásánál.",
     "failed_media": "Hiba a médiafájl mozgatásánál."
   },
-
   "search": {
     "previous": "Előző (Shift+F3)",
     "next": "Következő (F3)",
@@ -262,22 +238,18 @@
     "no_results": "Nincs jegyzet amely tartalmazza a következőt: \"{{query}}\"",
     "searching": "\"{{query}}\" keresése..."
   },
-
   "theme": {
     "title": "Téma"
   },
-
   "language": {
     "title": "Nyelv"
   },
-
   "syntax_highlight": {
     "title": "Szintaxisok kiemelése",
     "description": "Markdown szintaxisok színezése",
     "enable": "Szintaxiskiemelések engedélyezése",
     "disable": "Szintaxiskiemelések letiltása"
   },
-
   "settings": {
     "account": "Fiók",
     "logout": "Kijelentkezés",
@@ -288,7 +260,6 @@
     "tab_inserts_tab": "Tab billentyű több helyet hagy a szövegben",
     "tab_inserts_tab_desc": "Nyomd meg a Tab-ot, hogy több helyet hagyj a szövegben a fókuszváltás helyett"
   },
-
   "homepage": {
     "title": "Főoldal",
     "welcome": "Üdvözöllek a NoteDiscovery-ben",
@@ -301,7 +272,6 @@
     "folder_singular": "mappa",
     "folder_plural": "mappa"
   },
-
   "format": {
     "bold": "Félkövér",
     "italic": "Dőlt",
@@ -317,20 +287,17 @@
     "checkbox": "Jelölőnégyzet",
     "table": "Táblázat"
   },
-
   "validation": {
     "forbidden_chars": "A név tiltott karaktereket tartalmaz: {{chars}}",
     "reserved_name": "Ezt a nevet az operációs rendszer tartja fenn.",
     "invalid_dot": "A név nem állhat csak egy pontból.",
     "trailing_dot_space": "A név nem végződhet ponttal vagy szóközzel."
   },
-
   "support": {
     "enjoying_demo": "Támogasd ezt a projektet",
     "deploy_own": "Saját példány telepítése",
     "thank_you": "Köszönjük a támogatásodat! 💚"
   },
-
   "demo": {
     "title": "DEMÓ MÓD",
     "warning": "A tartalom naponta visszaáll. A módosításokat más felhasználók felülírhatják."

@@ -4,11 +4,9 @@
     "name": "Slovenščina",
     "flag": "🇸🇮"
   },
-
   "app": {
     "tagline": "Vaša lastna baza znanja"
   },
-
   "common": {
     "save": "Shrani",
     "cancel": "Prekliči",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "Kopiraj v odložišče",
     "failed": "Napaka pri {{action}}. Prosimo, poskusite znova."
   },
-
   "toast": {
     "region_label": "Obvestila",
     "dismiss": "Zapri"
   },
-
   "sidebar": {
     "title": "DATOTEKE",
     "favorites_title": "Priljubljene",
@@ -72,7 +68,6 @@
     "settings_title": "NASTAVITVE",
     "filtered_notes": "Filtrirani zapiski"
   },
-
   "editor": {
     "placeholder": "Začnite pisati v markdownu...",
     "drop_hint": "💡 Spustite tukaj za vstavljanje na mesto kazalca...",
@@ -85,7 +80,6 @@
     "hours_ago": "pred {{count}} h",
     "days_ago": "pred {{count}} d"
   },
-
   "notes": {
     "confirm_delete": "Izbrišem \"{{name}}\"?",
     "already_exists": "Zapis z imenom \"{{name}}\" na tej lokaciji že obstaja.\nProsimo, izberite drugo ime.",
@@ -101,7 +95,6 @@
     "no_content": "Ni vsebine za izvoz",
     "open_first": "Prosimo, najprej odprite zapis, preden naložite slike."
   },
-
   "folders": {
     "confirm_delete": "⚠️ OPOZORILO ⚠️\n\nAli ste prepričani, da želite izbrisati mapo \"{{name}}\"?\n\nTo bo TRAJNO izbrisalo:\n• Vse zapiske v tej mapi\n• Vse podmape in njihovo vsebino\n\nTe akcije NI mogoče preklicati!",
     "already_exists": "Mapa z imenom \"{{name}}\" na tej lokaciji že obstaja.\nProsimo, izberite drugo ime.",
@@ -118,7 +111,6 @@
     "cannot_move_into_self": "Mape ni mogoče premakniti vase ali v njeno podmapo.",
     "empty": "prazno"
   },
-
   "toolbar": {
     "undo": "Razveljavi (Ctrl+Z)",
     "redo": "Ponovi (Ctrl+Y)",
@@ -131,14 +123,12 @@
     "add_favorite": "Dodaj med priljubljene",
     "remove_favorite": "Odstrani iz priljubljenih"
   },
-
   "zen_mode": {
     "title": "Zen način",
     "tooltip": "Zen način (Ctrl+Alt+Z)",
     "exit": "Izhod iz zen načina",
     "exit_hint": "Izhod iz zen načina (Esc)"
   },
-
   "share": {
     "button_tooltip": "Deli zapis",
     "modal_title": "Deli zapis",
@@ -153,7 +143,6 @@
     "show_qr": "Prikaži QR kodo",
     "hide_qr": "Skrij QR kodo"
   },
-
   "quick_switcher": {
     "placeholder": "Išči beležke...",
     "no_results": "Ni rezultatov",
@@ -162,7 +151,6 @@
     "open": "odpri",
     "close": "zapri"
   },
-
   "tags": {
     "title": "Oznake",
     "no_tags": "Ni najdenih oznak",
@@ -171,13 +159,11 @@
     "clear_all": "Počisti filtre oznak",
     "filter_by": "Filtriraj po {{tag}} ({{count}} zapiskov)"
   },
-
   "outline": {
     "title": "Oris",
     "no_headings": "Ni najdenih naslovov",
     "hint": "Dodajte naslove s sintakso #"
   },
-
   "backlinks": {
     "title": "Povratne povezave",
     "no_backlinks": "Ni najdenih povratnih povezav",
@@ -185,21 +171,18 @@
     "select_note": "Izberite beležko za ogled povratnih povezav",
     "more_refs": "več"
   },
-
   "stats": {
     "words": "besed",
     "reading_time": "~{{minutes}} min branja",
     "links": "{{count}} povezav",
     "click_details": "▼ Kliknite za podrobnosti"
   },
-
   "graph": {
     "title": "Grafični prikaz",
     "empty": "Ni povezav za prikaz",
     "markdown_links": "Markdown povezave",
     "click_hint": "Klik: izberi • Dvojni klik: odpri"
   },
-
   "templates": {
     "title": "Predloge",
     "select": "Izberite predlogo...",
@@ -213,11 +196,9 @@
     "available_placeholders": "Razpoložljivi gradniki",
     "create_note": "Ustvari zapis"
   },
-
   "export": {
     "failed": "Izvoz v HTML ni uspel: {{error}}"
   },
-
   "login": {
     "title": "Prijava",
     "tagline": "Vaša lastna baza znanja",
@@ -226,7 +207,6 @@
     "footer": "🔒 Varno in samostojno gostovano",
     "error_incorrect_password": "Napačno geslo. Prosimo, poskusite znova."
   },
-
   "drawing": {
     "tool_freehand": "Svinčnik — prostoročno",
     "tool_line": "Ravna črta",
@@ -234,23 +214,19 @@
     "tool_ellipse": "Krog",
     "color": "Barva",
     "width": "Debelina črte",
-    "saved": "Risba shranjena",
     "save_hint": "Shrani risbo (Ctrl+S)"
   },
-
   "media": {
     "confirm_delete": "Izbrišem \"{{name}}\"?",
     "upload_failed": "Nalaganje datoteke ni uspelo",
     "no_valid_files": "Ni najdenih veljavnih datotek. Podprto: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Napaka pri premikanju zapisa.",
     "failed_folder": "Napaka pri premikanju mape.",
     "failed_media": "Napaka pri premikanju medijske datoteke."
   },
-
   "search": {
     "previous": "Prejšnje (Shift+F3)",
     "next": "Naslednje (F3)",
@@ -261,22 +237,18 @@
     "no_results": "Nobena beležka ne vsebuje \"{{query}}\"",
     "searching": "Iskanje \"{{query}}\"..."
   },
-
   "theme": {
     "title": "Tema"
   },
-
   "language": {
     "title": "Jezik"
   },
-
   "syntax_highlight": {
     "title": "Poudarjanje sintakse v urejevalniku",
     "description": "Obarvaj markdown sintakso v urejevalniku",
     "enable": "Omogoči poudarjanje sintakse",
     "disable": "Onemogoči poudarjanje sintakse"
   },
-
   "settings": {
     "account": "Račun",
     "logout": "Odjava",
@@ -287,7 +259,6 @@
     "tab_inserts_tab": "Tipka Tab vstavi tabulator",
     "tab_inserts_tab_desc": "Pritisnite Tab za vstavljanje tabulatorja namesto premikanja fokusa"
   },
-
   "homepage": {
     "title": "Domov",
     "welcome": "Dobrodošli v NoteDiscovery",
@@ -300,7 +271,6 @@
     "folder_singular": "mapa",
     "folder_plural": "mape"
   },
-
   "format": {
     "bold": "Krepko",
     "italic": "Ležeče",
@@ -316,20 +286,17 @@
     "checkbox": "Potrditveno polje",
     "table": "Tabela"
   },
-
   "validation": {
     "forbidden_chars": "Ime vsebuje prepovedane znake: {{chars}}",
     "reserved_name": "To ime je rezervirano s strani operacijskega sistema.",
     "invalid_dot": "Ime ne more biti le pika.",
     "trailing_dot_space": "Ime se ne more končati s piko ali presledkom."
   },
-
   "support": {
     "enjoying_demo": "Podprite ta projekt",
     "deploy_own": "Namestite svojo instanco",
     "thank_you": "Hvala za podporo! 💚"
   },
-
   "demo": {
     "title": "DEMO NAČIN",
     "warning": "Vsebina se dnevno ponastavi. Spremembe lahko prepišejo drugi uporabniki."

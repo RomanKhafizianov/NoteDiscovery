@@ -2965,7 +2965,7 @@ function noteApp() {
                     return;
                 }
                 this._drawingAutosaveTimeout = null;
-                this.drawingSave({ silent: true });
+                this.drawingSave();
             };
             this._drawingAutosaveTimeout = setTimeout(attemptSave, CONFIG.AUTOSAVE_DELAY);
         },
@@ -3186,8 +3186,12 @@ function noteApp() {
             this._drawingScheduleAutosave();
         },
         
-        async drawingSave(options = {}) {
-            const { silent = false } = options;
+        /**
+         * Persist the flattened canvas to disk (Ctrl+S, toolbar, autosave). Same feedback as saveNote:
+         * header "Saved" only — never clears stroke undo/redo or reloads the image; stacks reset when
+         * opening another drawing via initDrawingViewer().
+         */
+        async drawingSave() {
             if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
             this._drawingCancelAutosave();
             const canvas = this._drawingCanvasEl;
@@ -3218,23 +3222,10 @@ function noteApp() {
                     throw new Error(detail || res.statusText);
                 }
                 await this.loadNotes();
-                // Manual save: flatten to PNG on disk and reset canvas state from file (clears stroke undo/redo).
-                // Autosave: only persist the PNG; keep drawingOps / redo stacks like note undo after save.
-                if (!silent) {
-                    if (this._drawingObjectURL) {
-                        URL.revokeObjectURL(this._drawingObjectURL);
-                        this._drawingObjectURL = null;
-                    }
-                    this.drawingOps = [];
-                    this.drawingRedoStack = [];
-                    await this.initDrawingViewer();
-                    this.toast(this.t('drawing.saved'), { type: 'success' });
-                } else {
-                    this.lastSaved = true;
-                    setTimeout(() => {
-                        this.lastSaved = false;
-                    }, CONFIG.SAVE_INDICATOR_DURATION);
-                }
+                this.lastSaved = true;
+                setTimeout(() => {
+                    this.lastSaved = false;
+                }, CONFIG.SAVE_INDICATOR_DURATION);
             } catch (error) {
                 ErrorHandler.handle('save drawing', error);
             } finally {

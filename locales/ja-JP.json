@@ -4,11 +4,9 @@
     "name": "日本語",
     "flag": "🇯🇵"
   },
-
   "app": {
     "tagline": "セルフホスト型ナレッジベース"
   },
-
   "common": {
     "save": "保存",
     "cancel": "キャンセル",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "クリップボードにコピー",
     "failed": "{{action}}に失敗しました。もう一度お試しください。"
   },
-
   "toast": {
     "region_label": "通知",
     "dismiss": "閉じる"
   },
-
   "sidebar": {
     "title": "ファイル",
     "favorites_title": "お気に入り",
@@ -72,7 +68,6 @@
     "settings_title": "設定",
     "filtered_notes": "フィルター済みノート"
   },
-
   "editor": {
     "placeholder": "マークダウンで書き始める...",
     "drop_hint": "💡 ここにドロップしてカーソル位置に挿入...",
@@ -85,7 +80,6 @@
     "hours_ago": "{{count}}時間前",
     "days_ago": "{{count}}日前"
   },
-
   "notes": {
     "confirm_delete": "「{{name}}」を削除しますか？",
     "already_exists": "「{{name}}」という名前のノートは既に存在します。\n別の名前を選択してください。",
@@ -101,7 +95,6 @@
     "no_content": "エクスポートするノートの内容がありません",
     "open_first": "画像をアップロードする前にノートを開いてください。"
   },
-
   "folders": {
     "confirm_delete": "⚠️ 警告 ⚠️\n\n本当にフォルダ「{{name}}」を削除しますか？\n\n以下が完全に削除されます:\n• このフォルダ内のすべてのノート\n• すべてのサブフォルダとその内容\n\nこの操作は元に戻せません！",
     "already_exists": "「{{name}}」という名前のフォルダは既に存在します。\n別の名前を選択してください。",
@@ -118,7 +111,6 @@
     "cannot_move_into_self": "フォルダを自身またはそのサブフォルダに移動できません。",
     "empty": "空"
   },
-
   "toolbar": {
     "undo": "元に戻す (Ctrl+Z)",
     "redo": "やり直す (Ctrl+Y)",
@@ -131,14 +123,12 @@
     "add_favorite": "お気に入りに追加",
     "remove_favorite": "お気に入りから削除"
   },
-
   "zen_mode": {
     "title": "集中モード",
     "tooltip": "集中モード (Ctrl+Alt+Z)",
     "exit": "集中モードを終了",
     "exit_hint": "集中モードを終了 (Esc)"
   },
-
   "share": {
     "button_tooltip": "ノートを共有",
     "modal_title": "ノートを共有",
@@ -153,7 +143,6 @@
     "show_qr": "QRコードを表示",
     "hide_qr": "QRコードを非表示"
   },
-
   "quick_switcher": {
     "placeholder": "ノートを検索...",
     "no_results": "結果なし",
@@ -162,7 +151,6 @@
     "open": "開く",
     "close": "閉じる"
   },
-
   "tags": {
     "title": "タグ",
     "no_tags": "タグが見つかりません",
@@ -171,13 +159,11 @@
     "clear_all": "タグフィルターをクリア",
     "filter_by": "{{tag}}でフィルター（{{count}}件）"
   },
-
   "outline": {
     "title": "アウトライン",
     "no_headings": "見出しが見つかりません",
     "hint": "# 記法で見出しを追加"
   },
-
   "backlinks": {
     "title": "バックリンク",
     "no_backlinks": "バックリンクが見つかりません",
@@ -185,21 +171,18 @@
     "select_note": "バックリンクを表示するノートを選択",
     "more_refs": "その他"
   },
-
   "stats": {
     "words": "語",
     "reading_time": "約{{minutes}}分で読了",
     "links": "{{count}}件のリンク",
     "click_details": "▼ 詳細を表示"
   },
-
   "graph": {
     "title": "グラフ",
     "empty": "表示する接続がありません",
     "markdown_links": "マークダウンリンク",
     "click_hint": "クリック: 選択 • ダブルクリック: 開く"
   },
-
   "templates": {
     "title": "テンプレート",
     "select": "テンプレートを選択...",
@@ -213,11 +196,9 @@
     "available_placeholders": "利用可能なプレースホルダー",
     "create_note": "ノートを作成"
   },
-
   "export": {
     "failed": "HTMLエクスポートに失敗しました: {{error}}"
   },
-
   "login": {
     "title": "ログイン",
     "tagline": "セルフホスト型ナレッジベース",
@@ -226,7 +207,6 @@
     "footer": "🔒 安全なセルフホスト",
     "error_incorrect_password": "パスワードが正しくありません。もう一度お試しください。"
   },
-
   "drawing": {
     "tool_freehand": "鉛筆（フリーハンド）",
     "tool_line": "直線",
@@ -234,23 +214,19 @@
     "tool_ellipse": "円",
     "color": "色",
     "width": "線の太さ",
-    "saved": "保存しました",
     "save_hint": "お絵かきを保存（Ctrl+S）"
   },
-
   "media": {
     "confirm_delete": "「{{name}}」を削除しますか？",
     "upload_failed": "ファイルのアップロードに失敗しました",
     "no_valid_files": "有効なファイルが見つかりません。対応: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "ノートの移動に失敗しました。",
     "failed_folder": "フォルダの移動に失敗しました。",
     "failed_media": "メディアファイルの移動に失敗しました。"
   },
-
   "search": {
     "previous": "前へ (Shift+F3)",
     "next": "次へ (F3)",
@@ -261,22 +237,18 @@
     "no_results": "「{{query}}」を含むノートはありません",
     "searching": "「{{query}}」を検索中..."
   },
-
   "theme": {
     "title": "テーマ"
   },
-
   "language": {
     "title": "言語"
   },
-
   "syntax_highlight": {
     "title": "エディタのシンタックスハイライト",
     "description": "エディタでマークダウン構文を色分け表示",
     "enable": "シンタックスハイライトを有効化",
     "disable": "シンタックスハイライトを無効化"
   },
-
   "settings": {
     "account": "アカウント",
     "logout": "ログアウト",
@@ -287,7 +259,6 @@
     "tab_inserts_tab": "Tabキーでタブを挿入",
     "tab_inserts_tab_desc": "Tabキーでフォーカス移動ではなくタブ文字を挿入"
   },
-
   "homepage": {
     "title": "ホーム",
     "welcome": "NoteDiscoveryへようこそ",
@@ -300,7 +271,6 @@
     "folder_singular": "フォルダ",
     "folder_plural": "フォルダ"
   },
-
   "format": {
     "bold": "太字",
     "italic": "斜体",
@@ -316,20 +286,17 @@
     "checkbox": "チェックボックス",
     "table": "表"
   },
-
   "validation": {
     "forbidden_chars": "名前に使用できない文字が含まれています: {{chars}}",
     "reserved_name": "この名前はオペレーティングシステムで予約されています。",
     "invalid_dot": "名前をドットだけにすることはできません。",
     "trailing_dot_space": "名前の末尾にドットやスペースは使用できません。"
   },
-
   "support": {
     "enjoying_demo": "このプロジェクトを支援",
     "deploy_own": "自分のインスタンスをデプロイ",
     "thank_you": "ご支援ありがとうございます！💚"
   },
-
   "demo": {
     "title": "デモモード",
     "warning": "コンテンツは毎日リセットされます。変更は他のユーザーによって上書きされる場合があります。"
