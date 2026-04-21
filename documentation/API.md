@@ -214,6 +214,31 @@ curl http://localhost:8000/api/media/folder/_attachments/image-20240417093343.pn
 - The file exists and is a valid media format
 - The requesting user is authenticated (if auth is enabled)
 
+### Update drawing (PNG in place)
+
+```http
+PUT /api/media/{media_path}
+Content-Type: image/png
+```
+
+Overwrites an **existing** file in the vault. The server only accepts targets whose filename matches **`drawing-*.png`** (lowercase `.png`). The body must be a valid **PNG** (magic bytes are checked). Used by the in-app drawing editor when saving.
+
+**Requirements:**
+- File must already exist (create new drawings via **New drawing** / `POST /api/upload-media` with `next_to_notes`, not via PUT).
+- Path must stay within the notes directory (same rules as GET).
+
+**Response:**
+```json
+{ "success": true, "path": "folder/drawing-20260101120000.png" }
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:8000/api/media/myproject/drawing-20260101120000.png \
+  -H "Content-Type: image/png" \
+  --data-binary @sketch.png
+```
+
 ### Upload Media
 ```http
 POST /api/upload-media

@@ -68,6 +68,17 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
 - 🤖 **AI Assistant Ready** - MCP integration for Claude, Cursor & more
 
+## ✏️ Drawing editor
+
+NoteDiscovery isn’t only markdown—you can **sketch and annotate** without leaving the app. Create a **New drawing** from the sidebar; the app saves a `drawing-{timestamp}.png` next to your notes, same as any other file in your vault.
+
+- **Real tools** — Freehand pencil, straight lines, rectangles, ellipses, **eraser** (background-color stroke), **eyedropper** to sample colors from the canvas, and **clear** to replace the image with a blank canvas (with confirmation).
+- **Comfortable controls** — Color picker and stroke width on the drawing toolbar; **undo/redo** for strokes (same shortcuts as the editor when a drawing is open).
+- **Saves like everything else** — **Autosave** after you finish a stroke, plus **Ctrl+S** / **Cmd+S** to flush the PNG to disk immediately.
+- **Plain PNG** — Drawings are normal images on disk, so previews, export, and backups work the same as for screenshots or diagrams.
+
+> 📖 **Full details:** [DRAWING.md](documentation/DRAWING.md) · Listed in [FEATURES.md](documentation/FEATURES.md)
+
 ## 🤖 AI-Powered Note Management
 
 <p align="center">
@@ -240,6 +251,7 @@ Want to learn more?
 
 - 🎨 **[THEMES.md](documentation/THEMES.md)** - Theme customization and creating custom themes
 - ✨ **[FEATURES.md](documentation/FEATURES.md)** - Complete feature list and keyboard shortcuts
+- ✏️ **[DRAWING.md](documentation/DRAWING.md)** - Built-in drawing editor (`drawing-*.png`), save behavior, and API notes
 - 🏷️ **[TAGS.md](documentation/TAGS.md)** - Organize notes with tags and combined filtering
 - 📋 **[TEMPLATES.md](documentation/TEMPLATES.md)** - Create notes from reusable templates with dynamic placeholders
 - 🧮 **[MATHJAX.md](documentation/MATHJAX.md)** - LaTeX/Math notation examples and syntax reference

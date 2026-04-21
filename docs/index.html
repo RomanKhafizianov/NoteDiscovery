@@ -7,8 +7,8 @@
     <!-- Primary Meta Tags -->
     <title>NoteDiscovery - Your Self-Hosted Knowledge Base</title>
     <meta name="title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta name="description" content="A lightweight, privacy-focused Markdown note-taking application with AI assistant integration (MCP), wikilinks, graph view, LaTeX math, Mermaid diagrams, tags, templates, and code highlighting. Works with Claude, Cursor, and other AI tools. Self-hosted, free, and open source.">
-    <meta name="keywords" content="note taking, markdown editor, self-hosted, knowledge base, open source, privacy, notes app, docker, second brain, obsidian alternative, notion, evernote, onenote, latex, mermaid, diagrams, math equations, templates, tags, yaml frontmatter, AI assistant, MCP, model context protocol, Claude, Cursor, AI notes, AI knowledge base, AI-powered notes">
+    <meta name="description" content="A lightweight, privacy-focused Markdown note-taking application with AI assistant integration (MCP), wikilinks, graph view, embedded drawing editor, LaTeX math, Mermaid diagrams, tags, templates, and code highlighting. Works with Claude, Cursor, and other AI tools. Self-hosted, free, and open source.">
+    <meta name="keywords" content="note taking, markdown editor, self-hosted, knowledge base, open source, privacy, notes app, docker, second brain, obsidian alternative, notion, evernote, onenote, latex, mermaid, diagrams, drawing, sketch, whiteboard, math equations, templates, tags, yaml frontmatter, AI assistant, MCP, model context protocol, Claude, Cursor, AI notes, AI knowledge base, AI-powered notes">
     <meta name="author" content="Gamosoft">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.notediscovery.com">
@@ -17,7 +17,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.notediscovery.com">
     <meta property="og:title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta property="og:description" content="AI-powered note-taking with MCP integration for Claude, Cursor & more. LaTeX math, Mermaid diagrams, graph view, wikilinks. Self-hosted, free, and open source.">
+    <meta property="og:description" content="AI-powered note-taking with MCP integration for Claude, Cursor & more. LaTeX math, Mermaid diagrams, drawing editor, graph view, wikilinks. Self-hosted, free, and open source.">
     <meta property="og:image" content="https://www.notediscovery.com/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -28,7 +28,7 @@
     <meta name="twitter:site" content="@gamosoft">
     <meta name="twitter:creator" content="@gamosoft">
     <meta name="twitter:title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta name="twitter:description" content="AI-powered note-taking with MCP integration for Claude & Cursor. LaTeX, Mermaid diagrams, graph view. Self-hosted, free, open source.">
+    <meta name="twitter:description" content="AI-powered note-taking with MCP integration for Claude & Cursor. LaTeX, Mermaid diagrams, drawing editor, graph view. Self-hosted, free, open source.">
     <meta name="twitter:image" content="https://www.notediscovery.com/og-image.png">
     <meta name="twitter:image:alt" content="NoteDiscovery - Self-hosted note-taking application interface">
     
@@ -353,7 +353,7 @@
             animation: fadeInScale 0.6s ease-out forwards;
         }
 
-        /* Stagger animation delays for feature cards (5 rows × 3 cols = 15 cards) */
+        /* Stagger animation delays for feature cards (16 cards) */
         .feature.animated:nth-child(1) { animation-delay: 0s; }
         .feature.animated:nth-child(2) { animation-delay: 0.1s; }
         .feature.animated:nth-child(3) { animation-delay: 0.2s; }
@@ -369,6 +369,7 @@
         .feature.animated:nth-child(13) { animation-delay: 0.2s; }
         .feature.animated:nth-child(14) { animation-delay: 0.3s; }
         .feature.animated:nth-child(15) { animation-delay: 0.4s; }
+        .feature.animated:nth-child(16) { animation-delay: 0.45s; }
 
         .screenshot-section {
             margin: 4rem 0 3rem 0;
@@ -689,7 +690,7 @@
         <div class="hero animate-on-scroll">
             <div class="hero-content">
                 <h2>Take Control of Your Notes</h2>
-                <p>A lightweight, privacy-focused note-taking application with powerful features: AI assistant integration (MCP), LaTeX math equations, Mermaid diagrams, smart tags, custom templates, code highlighting, and more. Write and organize your notes with a beautiful, modern interface all running on your own server.</p>
+                <p>A lightweight, privacy-focused note-taking application with powerful features: AI assistant integration (MCP), LaTeX math equations, Mermaid diagrams, an embedded drawing editor for quick sketches, smart tags, custom templates, code highlighting, and more. Write and organize your notes with a beautiful, modern interface all running on your own server.</p>
                 <div class="cta-buttons">
                     <a href="https://gamosoft-notediscovery-demo.hf.space" class="cta-button demo" target="_blank" rel="noopener">Try Live Demo</a>
                     <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button" target="_blank" rel="noopener">Get Started on GitHub →</a>
@@ -856,6 +857,12 @@
                 <div class="feature-icon">📊</div>
                 <h3>Diagrams</h3>
                 <p>Create flowcharts, mind maps, and diagrams with Mermaid syntax.</p>
+            </div>
+
+            <div class="feature animate-on-scroll">
+                <div class="feature-icon">✏️</div>
+                <h3>Drawing editor</h3>
+                <p>Sketch and annotate as PNG files next to your notes—autosave, shapes, eraser, and eyedropper.</p>
             </div>
 
             <div class="feature animate-on-scroll">
@@ -1191,11 +1198,11 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "NoteDiscovery",
-      "description": "A lightweight, AI-powered Markdown note-taking application with MCP integration for Claude, Cursor and other AI assistants. Features LaTeX math, Mermaid diagrams, graph view, and code highlighting. Self-hosted Obsidian and Evernote alternative. Free and open source.",
+      "description": "A lightweight, AI-powered Markdown note-taking application with MCP integration for Claude, Cursor and other AI assistants. Features LaTeX math, Mermaid diagrams, drawing editor, graph view, and code highlighting. Self-hosted Obsidian and Evernote alternative. Free and open source.",
       "url": "https://www.notediscovery.com",
       "applicationCategory": "ProductivityApplication",
       "operatingSystem": "Linux, Windows, macOS",
-      "featureList": "AI assistant integration, MCP (Model Context Protocol), Claude integration, Cursor integration, Markdown editor, Wikilinks, Graph view, LaTeX math equations, Mermaid diagrams, Code syntax highlighting, Dark mode, Plugin system, Internal links, Properties panel, HTML export, Full-text search, Self-hosted, Obsidian alternative, Evernote alternative, Notion alternative, Second brain, AI-powered notes",
+      "featureList": "AI assistant integration, MCP (Model Context Protocol), Claude integration, Cursor integration, Markdown editor, Wikilinks, Graph view, Drawing editor, LaTeX math equations, Mermaid diagrams, Code syntax highlighting, Dark mode, Plugin system, Internal links, Properties panel, HTML export, Full-text search, Self-hosted, Obsidian alternative, Evernote alternative, Notion alternative, Second brain, AI-powered notes",
       "offers": {
         "@type": "Offer",
         "price": "0",

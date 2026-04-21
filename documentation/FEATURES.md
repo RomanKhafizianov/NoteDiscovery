@@ -15,6 +15,7 @@
 - **Public Sharing** - Share notes via token-based URLs with optional QR code for mobile (see [SHARING.md](SHARING.md))
 
 ### Media Support
+- **Drawing editor** - Create and edit **`drawing-*.png`** sketches next to your notes (pencil, shapes, eraser, eyedropper, autosave); see [DRAWING.md](DRAWING.md)
 - **Drag & drop upload** - Drop files from your file system directly into the editor
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
 - **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
@@ -311,11 +312,11 @@ date: {{date}}
 | Windows/Linux | Mac | Action |
 |---------------|-----|--------|
 | `Ctrl+Alt+P` | `Cmd+Option+P` | Quick Switcher (jump to any note) |
-| `Ctrl+S` | `Cmd+S` | Save note |
+| `Ctrl+S` | `Cmd+S` | Save note (or **save drawing PNG** when a `drawing-*.png` is open) |
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
-| `Ctrl+Z` | `Cmd+Z` | Undo |
-| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
+| `Ctrl+Z` | `Cmd+Z` | Undo (note edits, or **drawing strokes** when a drawing is open) |
+| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo (note edits, or **drawing strokes** when a drawing is open) |
 | `Ctrl+Alt+Z` | `Cmd+Option+Z` | Toggle Zen Mode |
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |
