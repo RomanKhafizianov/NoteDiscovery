@@ -19,6 +19,9 @@ const CONFIG = {
     TOAST_DURATION_SUCCESS_MS: 3500,
 };
 
+/** Heroicons outline "share" (same d= as shared-note icon in the file tree) */
+const SHARE_ICON_PATH = 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z';
+
 // localStorage settings configuration - centralized definition of all persisted settings
 const LOCAL_SETTINGS = {
     // Boolean settings
@@ -231,7 +234,7 @@ function noteApp() {
         sortMode: localStorage.getItem('sortMode') || 'a-z',
 
         // Icon rail / panel state
-        activePanel: 'files', // 'files', 'search', 'tags', 'settings'
+        activePanel: 'files', // 'files', 'search', 'tags', 'outline', 'backlinks', 'shared', 'settings'
         
         // Folder state
         folderTree: [],
@@ -329,6 +332,7 @@ function noteApp() {
         showShareQR: false,
         shareLinkCopied: false,
         _sharedNotePaths: new Set(),  // O(1) lookup for shared note indicators
+        _sharedNotePathsList: [], // sorted paths, mirrors Set for reactive sidebar panel
         
         // Quick Switcher state (Ctrl+Alt+P)
         showQuickSwitcher: false,
@@ -2237,7 +2241,7 @@ function noteApp() {
             
             // Share icon for shared notes
             const isShared = !isMediaFile && this.isNoteShared(note.path);
-            const shareIcon = isShared ? '<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
+            const shareIcon = isShared ? `<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${SHARE_ICON_PATH}"></path></svg>` : '';
             const icon = this.getMediaIcon(note.type);
             const deleteTitle = !isMediaFile
                 ? this.t('toolbar.delete_note')
@@ -6111,18 +6115,37 @@ function noteApp() {
         // Share Functions
         // ============================================================================
         
-        // Load list of shared note paths (for visual indicators)
+        // Load list of shared note paths (for visual indicators and Shared sidebar panel)
         async loadSharedNotePaths() {
             try {
                 const response = await fetch('/api/shared-notes');
                 if (response.ok) {
                     const data = await response.json();
                     this._sharedNotePaths = new Set(data.paths || []);
+                    this._syncSharedNotePathsList();
                 }
             } catch (error) {
                 console.error('Failed to load shared note paths:', error);
                 this._sharedNotePaths = new Set();
+                this._sharedNotePathsList = [];
             }
+        },
+
+        _syncSharedNotePathsList() {
+            this._sharedNotePathsList = [...this._sharedNotePaths].sort((a, b) =>
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
+            );
+        },
+
+        /** Display rows for Shared notes panel: name + folder line (search-style) */
+        getSharedPanelItems() {
+            return this._sharedNotePathsList.map((path) => {
+                const noMd = path.replace(/\.md$/i, '');
+                const last = Math.max(noMd.lastIndexOf('/'), noMd.lastIndexOf('\\'));
+                const name = last < 0 ? noMd : noMd.slice(last + 1);
+                const folder = last < 0 ? '' : noMd.slice(0, last).replace(/\\/g, '/');
+                return { path, name, folder: folder || 'Root' };
+            });
         },
         
         // Check if a note is currently shared (O(1) lookup)
@@ -6284,6 +6307,7 @@ function noteApp() {
                     this.shareInfo.shared = true;
                     // Update the shared paths set
                     this._sharedNotePaths.add(this.currentNote);
+                    this._syncSharedNotePathsList();
                 } else {
                     const error = await response.json();
                     this.toast(this.t('share.error_creating', { error: error.detail || 'Unknown error' }), { type: 'error' });
@@ -6342,6 +6366,7 @@ function noteApp() {
                     this.shareInfo = { shared: false };
                     // Update the shared paths set
                     this._sharedNotePaths.delete(this.currentNote);
+                    this._syncSharedNotePathsList();
                 } else {
                     const error = await response.json();
                     this.toast(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }), { type: 'error' });

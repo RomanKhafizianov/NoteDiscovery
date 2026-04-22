@@ -141,7 +141,9 @@
     "error_creating": "创建分享链接失败：{{error}}",
     "error_revoking": "撤销分享链接失败：{{error}}",
     "show_qr": "显示二维码",
-    "hide_qr": "隐藏二维码"
+    "hide_qr": "隐藏二维码",
+    "panel_title": "已分享",
+    "no_shared": "暂无已分享的笔记"
   },
   "quick_switcher": {
     "placeholder": "搜索笔记...",

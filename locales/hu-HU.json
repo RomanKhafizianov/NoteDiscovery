@@ -142,7 +142,9 @@
     "error_creating": "Hiba történt a megosztási link létrehozásánál: {{error}}",
     "error_revoking": "Nemsikerült visszavonni a megosztási linket: {{error}}",
     "show_qr": "QR-Kód Megjelenítése",
-    "hide_qr": "QR-Kód Elrejtése"
+    "hide_qr": "QR-Kód Elrejtése",
+    "panel_title": "Megosztott",
+    "no_shared": "Nincs megosztott jegyzet"
   },
   "quick_switcher": {
     "placeholder": "Írj a jegyzetek kereséséhez...",

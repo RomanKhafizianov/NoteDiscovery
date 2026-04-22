@@ -142,7 +142,9 @@
     "error_creating": "Fehler beim Erstellen des Freigabelinks: {{error}}",
     "error_revoking": "Fehler beim Widerrufen des Freigabelinks: {{error}}",
     "show_qr": "QR-Code anzeigen",
-    "hide_qr": "QR-Code ausblenden"
+    "hide_qr": "QR-Code ausblenden",
+    "panel_title": "Geteilt",
+    "no_shared": "Keine geteilten Notizen"
   },
   "quick_switcher": {
     "placeholder": "Notizen suchen...",

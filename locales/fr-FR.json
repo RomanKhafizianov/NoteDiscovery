@@ -142,7 +142,9 @@
     "error_creating": "Échec de la création du lien : {{error}}",
     "error_revoking": "Échec de la révocation du lien : {{error}}",
     "show_qr": "Afficher le code QR",
-    "hide_qr": "Masquer le code QR"
+    "hide_qr": "Masquer le code QR",
+    "panel_title": "Partagées",
+    "no_shared": "Aucune note partagée"
   },
   "quick_switcher": {
     "placeholder": "Rechercher des notes...",

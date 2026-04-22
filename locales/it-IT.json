@@ -141,7 +141,9 @@
     "error_creating": "Impossibile creare il link: {{error}}",
     "error_revoking": "Impossibile revocare il link: {{error}}",
     "show_qr": "Mostra codice QR",
-    "hide_qr": "Nascondi codice QR"
+    "hide_qr": "Nascondi codice QR",
+    "panel_title": "Condivise",
+    "no_shared": "Nessuna nota condivisa"
   },
   "quick_switcher": {
     "placeholder": "Cerca note...",

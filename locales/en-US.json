@@ -142,7 +142,9 @@
     "error_creating": "Failed to create share link: {{error}}",
     "error_revoking": "Failed to revoke share link: {{error}}",
     "show_qr": "Show QR Code",
-    "hide_qr": "Hide QR Code"
+    "hide_qr": "Hide QR Code",
+    "panel_title": "Shared",
+    "no_shared": "No shared notes"
   },
   "quick_switcher": {
     "placeholder": "Type to search notes...",

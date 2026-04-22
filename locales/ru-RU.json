@@ -141,7 +141,9 @@
     "error_creating": "Не удалось создать ссылку: {{error}}",
     "error_revoking": "Не удалось отозвать ссылку: {{error}}",
     "show_qr": "Показать QR-код",
-    "hide_qr": "Скрыть QR-код"
+    "hide_qr": "Скрыть QR-код",
+    "panel_title": "Опубликовано",
+    "no_shared": "Нет опубликованных заметок"
   },
   "quick_switcher": {
     "placeholder": "Поиск заметок...",

@@ -141,7 +141,9 @@
     "error_creating": "共有リンクの作成に失敗しました: {{error}}",
     "error_revoking": "共有リンクの取り消しに失敗しました: {{error}}",
     "show_qr": "QRコードを表示",
-    "hide_qr": "QRコードを非表示"
+    "hide_qr": "QRコードを非表示",
+    "panel_title": "共有",
+    "no_shared": "共有中のノートはありません"
   },
   "quick_switcher": {
     "placeholder": "ノートを検索...",

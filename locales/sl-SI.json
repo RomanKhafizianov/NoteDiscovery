@@ -141,7 +141,9 @@
     "error_creating": "Napaka pri ustvarjanju povezave: {{error}}",
     "error_revoking": "Napaka pri preklicu povezave: {{error}}",
     "show_qr": "Prikaži QR kodo",
-    "hide_qr": "Skrij QR kodo"
+    "hide_qr": "Skrij QR kodo",
+    "panel_title": "V skupni rabi",
+    "no_shared": "Ni deljenih zapisov"
   },
   "quick_switcher": {
     "placeholder": "Išči beležke...",

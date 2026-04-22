@@ -142,7 +142,9 @@
     "error_creating": "Error al crear el enlace: {{error}}",
     "error_revoking": "Error al revocar el enlace: {{error}}",
     "show_qr": "Mostrar código QR",
-    "hide_qr": "Ocultar código QR"
+    "hide_qr": "Ocultar código QR",
+    "panel_title": "Compartidas",
+    "no_shared": "No hay notas compartidas"
   },
   "quick_switcher": {
     "placeholder": "Escribe para buscar notas...",
