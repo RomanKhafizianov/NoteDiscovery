@@ -11,8 +11,8 @@ const CONFIG = {
      * live in this fixed coordinate space. A future "new drawing" dialog can
      * override the dimensions per drawing without any architectural change.
      */
-    DRAWING_DEFAULT_DOC_W: 1600,
-    DRAWING_DEFAULT_DOC_H: 1000,
+    DRAWING_DEFAULT_DOC_W: 1200,
+    DRAWING_DEFAULT_DOC_H: 800,
     /** Hard bounds applied when (re)loading or creating a drawing. */
     DRAWING_MIN_DOC_DIM: 64,
     DRAWING_MAX_DOC_DIM: 4096,
@@ -521,9 +521,14 @@ function noteApp() {
         drawingColor: '#1a1a1a',
         drawingLineWidth: 4,
         drawingOps: [],
-        /** Intrinsic drawing dimensions (in document px). Set when a drawing is created or loaded. */
-        drawingDocW: 1600,
-        drawingDocH: 1000,
+        /**
+         * Intrinsic drawing dimensions (in document px). Initial values come from CONFIG so
+         * there is a single source of truth for the default; per-drawing values get overwritten
+         * by createNewDrawing() (using its opts) or initDrawingViewer() (using the PNG's natural
+         * size). To change the default, edit CONFIG.DRAWING_DEFAULT_DOC_W / _H only.
+         */
+        drawingDocW: CONFIG.DRAWING_DEFAULT_DOC_W,
+        drawingDocH: CONFIG.DRAWING_DEFAULT_DOC_H,
         drawingRedoStack: [],
         drawingDraft: null,
         drawingIsPointerDown: false,
