@@ -4,11 +4,9 @@
     "name": "English",
     "flag": "🇺🇸"
   },
-
   "app": {
     "tagline": "Your Self-Hosted Knowledge Base"
   },
-
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "Copy to clipboard",
     "failed": "Failed to {{action}}. Please try again."
   },
-
   "toast": {
     "region_label": "Notifications",
     "dismiss": "Dismiss"
   },
-
   "sidebar": {
     "title": "FILES",
     "favorites_title": "Favorites",
@@ -42,6 +38,7 @@
     "new_note": "New Note",
     "new_folder": "New Folder",
     "new_from_template": "New from Template",
+    "new_drawing": "New Drawing",
     "rename_folder": "Rename folder",
     "delete_folder": "Delete folder",
     "search_placeholder": "Search notes...",
@@ -72,7 +69,6 @@
     "settings_title": "SETTINGS",
     "filtered_notes": "Filtered Notes"
   },
-
   "editor": {
     "placeholder": "Start writing in markdown...",
     "drop_hint": "💡 Drop here to insert at cursor position...",
@@ -85,7 +81,6 @@
     "hours_ago": "{{count}}h ago",
     "days_ago": "{{count}}d ago"
   },
-
   "notes": {
     "confirm_delete": "Delete \"{{name}}\"?",
     "already_exists": "A note named \"{{name}}\" already exists in this location.\nPlease choose a different name.",
@@ -101,7 +96,6 @@
     "no_content": "No note content to export",
     "open_first": "Please open a note first before uploading images."
   },
-
   "folders": {
     "confirm_delete": "⚠️ WARNING ⚠️\n\nAre you sure you want to delete the folder \"{{name}}\"?\n\nThis will PERMANENTLY delete:\n• All notes inside this folder\n• All subfolders and their contents\n\nThis action CANNOT be undone!",
     "already_exists": "A folder named \"{{name}}\" already exists in this location.\nPlease choose a different name.",
@@ -118,26 +112,24 @@
     "cannot_move_into_self": "Cannot move folder into itself or its subfolder.",
     "empty": "empty"
   },
-
   "toolbar": {
     "undo": "Undo (Ctrl+Z)",
     "redo": "Redo (Ctrl+Y)",
     "delete_note": "Delete note",
     "delete_image": "Delete image",
+    "delete_drawing": "Delete drawing",
     "export_html": "Export as HTML",
     "print_preview": "Print preview",
     "copy_link": "Copy link to clipboard",
     "add_favorite": "Add to favorites",
     "remove_favorite": "Remove from favorites"
   },
-
   "zen_mode": {
     "title": "Zen Mode",
     "tooltip": "Zen Mode (Ctrl+Alt+Z)",
     "exit": "Exit Zen Mode",
     "exit_hint": "Exit Zen Mode (Esc)"
   },
-
   "share": {
     "button_tooltip": "Share note",
     "modal_title": "Share Note",
@@ -150,9 +142,10 @@
     "error_creating": "Failed to create share link: {{error}}",
     "error_revoking": "Failed to revoke share link: {{error}}",
     "show_qr": "Show QR Code",
-    "hide_qr": "Hide QR Code"
+    "hide_qr": "Hide QR Code",
+    "panel_title": "Shared",
+    "no_shared": "No shared notes"
   },
-
   "quick_switcher": {
     "placeholder": "Type to search notes...",
     "no_results": "No matching notes",
@@ -161,7 +154,6 @@
     "open": "open",
     "close": "close"
   },
-
   "tags": {
     "title": "Tags",
     "no_tags": "No tags found",
@@ -170,13 +162,11 @@
     "clear_all": "Clear tag filters",
     "filter_by": "Filter by {{tag}} ({{count}} notes)"
   },
-
   "outline": {
     "title": "Outline",
     "no_headings": "No headings found",
     "hint": "Add headings using # syntax"
   },
-
   "backlinks": {
     "title": "Backlinks",
     "no_backlinks": "No backlinks found",
@@ -184,21 +174,18 @@
     "select_note": "Select a note to see backlinks",
     "more_refs": "more"
   },
-
   "stats": {
     "words": "words",
     "reading_time": "~{{minutes}}m read",
     "links": "{{count}} links",
     "click_details": "▼ Click for details"
   },
-
   "graph": {
     "title": "Graph View",
     "empty": "No connections to display",
     "markdown_links": "Markdown links",
     "click_hint": "Click: select • Double-click: open"
   },
-
   "templates": {
     "title": "Templates",
     "select": "Select a template...",
@@ -212,11 +199,9 @@
     "available_placeholders": "Available placeholders",
     "create_note": "Create Note"
   },
-
   "export": {
     "failed": "Failed to export HTML: {{error}}"
   },
-
   "login": {
     "title": "Login",
     "tagline": "Your Self-Hosted Knowledge Base",
@@ -225,20 +210,31 @@
     "footer": "🔒 Secure & Self-Hosted",
     "error_incorrect_password": "Incorrect password. Please try again."
   },
-
+  "drawing": {
+    "tool_freehand": "Pencil — freehand drawing",
+    "tool_line": "Straight line",
+    "tool_rect": "Rectangle",
+    "tool_ellipse": "Circle",
+    "color": "Color",
+    "width": "Stroke width",
+    "tool_eraser": "Eraser (paints with background color)",
+    "tool_eyedropper": "Eyedropper — pick a color from the canvas",
+    "clear": "Clear",
+    "clear_hint": "Replace with a blank image",
+    "clear_title": "Replace with a blank canvas?",
+    "clear_confirm": "The saved PNG and all strokes in this session will be replaced with a blank white image. You cannot undo this."
+  },
   "media": {
     "confirm_delete": "Delete \"{{name}}\"?",
     "upload_failed": "Failed to upload file",
     "no_valid_files": "No valid files found. Supported: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Failed to move note.",
     "failed_folder": "Failed to move folder.",
     "failed_media": "Failed to move media file."
   },
-
   "search": {
     "previous": "Previous (Shift+F3)",
     "next": "Next (F3)",
@@ -249,22 +245,18 @@
     "no_results": "No notes contain \"{{query}}\"",
     "searching": "Searching for \"{{query}}\"..."
   },
-
   "theme": {
     "title": "Theme"
   },
-
   "language": {
     "title": "Language"
   },
-
   "syntax_highlight": {
     "title": "Editor Syntax Highlight",
     "description": "Colorize markdown syntax in editor",
     "enable": "Enable syntax highlighting",
     "disable": "Disable syntax highlighting"
   },
-
   "settings": {
     "account": "Account",
     "logout": "Logout",
@@ -275,7 +267,6 @@
     "tab_inserts_tab": "Tab key inserts tab",
     "tab_inserts_tab_desc": "Press Tab to insert a tab character instead of changing focus"
   },
-
   "homepage": {
     "title": "Home",
     "welcome": "Welcome to NoteDiscovery",
@@ -288,7 +279,6 @@
     "folder_singular": "folder",
     "folder_plural": "folders"
   },
-
   "format": {
     "bold": "Bold",
     "italic": "Italic",
@@ -304,23 +294,19 @@
     "checkbox": "Checkbox",
     "table": "Table"
   },
-
   "validation": {
     "forbidden_chars": "Name contains forbidden characters: {{chars}}",
     "reserved_name": "This name is reserved by the operating system.",
     "invalid_dot": "Name cannot be just a dot.",
     "trailing_dot_space": "Name cannot end with a dot or space."
   },
-
   "support": {
     "enjoying_demo": "Support this project",
     "deploy_own": "Deploy your own instance",
     "thank_you": "Thank you for your support! 💚"
   },
-
   "demo": {
     "title": "DEMO MODE",
     "warning": "Contents reset daily. Changes may be overwritten by other users."
   }
 }
-

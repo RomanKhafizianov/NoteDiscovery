@@ -4,11 +4,9 @@
     "name": "Español",
     "flag": "🇪🇸"
   },
-
   "app": {
     "tagline": "Tu Base de Conocimientos Autoalojada"
   },
-
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "Copiar al portapapeles",
     "failed": "Error al {{action}}. Por favor, inténtalo de nuevo."
   },
-
   "toast": {
     "region_label": "Notificaciones",
     "dismiss": "Cerrar"
   },
-
   "sidebar": {
     "title": "ARCHIVOS",
     "favorites_title": "Favoritos",
@@ -42,6 +38,7 @@
     "new_note": "Nueva Nota",
     "new_folder": "Nueva Carpeta",
     "new_from_template": "Nueva desde Plantilla",
+    "new_drawing": "Nuevo dibujo",
     "rename_folder": "Renombrar carpeta",
     "delete_folder": "Eliminar carpeta",
     "search_placeholder": "Buscar notas...",
@@ -72,7 +69,6 @@
     "settings_title": "CONFIGURACIÓN",
     "filtered_notes": "Notas Filtradas"
   },
-
   "editor": {
     "placeholder": "Empieza a escribir en markdown...",
     "drop_hint": "💡 Suelta aquí para insertar en la posición del cursor...",
@@ -85,7 +81,6 @@
     "hours_ago": "hace {{count}}h",
     "days_ago": "hace {{count}}d"
   },
-
   "notes": {
     "confirm_delete": "¿Eliminar \"{{name}}\"?",
     "already_exists": "Ya existe una nota llamada \"{{name}}\" en esta ubicación.\nPor favor, elige un nombre diferente.",
@@ -101,7 +96,6 @@
     "no_content": "No hay contenido para exportar",
     "open_first": "Por favor, abre una nota antes de subir imágenes."
   },
-
   "folders": {
     "confirm_delete": "⚠️ ADVERTENCIA ⚠️\n\n¿Estás seguro de que quieres eliminar la carpeta \"{{name}}\"?\n\nEsto eliminará PERMANENTEMENTE:\n• Todas las notas dentro de esta carpeta\n• Todas las subcarpetas y su contenido\n\n¡Esta acción NO se puede deshacer!",
     "already_exists": "Ya existe una carpeta llamada \"{{name}}\" en esta ubicación.\nPor favor, elige un nombre diferente.",
@@ -118,26 +112,24 @@
     "cannot_move_into_self": "No se puede mover una carpeta dentro de sí misma o de una subcarpeta.",
     "empty": "vacía"
   },
-
   "toolbar": {
     "undo": "Deshacer (Ctrl+Z)",
     "redo": "Rehacer (Ctrl+Y)",
     "delete_note": "Eliminar nota",
     "delete_image": "Eliminar imagen",
+    "delete_drawing": "Eliminar dibujo",
     "export_html": "Exportar como HTML",
     "print_preview": "Vista previa de impresión",
     "copy_link": "Copiar enlace al portapapeles",
     "add_favorite": "Añadir a favoritos",
     "remove_favorite": "Quitar de favoritos"
   },
-
   "zen_mode": {
     "title": "Modo Zen",
     "tooltip": "Modo Zen (Ctrl+Alt+Z)",
     "exit": "Salir del Modo Zen",
     "exit_hint": "Salir del Modo Zen (Esc)"
   },
-
   "share": {
     "button_tooltip": "Compartir nota",
     "modal_title": "Compartir Nota",
@@ -150,9 +142,10 @@
     "error_creating": "Error al crear el enlace: {{error}}",
     "error_revoking": "Error al revocar el enlace: {{error}}",
     "show_qr": "Mostrar código QR",
-    "hide_qr": "Ocultar código QR"
+    "hide_qr": "Ocultar código QR",
+    "panel_title": "Compartidas",
+    "no_shared": "No hay notas compartidas"
   },
-
   "quick_switcher": {
     "placeholder": "Escribe para buscar notas...",
     "no_results": "Sin resultados",
@@ -161,7 +154,6 @@
     "open": "abrir",
     "close": "cerrar"
   },
-
   "tags": {
     "title": "Etiquetas",
     "no_tags": "No se encontraron etiquetas",
@@ -170,13 +162,11 @@
     "clear_all": "Limpiar filtros de etiquetas",
     "filter_by": "Filtrar por {{tag}} ({{count}} notas)"
   },
-
   "outline": {
     "title": "Esquema",
     "no_headings": "No se encontraron encabezados",
     "hint": "Añade encabezados usando sintaxis #"
   },
-
   "backlinks": {
     "title": "Backlinks",
     "no_backlinks": "No se encontraron backlinks",
@@ -184,21 +174,18 @@
     "select_note": "Selecciona una nota para ver backlinks",
     "more_refs": "más"
   },
-
   "stats": {
     "words": "palabras",
     "reading_time": "~{{minutes}}m de lectura",
     "links": "{{count}} enlaces",
     "click_details": "▼ Clic para detalles"
   },
-
   "graph": {
     "title": "Vista de Grafo",
     "empty": "No hay conexiones para mostrar",
     "markdown_links": "Enlaces Markdown",
     "click_hint": "Clic: seleccionar • Doble clic: abrir"
   },
-
   "templates": {
     "title": "Plantillas",
     "select": "Selecciona una plantilla...",
@@ -212,11 +199,9 @@
     "available_placeholders": "Marcadores disponibles",
     "create_note": "Crear Nota"
   },
-
   "export": {
     "failed": "Error al exportar HTML: {{error}}"
   },
-
   "login": {
     "title": "Iniciar sesión",
     "tagline": "Tu Base de Conocimientos Autoalojada",
@@ -225,20 +210,31 @@
     "footer": "🔒 Seguro y Autoalojado",
     "error_incorrect_password": "Contraseña incorrecta. Por favor, inténtalo de nuevo."
   },
-
+  "drawing": {
+    "tool_freehand": "Lápiz — trazo libre",
+    "tool_line": "Línea recta",
+    "tool_rect": "Rectángulo",
+    "tool_ellipse": "Círculo",
+    "color": "Color",
+    "width": "Grosor del trazo",
+    "tool_eraser": "Borrador (pinta con el color de fondo)",
+    "tool_eyedropper": "Cuentagotas — tomar color del lienzo",
+    "clear": "Borrar",
+    "clear_hint": "Sustituir por imagen en blanco",
+    "clear_title": "¿Sustituir por lienzo en blanco?",
+    "clear_confirm": "El PNG guardado y todos los trazos de esta sesión se sustituirán por una imagen en blanco. No se puede deshacer."
+  },
   "media": {
     "confirm_delete": "¿Eliminar \"{{name}}\"?",
     "upload_failed": "Error al subir archivo",
     "no_valid_files": "No se encontraron archivos válidos. Soporta: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Error al mover la nota.",
     "failed_folder": "Error al mover la carpeta.",
     "failed_media": "Error al mover el archivo multimedia."
   },
-
   "search": {
     "previous": "Anterior (Shift+F3)",
     "next": "Siguiente (F3)",
@@ -249,22 +245,18 @@
     "no_results": "Ninguna nota contiene \"{{query}}\"",
     "searching": "Buscando \"{{query}}\"..."
   },
-
   "theme": {
     "title": "Tema"
   },
-
   "language": {
     "title": "Idioma"
   },
-
   "syntax_highlight": {
     "title": "Resaltado de Sintaxis del Editor",
     "description": "Colorear sintaxis markdown en el editor",
     "enable": "Activar resaltado de sintaxis",
     "disable": "Desactivar resaltado de sintaxis"
   },
-
   "settings": {
     "account": "Cuenta",
     "logout": "Cerrar sesión",
@@ -275,7 +267,6 @@
     "tab_inserts_tab": "Tabulador inserta tabulación",
     "tab_inserts_tab_desc": "Pulsa Tab para insertar un tabulador en lugar de cambiar el foco"
   },
-
   "homepage": {
     "title": "Inicio",
     "welcome": "Bienvenido a NoteDiscovery",
@@ -288,7 +279,6 @@
     "folder_singular": "carpeta",
     "folder_plural": "carpetas"
   },
-
   "format": {
     "bold": "Negrita",
     "italic": "Cursiva",
@@ -304,23 +294,19 @@
     "checkbox": "Casilla de verificación",
     "table": "Tabla"
   },
-
   "validation": {
     "forbidden_chars": "El nombre contiene caracteres no permitidos: {{chars}}",
     "reserved_name": "Este nombre está reservado por el sistema operativo.",
     "invalid_dot": "El nombre no puede ser solo un punto.",
     "trailing_dot_space": "El nombre no puede terminar con un punto o espacio."
   },
-
   "support": {
     "enjoying_demo": "Apoya este proyecto",
     "deploy_own": "Despliega tu propia instancia",
     "thank_you": "¡Gracias por tu apoyo! 💚"
   },
-
   "demo": {
     "title": "MODO DEMO",
     "warning": "El contenido se reinicia diariamente. Los cambios pueden ser sobrescritos por otros usuarios."
   }
 }
-

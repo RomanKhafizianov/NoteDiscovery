@@ -11,8 +11,54 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 import threading
 
+from .utils import validate_path_security
+
 # Thread lock for safe concurrent access
 _lock = threading.Lock()
+
+
+def _token_references_accessible_file(storage_dir: str, rel_path: Any) -> bool:
+    """
+    Return True if rel_path is a string that resolves to a regular file under storage_dir
+    and passes the same path boundary check used elsewhere in the app.
+    """
+    if not rel_path or not isinstance(rel_path, str):
+        return False
+    try:
+        full = (Path(storage_dir) / rel_path).resolve()
+    except (OSError, ValueError, RuntimeError):
+        return False
+    if not validate_path_security(str(storage_dir), full):
+        return False
+    return full.is_file()
+
+
+def _prune_inaccessible_unsafe(data_dir: str) -> int:
+    """
+    Remove share tokens whose stored path is missing or not under the notes directory.
+    Call only while holding _lock. Returns the number of tokens removed.
+    """
+    tokens = load_tokens(data_dir)
+    if not tokens:
+        return 0
+    kept: Dict[str, Dict[str, Any]] = {}
+    for token, info in tokens.items():
+        path = info.get("path")
+        if _token_references_accessible_file(data_dir, path):
+            kept[token] = info
+    removed = len(tokens) - len(kept)
+    if removed and not save_tokens(data_dir, kept):
+        return 0
+    return removed
+
+
+def prune_inaccessible_share_tokens(data_dir: str) -> int:
+    """
+    Remove entries whose path no longer resolves to a file under the storage root.
+    Called automatically after create/revoke share; may also be used from tests or one-off maintenance.
+    """
+    with _lock:
+        return _prune_inaccessible_unsafe(data_dir)
 
 
 def generate_token(length: int = 16) -> str:
@@ -76,8 +122,9 @@ def create_share_token(data_dir: str, note_path: str, theme: str = "light") -> O
         # Check if note already has a token
         for token, info in tokens.items():
             if info.get('path') == note_path:
+                _prune_inaccessible_unsafe(data_dir)
                 return token
-        
+
         # Generate new token
         token = generate_token()
         
@@ -93,7 +140,9 @@ def create_share_token(data_dir: str, note_path: str, theme: str = "light") -> O
         }
         
         if save_tokens(data_dir, tokens):
+            _prune_inaccessible_unsafe(data_dir)
             return token
+        _prune_inaccessible_unsafe(data_dir)
         return None
 
 
@@ -177,8 +226,13 @@ def revoke_share_token(data_dir: str, note_path: str) -> bool:
         
         if token_to_remove:
             del tokens[token_to_remove]
-            return save_tokens(data_dir, tokens)
-        
+            if not save_tokens(data_dir, tokens):
+                _prune_inaccessible_unsafe(data_dir)
+                return False
+            _prune_inaccessible_unsafe(data_dir)
+            return True
+
+        _prune_inaccessible_unsafe(data_dir)
         return False
 
 

@@ -64,6 +64,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 🧮 **Math Support** - LaTeX/MathJax for beautiful equations
 - 📄 **HTML Export & Print** - Export notes as standalone HTML or print
 - 🕸️ **Graph View** - Interactive visualization of connected notes
+- ✏️ **Drawing editor** - In-app sketches as `drawing-*.png` next to your notes — see [documentation/DRAWING.md](documentation/DRAWING.md)
 - ⭐ **Favorites** - Star your most-used notes for instant access
 - 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
 - 🤖 **AI Assistant Ready** - MCP integration for Claude, Cursor & more
@@ -240,6 +241,7 @@ Want to learn more?
 
 - 🎨 **[THEMES.md](documentation/THEMES.md)** - Theme customization and creating custom themes
 - ✨ **[FEATURES.md](documentation/FEATURES.md)** - Complete feature list and keyboard shortcuts
+- ✏️ **[DRAWING.md](documentation/DRAWING.md)** - Built-in drawing editor (`drawing-*.png`), save behavior, and API notes
 - 🏷️ **[TAGS.md](documentation/TAGS.md)** - Organize notes with tags and combined filtering
 - 📋 **[TEMPLATES.md](documentation/TEMPLATES.md)** - Create notes from reusable templates with dynamic placeholders
 - 🧮 **[MATHJAX.md](documentation/MATHJAX.md)** - LaTeX/Math notation examples and syntax reference

@@ -49,7 +49,7 @@ def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:
 def get_image_as_base64(image_path: Path) -> Optional[str]:
     """Read an image file and return it as a base64 data URL."""
     result = get_media_as_base64(image_path)
-    if result and result[1] == 'image':
+    if result and result[1] in ('image', 'drawing'):
         return result[0]
     return None
 

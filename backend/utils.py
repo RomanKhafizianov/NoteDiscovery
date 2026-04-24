@@ -604,54 +604,67 @@ def get_attachment_dir(notes_dir: str, note_path: str) -> Path:
         return Path(notes_dir) / folder / "_attachments"
 
 
-def save_uploaded_image(notes_dir: str, note_path: str, filename: str, file_data: bytes) -> Optional[str]:
+def save_uploaded_image(
+    notes_dir: str,
+    note_path: str,
+    filename: str,
+    file_data: bytes,
+    *,
+    sibling_folder: Optional[str] = None,
+) -> Optional[str]:
     """
-    Save an uploaded image to the appropriate attachments directory.
-    Returns the relative path to the image if successful, None otherwise.
-    
-    Args:
-        notes_dir: Base notes directory
-        note_path: Path of the note the image is being uploaded to
-        filename: Original filename
-        file_data: Binary file data
-    
-    Returns:
-        Relative path to the saved image, or None if failed
+    Save uploaded media under the vault.
+
+    Default (sibling_folder is None): store in ``_attachments`` next to the note implied by
+    ``note_path`` (drag/drop, paste, etc.).
+
+    If ``sibling_folder`` is set (including ``""`` for vault root): store ``drawing-{timestamp}.png``
+    in that folder next to ``.md`` files — used for new drawings from the + menu.
+
+    Returns a relative path from ``notes_dir``, or None on failure.
     """
-    # Sanitize filename
+    base = Path(notes_dir)
+
+    if sibling_folder is not None:
+        cf = (sibling_folder or "").strip().replace("\\", "/")
+        segments = [p for p in cf.split("/") if p and p != "."]
+        if any(p == ".." for p in segments):
+            return None
+        dest_dir = base.joinpath(*segments) if segments else base
+        if not validate_path_security(notes_dir, dest_dir / ".nd_probe"):
+            return None
+        try:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return None
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        full_path = dest_dir / f"drawing-{timestamp}.png"
+        if not validate_path_security(notes_dir, full_path):
+            return None
+        try:
+            with open(full_path, "wb") as f:
+                f.write(file_data)
+            return str(full_path.relative_to(base).as_posix())
+        except OSError as e:
+            print(f"Error saving image: {e}")
+            return None
+
     sanitized_name = sanitize_filename(filename)
-    
-    # Get extension
     ext = Path(sanitized_name).suffix
     name_without_ext = Path(sanitized_name).stem
-    
-    # Add timestamp to prevent collisions
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     final_filename = f"{name_without_ext}-{timestamp}{ext}"
-    
-    # Get attachments directory
     attachments_dir = get_attachment_dir(notes_dir, note_path)
-    
-    # Create directory if it doesn't exist
     attachments_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Full path to save the image
     full_path = attachments_dir / final_filename
-    
-    # Security check
     if not validate_path_security(notes_dir, full_path):
         print(f"Security: Attempted to save image outside notes directory: {full_path}")
         return None
-    
     try:
-        # Write the file
-        with open(full_path, 'wb') as f:
+        with open(full_path, "wb") as f:
             f.write(file_data)
-        
-        # Return relative path from notes_dir
-        relative_path = full_path.relative_to(Path(notes_dir))
-        return str(relative_path.as_posix())
-    except Exception as e:
+        return str(full_path.relative_to(base).as_posix())
+    except OSError as e:
         print(f"Error saving image: {e}")
         return None
 
@@ -671,8 +684,13 @@ ALL_MEDIA_EXTENSIONS = set().union(*MEDIA_EXTENSIONS.values())
 def get_media_type(filename: str) -> Optional[str]:
     """
     Determine the media type based on file extension.
-    Returns: 'image', 'audio', 'video', 'document', or None if not a media file.
+    Returns: 'image', 'audio', 'video', 'document', 'drawing', or None if not a media file.
+
+    Drawings are PNG files stored like images but named drawing-*.png (editable canvas in the app).
     """
+    name_lower = Path(filename).name.lower()
+    if name_lower.startswith('drawing-') and name_lower.endswith('.png'):
+        return 'drawing'
     ext = Path(filename).suffix.lower()
     for media_type, extensions in MEDIA_EXTENSIONS.items():
         if ext in extensions:

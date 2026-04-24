@@ -625,11 +625,72 @@ async def get_media(media_path: str):
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load media file"))
 
 
+@api_router.put("/media/{media_path:path}", tags=["Media"])
+@limiter.limit("120/minute")
+async def put_media(media_path: str, request: Request):
+    """
+    Overwrite an existing media file in place (used for saving drawing PNGs).
+    Only files named drawing-*.png are accepted to avoid accidental overwrites.
+    """
+    try:
+        from backend.utils import ALL_MEDIA_EXTENSIONS
+
+        notes_dir = config['storage']['notes_dir']
+        full_path = Path(notes_dir) / media_path
+
+        if not validate_path_security(notes_dir, full_path):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        name_lower = full_path.name.lower()
+        if not (name_lower.startswith('drawing-') and name_lower.endswith('.png')):
+            raise HTTPException(
+                status_code=400,
+                detail="Only drawing PNG files (drawing-*.png) can be updated in place",
+            )
+
+        if full_path.suffix.lower() not in ALL_MEDIA_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Not an allowed media file")
+
+        if not full_path.exists() or not full_path.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+
+        body = await request.body()
+        max_size = UPLOAD_MAX_IMAGE_MB * 1024 * 1024
+        if len(body) > max_size:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large. Maximum size: {UPLOAD_MAX_IMAGE_MB}MB",
+            )
+
+        # Reject non-PNG payloads (defense in depth; path already restricts to .png)
+        if len(body) < 8 or body[:8] != b"\x89PNG\r\n\x1a\n":
+            raise HTTPException(status_code=400, detail="Body must be a valid PNG image")
+
+        try:
+            with open(full_path, 'wb') as f:
+                f.write(body)
+        except OSError as e:
+            raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to save file"))
+
+        return {"success": True, "path": media_path}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to update media file"))
+
+
 @api_router.post("/upload-media", tags=["Media"])
 @limiter.limit("20/minute")
-async def upload_media(request: Request, file: UploadFile = File(...), note_path: str = Form(...)):
+async def upload_media(
+    request: Request,
+    file: UploadFile = File(...),
+    note_path: str = Form(""),
+    content_folder: str = Form(""),
+    next_to_notes: str = Form(""),
+):
     """
-    Upload a media file (image, audio, video, PDF) and save it to the attachments directory.
+    Upload a media file (image, audio, video, PDF) and save it to the attachments directory,
+    or (when next_to_notes=1) save a new drawing PNG next to markdown notes in content_folder.
     Returns the relative path for markdown linking.
     """
     try:
@@ -676,6 +737,32 @@ async def upload_media(request: Request, file: UploadFile = File(...), note_path
                 status_code=400,
                 detail=f"File too large. Maximum size for {media_type or 'this type'}: {max_size // (1024*1024)}MB. Uploaded: {len(file_data) / 1024 / 1024:.2f}MB"
             )
+        
+        if (next_to_notes or "").strip() == "1":
+            is_png = file.content_type in ("image/png",) or (file.filename and file.filename.lower().endswith(".png"))
+            if not is_png:
+                raise HTTPException(
+                    status_code=400,
+                    detail="next_to_notes requires a PNG file",
+                )
+            file_path = save_uploaded_image(
+                config["storage"]["notes_dir"],
+                "",
+                file.filename or "drawing.png",
+                file_data,
+                sibling_folder=content_folder or "",
+            )
+            if not file_path:
+                raise HTTPException(status_code=500, detail="Failed to save drawing")
+            out_name = Path(file_path).name
+            media_type = get_media_type(out_name) or "drawing"
+            return {
+                "success": True,
+                "path": file_path,
+                "filename": out_name,
+                "type": media_type,
+                "message": "Drawing created",
+            }
         
         # Save the file (reusing image save function - it works for any file)
         file_path = save_uploaded_image(

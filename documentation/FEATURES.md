@@ -15,6 +15,7 @@
 - **Public Sharing** - Share notes via token-based URLs with optional QR code for mobile (see [SHARING.md](SHARING.md))
 
 ### Media Support
+- **Drawing editor** — In-app **`drawing-*.png`** sketches next to your notes ([overview](#drawing-editor)); full guide: **[DRAWING.md](DRAWING.md)**
 - **Drag & drop upload** - Drop files from your file system directly into the editor
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
 - **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
@@ -41,6 +42,16 @@
 - **Self-contained** - Exported files work offline with no dependencies
 - **Theme-aware** - Export uses your current theme for consistent appearance
 - **Full rendering** - MathJax equations, Mermaid diagrams, and syntax highlighting included
+
+## ✏️ Drawing editor
+
+Sketch beside your notes without leaving NoteDiscovery. **+ New → New drawing** creates a **`drawing-{timestamp}.png`** next to your markdown files; those open in the drawing viewer, other images open as usual.
+
+- **Tools** — Pencil, lines, rectangles, ellipses, eraser, eyedropper, clear; color and stroke width on the toolbar; undo/redo while you work.
+- **Saving** — Autosave and **Ctrl+S** / **Cmd+S** like the rest of the app.
+- **Files** — Plain PNGs in your vault—link them in notes and back them up with everything else.
+
+For file naming, API notes, and more: **[DRAWING.md](DRAWING.md)**
 
 ## 🔗 Linking & Discovery
 
@@ -311,11 +322,11 @@ date: {{date}}
 | Windows/Linux | Mac | Action |
 |---------------|-----|--------|
 | `Ctrl+Alt+P` | `Cmd+Option+P` | Quick Switcher (jump to any note) |
-| `Ctrl+S` | `Cmd+S` | Save note |
+| `Ctrl+S` | `Cmd+S` | Save note (or **save drawing PNG** when a `drawing-*.png` is open) |
 | `Ctrl+Alt+N` | `Cmd+Option+N` | New note |
 | `Ctrl+Alt+F` | `Cmd+Option+F` | New folder |
-| `Ctrl+Z` | `Cmd+Z` | Undo |
-| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo |
+| `Ctrl+Z` | `Cmd+Z` | Undo (note edits, or **drawing strokes** when a drawing is open) |
+| `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Y` or `Cmd+Shift+Z` | Redo (note edits, or **drawing strokes** when a drawing is open) |
 | `Ctrl+Alt+Z` | `Cmd+Option+Z` | Toggle Zen Mode |
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |

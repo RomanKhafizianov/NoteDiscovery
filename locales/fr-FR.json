@@ -4,11 +4,9 @@
     "name": "Français",
     "flag": "🇫🇷"
   },
-
   "app": {
     "tagline": "Votre Base de Connaissances Auto-Hébergée"
   },
-
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -28,12 +26,10 @@
     "copy_to_clipboard": "Copier dans le presse-papiers",
     "failed": "Échec de {{action}}. Veuillez réessayer."
   },
-
   "toast": {
     "region_label": "Notifications",
     "dismiss": "Fermer"
   },
-
   "sidebar": {
     "title": "FICHIERS",
     "favorites_title": "Favoris",
@@ -42,6 +38,7 @@
     "new_note": "Nouvelle Note",
     "new_folder": "Nouveau Dossier",
     "new_from_template": "Nouveau depuis Modèle",
+    "new_drawing": "Nouveau dessin",
     "rename_folder": "Renommer le dossier",
     "delete_folder": "Supprimer le dossier",
     "search_placeholder": "Rechercher des notes...",
@@ -72,7 +69,6 @@
     "settings_title": "PARAMÈTRES",
     "filtered_notes": "Notes Filtrées"
   },
-
   "editor": {
     "placeholder": "Commencez à écrire en markdown...",
     "drop_hint": "💡 Déposez ici pour insérer à la position du curseur...",
@@ -85,7 +81,6 @@
     "hours_ago": "il y a {{count}}h",
     "days_ago": "il y a {{count}}j"
   },
-
   "notes": {
     "confirm_delete": "Supprimer \"{{name}}\" ?",
     "already_exists": "Une note nommée \"{{name}}\" existe déjà à cet emplacement.\nVeuillez choisir un autre nom.",
@@ -101,7 +96,6 @@
     "no_content": "Aucun contenu à exporter",
     "open_first": "Veuillez d'abord ouvrir une note avant de télécharger des images."
   },
-
   "folders": {
     "confirm_delete": "⚠️ ATTENTION ⚠️\n\nÊtes-vous sûr de vouloir supprimer le dossier \"{{name}}\" ?\n\nCeci supprimera DÉFINITIVEMENT :\n• Toutes les notes dans ce dossier\n• Tous les sous-dossiers et leur contenu\n\nCette action est IRRÉVERSIBLE !",
     "already_exists": "Un dossier nommé \"{{name}}\" existe déjà à cet emplacement.\nVeuillez choisir un autre nom.",
@@ -118,26 +112,24 @@
     "cannot_move_into_self": "Impossible de déplacer un dossier dans lui-même ou dans un sous-dossier.",
     "empty": "vide"
   },
-
   "toolbar": {
     "undo": "Annuler (Ctrl+Z)",
     "redo": "Rétablir (Ctrl+Y)",
     "delete_note": "Supprimer la note",
     "delete_image": "Supprimer l'image",
+    "delete_drawing": "Supprimer le dessin",
     "export_html": "Exporter en HTML",
     "print_preview": "Aperçu avant impression",
     "copy_link": "Copier le lien dans le presse-papiers",
     "add_favorite": "Ajouter aux favoris",
     "remove_favorite": "Retirer des favoris"
   },
-
   "zen_mode": {
     "title": "Mode Zen",
     "tooltip": "Mode Zen (Ctrl+Alt+Z)",
     "exit": "Quitter le Mode Zen",
     "exit_hint": "Quitter le Mode Zen (Échap)"
   },
-
   "share": {
     "button_tooltip": "Partager la note",
     "modal_title": "Partager la Note",
@@ -150,9 +142,10 @@
     "error_creating": "Échec de la création du lien : {{error}}",
     "error_revoking": "Échec de la révocation du lien : {{error}}",
     "show_qr": "Afficher le code QR",
-    "hide_qr": "Masquer le code QR"
+    "hide_qr": "Masquer le code QR",
+    "panel_title": "Partagées",
+    "no_shared": "Aucune note partagée"
   },
-
   "quick_switcher": {
     "placeholder": "Rechercher des notes...",
     "no_results": "Aucun résultat",
@@ -161,7 +154,6 @@
     "open": "ouvrir",
     "close": "fermer"
   },
-
   "tags": {
     "title": "Étiquettes",
     "no_tags": "Aucune étiquette trouvée",
@@ -170,13 +162,11 @@
     "clear_all": "Effacer les filtres d'étiquettes",
     "filter_by": "Filtrer par {{tag}} ({{count}} notes)"
   },
-
   "outline": {
     "title": "Plan",
     "no_headings": "Aucun titre trouvé",
     "hint": "Ajoutez des titres avec la syntaxe #"
   },
-
   "backlinks": {
     "title": "Rétroliens",
     "no_backlinks": "Aucun rétrolien trouvé",
@@ -184,21 +174,18 @@
     "select_note": "Sélectionnez une note pour voir les rétroliens",
     "more_refs": "de plus"
   },
-
   "stats": {
     "words": "mots",
     "reading_time": "~{{minutes}}m de lecture",
     "links": "{{count}} liens",
     "click_details": "▼ Cliquez pour les détails"
   },
-
   "graph": {
     "title": "Vue Graphique",
     "empty": "Aucune connexion à afficher",
     "markdown_links": "Liens Markdown",
     "click_hint": "Clic : sélectionner • Double-clic : ouvrir"
   },
-
   "templates": {
     "title": "Modèles",
     "select": "Sélectionner un modèle...",
@@ -212,11 +199,9 @@
     "available_placeholders": "Variables disponibles",
     "create_note": "Créer la Note"
   },
-
   "export": {
     "failed": "Échec de l'export HTML : {{error}}"
   },
-
   "login": {
     "title": "Connexion",
     "tagline": "Votre Base de Connaissances Auto-Hébergée",
@@ -225,20 +210,31 @@
     "footer": "🔒 Sécurisé et Auto-Hébergé",
     "error_incorrect_password": "Mot de passe incorrect. Veuillez réessayer."
   },
-
+  "drawing": {
+    "tool_freehand": "Crayon — main levée",
+    "tool_line": "Ligne droite",
+    "tool_rect": "Rectangle",
+    "tool_ellipse": "Cercle",
+    "color": "Couleur",
+    "width": "Épaisseur du trait",
+    "tool_eraser": "Gomme (peint avec la couleur de fond)",
+    "tool_eyedropper": "Pipette — choisir une couleur sur le canevas",
+    "clear": "Effacer",
+    "clear_hint": "Remplacer par une image vide",
+    "clear_title": "Remplacer par un canevas vide ?",
+    "clear_confirm": "Le PNG enregistré et tous les traits de cette session seront remplacés par une image blanche vide. Cette action est irréversible."
+  },
   "media": {
     "confirm_delete": "Supprimer \"{{name}}\" ?",
     "upload_failed": "Échec du téléchargement du fichier",
     "no_valid_files": "Aucun fichier valide trouvé. Supporté : JPG, PNG, GIF, WebP, MP3, MP4, PDF",
     "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
   },
-
   "move": {
     "failed_note": "Échec du déplacement de la note.",
     "failed_folder": "Échec du déplacement du dossier.",
     "failed_media": "Échec du déplacement du fichier multimédia."
   },
-
   "search": {
     "previous": "Précédent (Maj+F3)",
     "next": "Suivant (F3)",
@@ -249,22 +245,18 @@
     "no_results": "Aucune note ne contient \"{{query}}\"",
     "searching": "Recherche de \"{{query}}\"..."
   },
-
   "theme": {
     "title": "Thème"
   },
-
   "language": {
     "title": "Langue"
   },
-
   "syntax_highlight": {
     "title": "Coloration Syntaxique de l'Éditeur",
     "description": "Coloriser la syntaxe markdown dans l'éditeur",
     "enable": "Activer la coloration syntaxique",
     "disable": "Désactiver la coloration syntaxique"
   },
-
   "settings": {
     "account": "Compte",
     "logout": "Déconnexion",
@@ -275,7 +267,6 @@
     "tab_inserts_tab": "Tab insère une tabulation",
     "tab_inserts_tab_desc": "Appuyez sur Tab pour insérer une tabulation au lieu de changer le focus"
   },
-
   "homepage": {
     "title": "Accueil",
     "welcome": "Bienvenue sur NoteDiscovery",
@@ -288,7 +279,6 @@
     "folder_singular": "dossier",
     "folder_plural": "dossiers"
   },
-
   "format": {
     "bold": "Gras",
     "italic": "Italique",
@@ -304,23 +294,19 @@
     "checkbox": "Case à cocher",
     "table": "Tableau"
   },
-
   "validation": {
     "forbidden_chars": "Le nom contient des caractères interdits : {{chars}}",
     "reserved_name": "Ce nom est réservé par le système d'exploitation.",
     "invalid_dot": "Le nom ne peut pas être juste un point.",
     "trailing_dot_space": "Le nom ne peut pas se terminer par un point ou un espace."
   },
-
   "support": {
     "enjoying_demo": "Soutenez ce projet",
     "deploy_own": "Déployez votre propre instance",
     "thank_you": "Merci pour votre soutien ! 💚"
   },
-
   "demo": {
     "title": "MODE DÉMO",
     "warning": "Le contenu est réinitialisé quotidiennement. Les modifications peuvent être écrasées par d'autres utilisateurs."
   }
 }
-

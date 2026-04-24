@@ -1521,6 +1521,26 @@
                         x-text="backlinks.length > 9 ? '9+' : backlinks.length"
                     ></span>
                 </button>
+
+                <!-- Shared notes (public links) -->
+                <button
+                    class="icon-rail-btn relative"
+                    :class="{'active': activePanel === 'shared'}"
+                    @click="activePanel = 'shared'"
+                    :title="t('share.panel_title')"
+                    :aria-label="t('share.panel_title')"
+                >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                    </svg>
+                    <span
+                        x-show="_sharedNotePathsList.length > 0"
+                        x-cloak
+                        class="absolute -top-1 -right-1 w-4 h-4 text-[9px] font-bold rounded-full flex items-center justify-center"
+                        style="background-color: var(--accent-primary); color: white;"
+                        x-text="_sharedNotePathsList.length > 9 ? '9+' : _sharedNotePathsList.length"
+                    ></span>
+                </button>
                 
                 <div class="icon-rail-spacer"></div>
                 
@@ -1992,6 +2012,48 @@
                 </div>
                 <!-- END BACKLINKS PANEL -->
 
+                <!-- ==================== SHARED NOTES PANEL ==================== -->
+                <div x-show="activePanel === 'shared'" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="flex flex-col h-full">
+                    <div class="flex-shrink-0 px-3 py-2 border-b flex items-center justify-between" style="border-color: var(--border-primary);">
+                        <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-tertiary);" x-text="t('share.panel_title')"></span>
+                        <span class="text-xs px-1.5 py-0.5 rounded" style="background-color: var(--bg-tertiary); color: var(--text-tertiary);" x-text="_sharedNotePathsList.length"></span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar">
+                        <div class="py-2">
+                            <template x-if="_sharedNotePathsList.length > 0">
+                                <div class="px-2">
+                                    <template x-for="item in getSharedPanelItems()" :key="item.path">
+                                        <div
+                                            @click="openItem(item.path, 'note')"
+                                            class="hover-accent px-2 py-1.5 text-sm cursor-pointer mb-1 rounded"
+                                            :style="currentNote === item.path ? 'background-color: var(--accent-light); color: var(--accent-primary);' : 'color: var(--text-primary);'"
+                                        >
+                                            <div class="flex items-start gap-2 mb-0.5">
+                                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color: var(--accent-primary); opacity: 0.9;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                                </svg>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="font-medium truncate" x-text="item.name" :title="item.name"></div>
+                                                    <div class="text-xs truncate" style="color: var(--text-tertiary);" x-text="item.folder" :title="item.folder"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template x-if="_sharedNotePathsList.length === 0">
+                                <div class="text-center py-6 px-3">
+                                    <svg class="w-12 h-12 mx-auto mb-3 opacity-40" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                    </svg>
+                                    <p class="text-sm" style="color: var(--text-tertiary);" x-text="t('share.no_shared')"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <!-- END SHARED NOTES PANEL -->
+
                 <!-- ==================== SETTINGS PANEL ==================== -->
                 <template x-if="activePanel === 'settings'">
                     <div class="flex flex-col h-full">
@@ -2408,7 +2470,7 @@
                                                 style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s; color: var(--error); padding: 4px; border-radius: 4px; background-color: var(--bg-secondary);"
                                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                                 onmouseout="this.style.backgroundColor='var(--bg-secondary)'"
-                                                :title="note.type !== 'note' ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                                :title="note.type === 'note' ? t('toolbar.delete_note') : (note.type === 'drawing' ? t('toolbar.delete_drawing') : t('toolbar.delete_image'))"
                                             >
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2467,12 +2529,12 @@
                                 class="text-xl font-semibold border-none focus:outline-none focus:ring-2 rounded px-3 py-1.5"
                                 :style="'background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-primary); min-width: 150px; max-width: 300px;' + (!currentNote ? ' cursor: default; opacity: 0.9;' : '')"
                             >
-                            <!-- Undo Button -->
+                            <!-- Undo Button (note history or drawing strokes when viewing a drawing) -->
                             <button 
-                                @click="undo()"
-                                :disabled="undoHistory.length <= 1"
+                                @click="currentMediaType === 'drawing' ? drawingUndo() : undo()"
+                                :disabled="currentMediaType === 'drawing' ? drawingOps.length === 0 : undoHistory.length <= 1"
                                 class="p-2 rounded-lg"
-                                :style="undoHistory.length <= 1 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                :style="(currentMediaType === 'drawing' ? drawingOps.length === 0 : undoHistory.length <= 1) ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
                                 onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
                                 :title="t('toolbar.undo')"
@@ -2484,10 +2546,10 @@
                             
                             <!-- Redo Button -->
                             <button 
-                                @click="redo()"
-                                :disabled="redoHistory.length === 0"
+                                @click="currentMediaType === 'drawing' ? drawingRedo() : redo()"
+                                :disabled="currentMediaType === 'drawing' ? drawingRedoStack.length === 0 : redoHistory.length === 0"
                                 class="p-2 rounded-lg"
-                                :style="redoHistory.length === 0 ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
+                                :style="(currentMediaType === 'drawing' ? drawingRedoStack.length === 0 : redoHistory.length === 0) ? 'color: var(--text-tertiary); opacity: 0.4; cursor: not-allowed;' : 'color: var(--text-secondary);'"
                                 onmouseover="if(!this.disabled) this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
                                 :title="t('toolbar.redo')"
@@ -2504,7 +2566,7 @@
                                 style="color: var(--error);"
                                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
                                 onmouseout="this.style.backgroundColor='transparent'"
-                                :title="currentMedia ? t('toolbar.delete_image') : t('toolbar.delete_note')"
+                                :title="currentMedia ? (currentMediaType === 'drawing' ? t('toolbar.delete_drawing') : t('toolbar.delete_image')) : t('toolbar.delete_note')"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2651,6 +2713,130 @@
                                     </svg>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Drawing tools (below main toolbar; undo/redo use icons above) -->
+                    <div 
+                        x-show="currentMedia && currentMediaType === 'drawing'"
+                        class="px-4 py-2 flex flex-wrap gap-2 items-center border-b flex-shrink-0 zen-hide"
+                        style="background-color: var(--bg-secondary); border-color: var(--border-primary);"
+                        x-cloak
+                    >
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'freehand' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'freehand'"
+                            :title="t('drawing.tool_freehand')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'line' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'line'"
+                            :title="t('drawing.tool_line')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20L20 4" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'rect' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'rect'"
+                            :title="t('drawing.tool_rect')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'ellipse' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'ellipse'"
+                            :title="t('drawing.tool_ellipse')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'eraser' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'eraser'"
+                            :title="t('drawing.tool_eraser')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21M22 21H7M5 11l9 9" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'eyedropper' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'eyedropper'"
+                            :title="t('drawing.tool_eyedropper')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 11.25 1.425 1.425c.671.671.671 1.757 0 2.428l-1.06 1.06c-.671.671-1.757.671-2.428 0l-1.425-1.425m6-6 1.425-1.425c.671-.671 1.757-.671 2.428 0l1.06 1.06c.671.671.671 1.757 0 2.428L21 15.75m-6-6L8.25 3.75a2.121 2.121 0 0 0-3 3L12 15.75l3-3m-3-3-6 6" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
+                            :class="!drawingClearEnabled() ? 'opacity-40 cursor-not-allowed' : ''"
+                            :style="!drawingClearEnabled()
+                                ? 'border-color: var(--border-primary); color: var(--text-secondary);'
+                                : 'border-color: var(--border-primary); color: var(--text-secondary); background-color: var(--bg-tertiary);'"
+                            :disabled="!drawingClearEnabled()"
+                            @click="drawingClear()"
+                            :title="t('drawing.clear_hint')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <label
+                            class="flex h-9 items-center gap-2 rounded-lg border px-2 shrink-0 cursor-pointer"
+                            style="border-color: var(--border-primary); background-color: var(--bg-tertiary);"
+                            :title="t('drawing.color')"
+                        >
+                            <span class="text-xs select-none" style="color: var(--text-secondary);" x-text="t('drawing.color')"></span>
+                            <input
+                                type="color"
+                                x-model="drawingColor"
+                                class="h-7 w-8 shrink-0 cursor-pointer rounded border p-0"
+                                style="border-color: var(--border-primary);"
+                                :aria-label="t('drawing.color')"
+                            />
+                        </label>
+                        <div
+                            class="flex h-9 min-w-0 shrink items-center gap-2 rounded-lg border px-2"
+                            style="border-color: var(--border-primary); background-color: var(--bg-tertiary);"
+                            :title="t('drawing.width')"
+                        >
+                            <span class="text-xs whitespace-nowrap select-none shrink-0" style="color: var(--text-secondary);" x-text="t('drawing.width')"></span>
+                            <input
+                                type="range"
+                                min="1"
+                                max="32"
+                                x-model.number="drawingLineWidth"
+                                class="w-24 md:w-36 align-middle min-w-0 flex-1"
+                                style="accent-color: var(--accent-primary);"
+                                :aria-label="t('drawing.width')"
+                                :aria-valuemin="1"
+                                :aria-valuemax="32"
+                                :aria-valuenow="drawingLineWidth"
+                            />
+                            <span class="text-xs tabular-nums shrink-0 w-5 text-right" style="color: var(--text-secondary);" x-text="drawingLineWidth"></span>
                         </div>
                     </div>
                     
@@ -2875,8 +3061,9 @@
                         <!-- Media Viewer (images, audio, video, PDF) -->
                         <template x-if="currentMedia">
                             <div 
-                                class="flex-1 flex items-center justify-center overflow-auto"
-                                style="background-color: var(--bg-primary); min-height: 0;"
+                                class="flex-1 flex overflow-auto min-h-0"
+                                :class="currentMediaType === 'drawing' ? 'items-stretch justify-stretch' : 'items-center justify-center'"
+                                style="background-color: var(--bg-primary);"
                             >
                                 <!-- Image -->
                                 <template x-if="currentMediaType === 'image'">
@@ -2920,6 +3107,32 @@
                                         style="width: 100%; height: 100%; border: none;"
                                         :title="currentMedia.split('/').pop()"
                                     ></iframe>
+                                </template>
+                                
+                                <!-- Drawing (PNG named drawing-*.png); tools row is in header area above -->
+                                <template x-if="currentMediaType === 'drawing'">
+                                    <div 
+                                        class="flex flex-col flex-1 w-full min-w-0 min-h-0 self-stretch" 
+                                        :key="currentMedia"
+                                    >
+                                        <div 
+                                            x-ref="drawingCanvasWrap"
+                                            class="flex-1 w-full min-h-0 min-w-0 flex items-center justify-center"
+                                            style="min-height: 0; background-color: var(--bg-secondary);"
+                                        >
+                                            <canvas
+                                                x-ref="drawingCanvas"
+                                                class="drawing-surface block"
+                                                :style="drawingTool === 'eyedropper'
+                                                    ? 'touch-action: none; cursor: copy; background: #fff;'
+                                                    : 'touch-action: none; cursor: crosshair; background: #fff;'"
+                                                @pointerdown.prevent="drawingPointerDown($event)"
+                                                @pointermove.prevent="drawingPointerMove($event)"
+                                                @pointerup.prevent="drawingPointerUp($event)"
+                                                @pointercancel.prevent="drawingPointerUp($event)"
+                                            ></canvas>
+                                        </div>
+                                    </div>
                                 </template>
                             </div>
                         </template>
@@ -3114,6 +3327,16 @@
             >
                 <span class="text-lg">📄</span>
                 <span x-text="t('sidebar.new_from_template')"></span>
+            </button>
+            <button 
+                @click="createNewDrawing()"
+                class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                style="color: var(--text-primary);"
+                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                onmouseout="this.style.backgroundColor='transparent'"
+            >
+                <span class="text-lg">✏️</span>
+                <span x-text="t('sidebar.new_drawing')"></span>
             </button>
         </div>
     </div>

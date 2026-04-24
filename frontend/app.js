@@ -2,7 +2,20 @@
 
 // Configuration constants
 const CONFIG = {
-    AUTOSAVE_DELAY: 1000,              // ms - Delay before triggering autosave
+    AUTOSAVE_DELAY: 1000,              // ms - Debounce before note save (autoSave) and drawing PNG autosave (_drawingScheduleAutosave)
+    /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
+    DRAWING_BACKGROUND: '#ffffff',
+    /**
+     * Drawing document size (intrinsic resolution). The display canvas may render
+     * smaller on small screens, but pointer events, ops and the saved PNG always
+     * live in this fixed coordinate space. A future "new drawing" dialog can
+     * override the dimensions per drawing without any architectural change.
+     */
+    DRAWING_DEFAULT_DOC_W: 1200,
+    DRAWING_DEFAULT_DOC_H: 800,
+    /** Hard bounds applied when (re)loading or creating a drawing. */
+    DRAWING_MIN_DOC_DIM: 64,
+    DRAWING_MAX_DOC_DIM: 4096,
     SEARCH_DEBOUNCE_DELAY: 500,        // ms - Delay before running note search while typing
     SAVE_INDICATOR_DURATION: 2000,     // ms - How long to show "saved" indicator
     SCROLL_SYNC_DELAY: 50,             // ms - Delay to prevent scroll sync interference
@@ -16,6 +29,9 @@ const CONFIG = {
     TOAST_DURATION_INFO_MS: 4500,
     TOAST_DURATION_SUCCESS_MS: 3500,
 };
+
+/** Heroicons outline "share" (same d= as shared-note icon in the file tree) */
+const SHARE_ICON_PATH = 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z';
 
 // localStorage settings configuration - centralized definition of all persisted settings
 const LOCAL_SETTINGS = {
@@ -229,7 +245,7 @@ function noteApp() {
         sortMode: localStorage.getItem('sortMode') || 'a-z',
 
         // Icon rail / panel state
-        activePanel: 'files', // 'files', 'search', 'tags', 'settings'
+        activePanel: 'files', // 'files', 'search', 'tags', 'outline', 'backlinks', 'shared', 'settings'
         
         // Folder state
         folderTree: [],
@@ -327,6 +343,7 @@ function noteApp() {
         showShareQR: false,
         shareLinkCopied: false,
         _sharedNotePaths: new Set(),  // O(1) lookup for shared note indicators
+        _sharedNotePathsList: [], // sorted paths, mirrors Set for reactive sidebar panel
         
         // Quick Switcher state (Ctrl+Alt+P)
         showQuickSwitcher: false,
@@ -494,7 +511,34 @@ function noteApp() {
         
         // Media viewer state
         currentMedia: '',  // Path to current media file (kept as 'currentMedia' for compatibility)
-        currentMediaType: 'image',  // 'image', 'audio', 'video', 'document'
+        currentMediaType: 'image',  // 'image', 'audio', 'video', 'document', 'drawing'
+        
+        // Drawing canvas (drawing-*.png only) — ops are session-only until Save flattens to PNG.
+        // Coordinates in drawingOps[] are stored in DOCUMENT space (drawingDocW × drawingDocH),
+        // not display CSS pixels, so resizing the editor pane never moves strokes and exported
+        // PNGs are byte-deterministic regardless of screen size or device pixel ratio.
+        drawingTool: 'freehand',
+        drawingColor: '#1a1a1a',
+        drawingLineWidth: 4,
+        drawingOps: [],
+        /**
+         * Intrinsic drawing dimensions (in document px). Initial values come from CONFIG so
+         * there is a single source of truth for the default; per-drawing values get overwritten
+         * by createNewDrawing() (using its opts) or initDrawingViewer() (using the PNG's natural
+         * size). To change the default, edit CONFIG.DRAWING_DEFAULT_DOC_W / _H only.
+         */
+        drawingDocW: CONFIG.DRAWING_DEFAULT_DOC_W,
+        drawingDocH: CONFIG.DRAWING_DEFAULT_DOC_H,
+        drawingRedoStack: [],
+        drawingDraft: null,
+        drawingIsPointerDown: false,
+        /** True after the PNG from disk has been decoded into _drawingBaseImage; false after Clear. */
+        drawingHasRasterFromFile: false,
+        /** Prevents overlapping drawingSave() runs (Ctrl+S + autosave + fast retries). */
+        _drawingSaveInFlight: false,
+        /** If true, run drawingSave again after the current one finishes (coalesce). */
+        _drawingSaveQueued: false,
+        _drawingAutosaveTimeout: null,
         
         // DOM element cache (to avoid repeated querySelector calls)
         _domCache: {
@@ -638,10 +682,15 @@ function noteApp() {
                 window.addEventListener('keydown', (e) => {
                     // Use e.key (not e.code) for letter keys to support non-QWERTY keyboard layouts
                     
-                    // Ctrl/Cmd + S to save
+                    // Ctrl/Cmd + S to save (drawing saves PNG; notes save markdown)
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-                        e.preventDefault();
-                        this.saveNote();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingSave();
+                        } else {
+                            e.preventDefault();
+                            this.saveNote();
+                        }
                     }
                     
                     // Ctrl/Cmd + Alt + P for Quick Switcher
@@ -663,21 +712,35 @@ function noteApp() {
                         this.createFolder();
                     }
                     
-                    // Ctrl/Cmd + Z for undo (without shift or alt)
-                    // Use e.key instead of e.code to support non-QWERTY keyboard layouts
+                    // Ctrl/Cmd + Z for undo (drawing vs note editor)
                     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        this.undo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingUndo();
+                        } else {
+                            e.preventDefault();
+                            this.undo();
+                        }
                     }
                     
                     // Ctrl/Cmd + Y OR Ctrl/Cmd+Shift+Z for redo
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-                        e.preventDefault();
-                        this.redo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingRedo();
+                        } else {
+                            e.preventDefault();
+                            this.redo();
+                        }
                     }
                     if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        this.redo();
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            e.preventDefault();
+                            this.drawingRedo();
+                        } else {
+                            e.preventDefault();
+                            this.redo();
+                        }
                     }
                     
                     // F3 for next search match
@@ -1484,13 +1547,7 @@ function noteApp() {
                     notePath += '.md';
                 }
                 
-                // Determine target folder: use dropdown context if set, otherwise homepage folder
-                let targetFolder;
-                if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
-                    targetFolder = this.dropdownTargetFolder; // Can be '' for root or a folder path
-                } else {
-                    targetFolder = this.selectedHomepageFolder || '';
-                }
+                const targetFolder = this.inferredNewItemTargetFolder();
                 
                 // If we have a target folder, create note in that folder
                 if (targetFolder) {
@@ -2082,7 +2139,7 @@ function noteApp() {
         },
         handleDeleteItemClick(el, event) {
             event.stopPropagation();
-            if (el.dataset.type === 'image') {
+            if (el.dataset.type !== 'note') {
                 this.deleteMedia(el.dataset.path);
             } else {
                 this.deleteNote(el.dataset.path, el.dataset.name);
@@ -2206,8 +2263,13 @@ function noteApp() {
             
             // Share icon for shared notes
             const isShared = !isMediaFile && this.isNoteShared(note.path);
-            const shareIcon = isShared ? '<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>' : '';
+            const shareIcon = isShared ? `<svg aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 2px; opacity: 0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${SHARE_ICON_PATH}"></path></svg>` : '';
             const icon = this.getMediaIcon(note.type);
+            const deleteTitle = !isMediaFile
+                ? this.t('toolbar.delete_note')
+                : note.type === 'drawing'
+                    ? this.t('toolbar.delete_drawing')
+                    : this.t('toolbar.delete_image');
             
             return `
                 <div 
@@ -2231,7 +2293,7 @@ function noteApp() {
                         onclick="window.$root.handleDeleteItemClick(this, event)"
                         class="note-delete-btn absolute right-2 top-1/2 transform -translate-y-1/2 px-1 py-0.5 text-xs rounded hover:brightness-110 transition-opacity"
                         style="opacity: 0; color: var(--error);"
-                        title="${esc(isMediaFile ? this.t('toolbar.delete_image') : this.t('toolbar.delete_note'))}"
+                        title="${esc(deleteTitle)}"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2487,13 +2549,22 @@ function noteApp() {
             this.draggedItem = null;
         },
         
+        /**
+         * Backend `get_attachment_dir` uses the parent folder of `note_path`.
+         * With no note open, infer a synthetic path from `currentMedia` so uploads go to the same
+         * `_attachments` folder as the file being viewed (or vault root when appropriate).
+         */
+        resolveUploadNotePath() {
+            if (this.currentNote) return this.currentNote;
+            if (!this.currentMedia) return '';
+            const parts = this.currentMedia.split('/').filter(Boolean);
+            const ai = parts.indexOf('_attachments');
+            if (ai === -1 || ai === 0) return '';
+            return `${parts.slice(0, ai).join('/')}/_.md`;
+        },
+        
         // Handle media files dropped into editor
         async handleMediaDrop(event) {
-            if (!this.currentNote) {
-                this.toast(this.t('notes.open_first'), { type: 'info' });
-                return;
-            }
-            
             const files = Array.from(event.dataTransfer.files);
             
             // Filter for allowed media types
@@ -2515,28 +2586,46 @@ function noteApp() {
             }
             
             const textarea = event.target;
-            // Calculate cursor position from drop coordinates
-            let cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
-            if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
+            const notePath = this.resolveUploadNotePath();
+            // Calculate cursor position from drop coordinates (only meaningful when a note is open)
+            let cursorPos = 0;
+            if (this.currentNote && textarea && textarea.tagName === 'TEXTAREA') {
+                cursorPos = this.getTextareaCursorFromPoint(textarea, event.clientX, event.clientY);
+                if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
+            }
             
-            // Upload each media file
+            let uploaded = false;
             for (const file of mediaFiles) {
                 try {
-                    const mediaPath = await this.uploadMedia(file, this.currentNote);
+                    const mediaPath = await this.uploadMedia(file, notePath);
                     if (mediaPath) {
-                        await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
+                        uploaded = true;
+                        if (this.currentNote) {
+                            await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
+                        }
                     }
                 } catch (error) {
                     ErrorHandler.handle(`upload file ${file.name}`, error);
                 }
             }
+            if (uploaded && !this.currentNote) {
+                await this.loadNotes();
+            }
         },
         
         // Upload a media file (image, audio, video, PDF)
-        async uploadMedia(file, notePath) {
+        // Use options.nextToNotes + options.contentFolder to save a new drawing PNG next to .md files (not in _attachments).
+        async uploadMedia(file, notePath, options = {}) {
+            const { nextToNotes, contentFolder } = options;
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('note_path', notePath);
+            if (nextToNotes) {
+                formData.append('next_to_notes', '1');
+                formData.append('content_folder', contentFolder != null ? contentFolder : '');
+                formData.append('note_path', '');
+            } else {
+                formData.append('note_path', notePath || '');
+            }
             
             try {
                 const response = await fetch('/api/upload-media', {
@@ -2621,9 +2710,13 @@ function noteApp() {
             }
         },
         
-        // Media type detection based on file extension
+        // Media type detection based on file extension (and drawing-*.png convention)
         getMediaType(filename) {
             if (!filename) return null;
+            const base = filename.split('/').pop().toLowerCase();
+            if (base.startsWith('drawing-') && base.endsWith('.png')) {
+                return 'drawing';
+            }
             const ext = filename.split('.').pop().toLowerCase();
             const mediaTypes = {
                 image: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
@@ -2641,6 +2734,7 @@ function noteApp() {
         getMediaIcon(type) {
             const icons = {
                 image: '🖼️',
+                drawing: '✏️',
                 audio: '🎵',
                 video: '🎬',
                 document: '📄',
@@ -2662,6 +2756,10 @@ function noteApp() {
         
         // View a media file (image, audio, video, PDF) in the main pane
         viewMedia(mediaPath, mediaType = null, updateHistory = true) {
+            if (this.currentMediaType === 'drawing') {
+                this._drawingDisconnectResizeObserver();
+                this._drawingCancelAutosave();
+            }
             this.showGraph = false; // Ensure graph is closed
             this.currentNote = '';
             this.currentNoteName = '';
@@ -2687,6 +2785,14 @@ function noteApp() {
                     '',
                     `/${encodedPath}`
                 );
+            }
+            
+            // Drawing: Alpine x-init on the canvas runs only on first mount; switching from one drawing
+            // to another keeps currentMediaType === 'drawing', so we must reload the PNG here.
+            if (this.currentMediaType === 'drawing') {
+                this.$nextTick(() => {
+                    this.initDrawingViewer();
+                });
             }
         },
         
@@ -2720,6 +2826,627 @@ function noteApp() {
                 }
             } catch (error) {
                 ErrorHandler.handle('delete media', error);
+            }
+        },
+        
+        /**
+         * Create a blank drawing PNG and open it for editing.
+         * Attachment folder matches "New note" / "New folder" from the same + menu (root vs folder row vs homepage folder).
+         */
+        /**
+         * Create a brand-new drawing PNG and open it in the editor.
+         * @param {{docW?: number, docH?: number}} [opts]
+         *   Optional intrinsic dimensions in document pixels. Phase-2: a "New drawing"
+         *   dialog (presets, A4, custom) only needs to pass these values here — no other
+         *   plumbing is required because every downstream function reads doc size from
+         *   either the loaded PNG or the in-memory drawingDocW/drawingDocH fields.
+         */
+        async createNewDrawing(opts = {}) {
+            const targetFolder = this.inferredNewItemTargetFolder();
+            this.closeDropdown();
+            const w = this._drawingClampDim(opts.docW, CONFIG.DRAWING_DEFAULT_DOC_W);
+            const h = this._drawingClampDim(opts.docH, CONFIG.DRAWING_DEFAULT_DOC_H);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = CONFIG.DRAWING_BACKGROUND;
+            ctx.fillRect(0, 0, w, h);
+            let blob;
+            try {
+                blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+                });
+            } catch (e) {
+                ErrorHandler.handle('create drawing', e);
+                return;
+            }
+            const file = new File([blob], 'drawing.png', { type: 'image/png' });
+            try {
+                const path = await this.uploadMedia(file, '', {
+                    nextToNotes: true,
+                    contentFolder: targetFolder,
+                });
+                await this.loadNotes();
+                this.viewMedia(path, 'drawing');
+            } catch (error) {
+                ErrorHandler.handle('create drawing', error);
+            }
+        },
+        
+        _drawingEncodeMediaPath() {
+            return this.currentMedia.split('/').map((s) => encodeURIComponent(s)).join('/');
+        },
+
+        /**
+         * Clamp a dimension to the [MIN, MAX] document-px range. Falls back to `fallback`
+         * when value is missing, non-finite or non-positive. Always returns an integer.
+         */
+        _drawingClampDim(value, fallback) {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n <= 0) return Math.round(fallback);
+            const clamped = Math.min(
+                CONFIG.DRAWING_MAX_DOC_DIM,
+                Math.max(CONFIG.DRAWING_MIN_DOC_DIM, n)
+            );
+            return Math.round(clamped);
+        },
+
+        /**
+         * Convert a pointer event to DOCUMENT-space coordinates (0..drawingDocW, 0..drawingDocH).
+         * The mapping is independent of CSS size, DPR and zoom — strokes stored from this
+         * function render identically on any device and round-trip cleanly through PNG export.
+         */
+        _drawingCanvasCoords(event) {
+            const canvas = this._drawingCanvasEl;
+            if (!canvas) return { x: 0, y: 0 };
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
+            return {
+                x: ((event.clientX - rect.left) / rect.width)  * this.drawingDocW,
+                y: ((event.clientY - rect.top)  / rect.height) * this.drawingDocH,
+            };
+        },
+        
+        _drawingDrawOp(ctx, op) {
+            if (!op) return;
+            if (op.type === 'stroke') {
+                const pts = op.points;
+                if (!pts || pts.length < 2) return;
+                ctx.save();
+                ctx.strokeStyle = op.color;
+                ctx.lineWidth = op.lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(pts[0][0], pts[0][1]);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i][0], pts[i][1]);
+                }
+                ctx.stroke();
+                ctx.restore();
+                return;
+            }
+            ctx.save();
+            ctx.strokeStyle = op.color;
+            ctx.lineWidth = op.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            if (op.type === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(op.x1, op.y1);
+                ctx.lineTo(op.x2, op.y2);
+                ctx.stroke();
+            } else if (op.type === 'rect') {
+                const nx = op.w < 0 ? op.x + op.w : op.x;
+                const ny = op.h < 0 ? op.y + op.h : op.y;
+                ctx.strokeRect(nx, ny, Math.abs(op.w), Math.abs(op.h));
+            } else if (op.type === 'ellipse') {
+                const nx = op.w < 0 ? op.x + op.w : op.x;
+                const ny = op.h < 0 ? op.y + op.h : op.y;
+                const rw = Math.abs(op.w) / 2;
+                const rh = Math.abs(op.h) / 2;
+                const cx = nx + rw;
+                const cy = ny + rh;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        },
+        
+        /**
+         * Repaint the visible canvas. All drawing math runs in DOCUMENT space; a single
+         * setTransform call maps (docW, docH) → device pixels by combining the doc→display
+         * scale with the device pixel ratio. _drawingDrawOp itself is space-agnostic.
+         */
+        drawingRedraw() {
+            const canvas = this._drawingCanvasEl;
+            const ctx = this._drawingCtx;
+            if (!canvas || !ctx) return;
+            const docW = this.drawingDocW;
+            const docH = this.drawingDocH;
+            const cssW = this._drawingCssW;
+            const cssH = this._drawingCssH;
+            const dpr = this._drawingDpr || 1;
+            if (!docW || !docH || !cssW || !cssH) return;
+            const sx = (cssW / docW) * dpr;
+            const sy = (cssH / docH) * dpr;
+            ctx.setTransform(sx, 0, 0, sy, 0, 0);
+            ctx.clearRect(0, 0, docW, docH);
+            ctx.fillStyle = CONFIG.DRAWING_BACKGROUND;
+            ctx.fillRect(0, 0, docW, docH);
+            if (this._drawingBaseImage && this._drawingBaseImage.complete) {
+                ctx.drawImage(this._drawingBaseImage, 0, 0, docW, docH);
+            }
+            for (const op of this.drawingOps) {
+                this._drawingDrawOp(ctx, op);
+            }
+            if (this.drawingDraft) {
+                this._drawingDrawOp(ctx, this.drawingDraft);
+            }
+        },
+        
+        _drawingScheduleRedraw() {
+            if (this._drawingRaf) return;
+            this._drawingRaf = requestAnimationFrame(() => {
+                this._drawingRaf = null;
+                this.drawingRedraw();
+            });
+        },
+        
+        _drawingDisconnectResizeObserver() {
+            if (this._drawingResizeObserver) {
+                try {
+                    this._drawingResizeObserver.disconnect();
+                } catch (_) {
+                    /* ignore */
+                }
+                this._drawingResizeObserver = null;
+            }
+        },
+        
+        _drawingCancelAutosave() {
+            if (this._drawingAutosaveTimeout) {
+                clearTimeout(this._drawingAutosaveTimeout);
+                this._drawingAutosaveTimeout = null;
+            }
+        },
+        
+        /**
+         * Debounced PNG save (same delay as notes). Never runs while the primary button is held
+         * (active stroke/shape); pending timers are cleared when a new stroke starts.
+         */
+        _drawingScheduleAutosave() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            if (this._drawingAutosaveTimeout) {
+                clearTimeout(this._drawingAutosaveTimeout);
+                this._drawingAutosaveTimeout = null;
+            }
+            const path = this.currentMedia;
+            const pollMs = 150;
+            const attemptSave = () => {
+                if (this.currentMedia !== path || this.currentMediaType !== 'drawing') {
+                    this._drawingAutosaveTimeout = null;
+                    return;
+                }
+                if (this.drawingIsPointerDown) {
+                    this._drawingAutosaveTimeout = setTimeout(attemptSave, pollMs);
+                    return;
+                }
+                this._drawingAutosaveTimeout = null;
+                this.drawingSave();
+            };
+            this._drawingAutosaveTimeout = setTimeout(attemptSave, CONFIG.AUTOSAVE_DELAY);
+        },
+        
+        /**
+         * Size the visible canvas as a letterbox of (drawingDocW × drawingDocH) inside the
+         * available wrap, preserving aspect ratio. The display canvas may be smaller than
+         * the wrap on narrow viewports — that is intentional. The document space stays
+         * fixed; only the on-screen viewport scales.
+         */
+        _drawingLayoutCanvas() {
+            const wrap = this.$refs.drawingCanvasWrap;
+            const canvas = this.$refs.drawingCanvas;
+            if (!wrap || !canvas || this.currentMediaType !== 'drawing') return;
+
+            // Available area (with sane fallbacks for the brief moment before layout settles).
+            let availW = wrap.clientWidth;
+            let availH = wrap.clientHeight;
+            if (availW < 32) {
+                availW = Math.max(320, wrap.parentElement ? wrap.parentElement.clientWidth : 320);
+            }
+            if (availH < 32) {
+                const col = wrap.closest('.flex-1.flex.flex-col') || wrap.closest('.flex-1');
+                const h = col ? col.clientHeight : 0;
+                availH = h > 64 ? h : Math.max(240, Math.floor((availW || 400) * 0.5));
+            }
+
+            // Letterbox the document into the available area.
+            const docW = this.drawingDocW;
+            const docH = this.drawingDocH;
+            const docAspect = docW / docH;
+            const wrapAspect = availW / availH;
+            let cssW;
+            let cssH;
+            if (wrapAspect > docAspect) {
+                cssH = availH;
+                cssW = cssH * docAspect;
+            } else {
+                cssW = availW;
+                cssH = cssW / docAspect;
+            }
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width  = `${cssW}px`;
+            canvas.style.height = `${cssH}px`;
+            // Backing store in device pixels — capped above by availW/availH * dpr, so this
+            // never allocates more than the viewport could ever show. Cheap on every device.
+            canvas.width  = Math.max(1, Math.round(cssW * dpr));
+            canvas.height = Math.max(1, Math.round(cssH * dpr));
+
+            this._drawingCanvasEl = canvas;
+            this._drawingCssW = cssW;
+            this._drawingCssH = cssH;
+            this._drawingDpr = dpr;
+            if (!this._drawingCtx) {
+                this._drawingCtx = canvas.getContext('2d');
+            }
+            this.drawingRedraw();
+        },
+        
+        async initDrawingViewer() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            this._drawingDisconnectResizeObserver();
+            await this.$nextTick();
+            if (this._drawingObjectURL) {
+                URL.revokeObjectURL(this._drawingObjectURL);
+                this._drawingObjectURL = null;
+            }
+            const canvas = this.$refs.drawingCanvas;
+            const wrap = this.$refs.drawingCanvasWrap;
+            if (!canvas || !wrap) return;
+            this._drawingCtx = canvas.getContext('2d');
+            this.drawingOps = [];
+            this.drawingRedoStack = [];
+            this.drawingDraft = null;
+            this.drawingIsPointerDown = false;
+            this._drawingBaseImage = null;
+            this.drawingHasRasterFromFile = false;
+            // Reset to defaults; replaced by the loaded PNG's natural size below.
+            // For drawings created via createNewDrawing() the file already matches the defaults
+            // (or the size requested by a future "new drawing" dialog).
+            this.drawingDocW = CONFIG.DRAWING_DEFAULT_DOC_W;
+            this.drawingDocH = CONFIG.DRAWING_DEFAULT_DOC_H;
+            this._drawingLoadToken = Symbol();
+            const token = this._drawingLoadToken;
+            
+            this._drawingResizeObserver = new ResizeObserver(() => {
+                if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+                this._drawingLayoutCanvas();
+            });
+            this._drawingResizeObserver.observe(wrap);
+            
+            requestAnimationFrame(() => {
+                if (token !== this._drawingLoadToken) return;
+                this._drawingLayoutCanvas();
+                requestAnimationFrame(() => {
+                    if (token !== this._drawingLoadToken) return;
+                    this._drawingLayoutCanvas();
+                });
+            });
+            
+            try {
+                const enc = this._drawingEncodeMediaPath();
+                const res = await fetch(`/api/media/${enc}`, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('Failed to load drawing');
+                const blob = await res.blob();
+                if (token !== this._drawingLoadToken) return;
+                const url = URL.createObjectURL(blob);
+                this._drawingObjectURL = url;
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+                if (token !== this._drawingLoadToken) return;
+                this._drawingBaseImage = img;
+                this.drawingHasRasterFromFile = true;
+                // Adopt the PNG's intrinsic size as the document size for this drawing.
+                // The PNG itself is the source of truth — no sidecar metadata required.
+                this.drawingDocW = this._drawingClampDim(img.naturalWidth, CONFIG.DRAWING_DEFAULT_DOC_W);
+                this.drawingDocH = this._drawingClampDim(img.naturalHeight, CONFIG.DRAWING_DEFAULT_DOC_H);
+                this._drawingLayoutCanvas();
+            } catch (e) {
+                if (token !== this._drawingLoadToken) return;
+                ErrorHandler.handle('load drawing', e);
+                this.drawingHasRasterFromFile = false;
+                this._drawingLayoutCanvas();
+            }
+        },
+        
+        _drawingRgbToHex(r, g, b) {
+            const h = (n) => {
+                const s = n.toString(16);
+                return s.length === 1 ? `0${s}` : s;
+            };
+            return `#${h(r)}${h(g)}${h(b)}`;
+        },
+
+        /**
+         * Sample visible canvas color under the pointer; sets drawingColor.
+         * Pointer coords come in document space; we map to device pixels via the canvas's
+         * actual backing store (which already includes both the doc→display scale and DPR).
+         */
+        drawingSampleColor(e) {
+            const canvas = this._drawingCanvasEl;
+            const ctx = this._drawingCtx;
+            if (!canvas || !ctx) return;
+            const docW = this.drawingDocW;
+            const docH = this.drawingDocH;
+            if (!docW || !docH) return;
+            const { x, y } = this._drawingCanvasCoords(e);
+            this.drawingRedraw();
+            let ix = Math.floor((x / docW) * canvas.width);
+            let iy = Math.floor((y / docH) * canvas.height);
+            ix = Math.max(0, Math.min(ix, canvas.width - 1));
+            iy = Math.max(0, Math.min(iy, canvas.height - 1));
+            const pix = ctx.getImageData(ix, iy, 1, 1).data;
+            this.drawingColor = this._drawingRgbToHex(pix[0], pix[1], pix[2]);
+        },
+
+        /** True when there is a loaded bitmap and/or session strokes to clear away. */
+        drawingClearEnabled() {
+            if (this.currentMediaType !== 'drawing') return false;
+            return !!(this.drawingHasRasterFromFile || (this.drawingOps && this.drawingOps.length > 0));
+        },
+
+        /**
+         * Replace the in-memory drawing with a blank canvas and schedule save so the file on disk
+         * becomes a fresh white PNG (same dimensions as the viewer). Drops the loaded raster.
+         */
+        async drawingClear() {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            if (!this._drawingBaseImage && this.drawingOps.length === 0) return;
+            const ok = await this.confirmModalAsk({
+                title: this.t('drawing.clear_title'),
+                message: this.t('drawing.clear_confirm'),
+                danger: true,
+                confirmLabel: this.t('drawing.clear'),
+            });
+            if (!ok) return;
+            this._drawingCancelAutosave();
+            if (this._drawingObjectURL) {
+                try {
+                    URL.revokeObjectURL(this._drawingObjectURL);
+                } catch (_) {
+                    /* ignore */
+                }
+                this._drawingObjectURL = null;
+            }
+            this._drawingBaseImage = null;
+            this.drawingHasRasterFromFile = false;
+            this.drawingDraft = null;
+            this.drawingIsPointerDown = false;
+            this.drawingOps = [];
+            this.drawingRedoStack = [];
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+
+        drawingPointerDown(e) {
+            if (this.currentMediaType !== 'drawing' || e.button !== 0) return;
+            const canvas = this._drawingCanvasEl;
+            if (!canvas) return;
+            const tool = this.drawingTool;
+            if (tool === 'eyedropper') {
+                e.preventDefault();
+                this.drawingSampleColor(e);
+                return;
+            }
+            this._drawingCancelAutosave();
+            canvas.setPointerCapture(e.pointerId);
+            this._drawingPointerId = e.pointerId;
+            const { x, y } = this._drawingCanvasCoords(e);
+            this.drawingIsPointerDown = true;
+            this.drawingRedoStack = [];
+            const lw = this.drawingLineWidth;
+            const color = tool === 'eraser' ? CONFIG.DRAWING_BACKGROUND : this.drawingColor;
+            if (tool === 'freehand' || tool === 'eraser') {
+                this.drawingDraft = { type: 'stroke', color, lineWidth: lw, points: [[x, y]] };
+            } else if (tool === 'line') {
+                this.drawingDraft = { type: 'line', color, lineWidth: lw, x1: x, y1: y, x2: x, y2: y };
+            } else if (tool === 'rect') {
+                this.drawingDraft = { type: 'rect', color, lineWidth: lw, x, y, w: 0, h: 0 };
+            } else if (tool === 'ellipse') {
+                this.drawingDraft = { type: 'ellipse', color, lineWidth: lw, x, y, w: 0, h: 0 };
+            }
+            this.drawingRedraw();
+        },
+        
+        drawingPointerMove(e) {
+            if (!this.drawingIsPointerDown || this.currentMediaType !== 'drawing') return;
+            const { x, y } = this._drawingCanvasCoords(e);
+            const d = this.drawingDraft;
+            if (!d) return;
+            if (d.type === 'stroke') {
+                const pts = d.points;
+                const last = pts[pts.length - 1];
+                const dx = x - last[0];
+                const dy = y - last[1];
+                if (dx * dx + dy * dy < 1) return;
+                pts.push([x, y]);
+                this._drawingScheduleRedraw();
+                return;
+            }
+            if (d.type === 'line') {
+                d.x2 = x;
+                d.y2 = y;
+            } else if (d.type === 'rect' || d.type === 'ellipse') {
+                d.w = x - d.x;
+                d.h = y - d.y;
+            }
+            this._drawingScheduleRedraw();
+        },
+        
+        drawingPointerUp(e) {
+            if (!this.drawingIsPointerDown || this.currentMediaType !== 'drawing') return;
+            const canvas = this._drawingCanvasEl;
+            if (canvas && this._drawingPointerId === e.pointerId) {
+                try {
+                    canvas.releasePointerCapture(e.pointerId);
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+            this._drawingPointerId = null;
+            this.drawingIsPointerDown = false;
+            const d = this.drawingDraft;
+            this.drawingDraft = null;
+            if (!d) {
+                this.drawingRedraw();
+                return;
+            }
+            if (d.type === 'stroke') {
+                if (!d.points || d.points.length < 2) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: 'stroke',
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    points: d.points.slice(),
+                });
+            } else if (d.type === 'line') {
+                const dx = d.x2 - d.x1;
+                const dy = d.y2 - d.y1;
+                if (dx * dx + dy * dy < 4) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: 'line',
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    x1: d.x1,
+                    y1: d.y1,
+                    x2: d.x2,
+                    y2: d.y2,
+                });
+            } else if (d.type === 'rect' || d.type === 'ellipse') {
+                if (Math.abs(d.w) < 2 && Math.abs(d.h) < 2) {
+                    this.drawingRedraw();
+                    return;
+                }
+                this.drawingOps.push({
+                    type: d.type,
+                    color: d.color,
+                    lineWidth: d.lineWidth,
+                    x: d.x,
+                    y: d.y,
+                    w: d.w,
+                    h: d.h,
+                });
+            }
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+        
+        drawingUndo() {
+            if (this.drawingOps.length === 0) return;
+            this.drawingRedoStack.push(this.drawingOps.pop());
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+        
+        drawingRedo() {
+            if (this.drawingRedoStack.length === 0) return;
+            this.drawingOps.push(this.drawingRedoStack.pop());
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+        
+        /**
+         * Persist the flattened canvas to disk (Ctrl+S, autosave). Same feedback as saveNote:
+         * header "Saved" only — never clears stroke undo/redo or reloads the image; stacks reset when
+         * opening another drawing via initDrawingViewer().
+         */
+        async drawingSave() {
+            if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
+            if (this._drawingSaveInFlight) {
+                this._drawingSaveQueued = true;
+                return;
+            }
+            this._drawingSaveInFlight = true;
+            try {
+                this._drawingCancelAutosave();
+                this.drawingDraft = null;
+                this.drawingIsPointerDown = false;
+                // Render onto an off-screen canvas at the exact document size. This makes the
+                // exported PNG byte-deterministic across devices: same ops, same dimensions →
+                // identical bytes regardless of DPR, window size, or zoom level. The off-screen
+                // canvas is allocated per save (microseconds for 1600×1000) so dimension changes
+                // from a future "resize drawing" feature can never leak between saves.
+                const docW = this._drawingClampDim(this.drawingDocW, CONFIG.DRAWING_DEFAULT_DOC_W);
+                const docH = this._drawingClampDim(this.drawingDocH, CONFIG.DRAWING_DEFAULT_DOC_H);
+                const off = document.createElement('canvas');
+                off.width = docW;
+                off.height = docH;
+                const offCtx = off.getContext('2d');
+                if (!offCtx) return;
+                offCtx.fillStyle = CONFIG.DRAWING_BACKGROUND;
+                offCtx.fillRect(0, 0, docW, docH);
+                if (this._drawingBaseImage && this._drawingBaseImage.complete) {
+                    offCtx.drawImage(this._drawingBaseImage, 0, 0, docW, docH);
+                }
+                for (const op of this.drawingOps) {
+                    this._drawingDrawOp(offCtx, op);
+                }
+                // Keep the visible canvas in sync (cosmetic; UI doesn't have to wait for the upload).
+                this.drawingRedraw();
+                const blob = await new Promise((resolve, reject) => {
+                    off.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+                });
+                this.isSaving = true;
+                try {
+                    const enc = this._drawingEncodeMediaPath();
+                    const res = await fetch(`/api/media/${enc}`, {
+                        method: 'PUT',
+                        body: blob,
+                        headers: { 'Content-Type': 'image/png' },
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        let detail = err.detail;
+                        if (Array.isArray(detail)) {
+                            detail = detail.map((d) => d.msg || d).join(', ');
+                        }
+                        throw new Error(detail || res.statusText);
+                    }
+                    await this.loadNotes();
+                    this.lastSaved = true;
+                    setTimeout(() => {
+                        this.lastSaved = false;
+                    }, CONFIG.SAVE_INDICATOR_DURATION);
+                } catch (error) {
+                    ErrorHandler.handle('save drawing', error);
+                } finally {
+                    this.isSaving = false;
+                }
+            } finally {
+                this._drawingSaveInFlight = false;
+                if (this._drawingSaveQueued) {
+                    this._drawingSaveQueued = false;
+                    queueMicrotask(() => {
+                        if (this.currentMedia && this.currentMediaType === 'drawing') {
+                            this.drawingSave();
+                        }
+                    });
+                }
             }
         },
         
@@ -2981,6 +3708,9 @@ function noteApp() {
                         window.history.replaceState({ homepageFolder: this.selectedHomepageFolder || '' }, '', '/');
                         this.currentNote = '';
                         this.noteContent = '';
+                        if (this.currentMediaType === 'drawing') {
+                            this._drawingDisconnectResizeObserver();
+                        }
                         this.currentMedia = '';
                         document.title = this.appName;
                         return;
@@ -2997,6 +3727,9 @@ function noteApp() {
                 this._initializedVideoSources = new Set(); // Clear video cache for new note
                 this.noteContent = data.content;
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
+                if (this.currentMediaType === 'drawing') {
+                    this._drawingDisconnectResizeObserver();
+                }
                 this.currentMedia = ''; // Clear image viewer when loading a note
                 this.shareInfo = null; // Reset share info for new note
                 
@@ -3353,6 +4086,17 @@ function noteApp() {
             this.dropdownTargetFolder = null; // Reset folder context
         },
         
+        /**
+         * Parent folder for new note/folder/drawing from the + menu when no explicit path is passed.
+         * Same rules as the create-name modal: '' = vault root; otherwise a folder path (e.g. folder1/sub).
+         */
+        inferredNewItemTargetFolder() {
+            if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
+                return this.dropdownTargetFolder;
+            }
+            return this.selectedHomepageFolder || '';
+        },
+        
         // =====================================================
         // UNIFIED CREATION FUNCTIONS (reusable from anywhere)
         // =====================================================
@@ -3391,14 +4135,8 @@ function noteApp() {
          * @param {string|undefined} explicitTargetFolder - if set, use as parent folder context ("" = root)
          */
         openCreateNameModal(kind, explicitTargetFolder = undefined) {
-            let targetFolder;
-            if (explicitTargetFolder !== undefined) {
-                targetFolder = explicitTargetFolder;
-            } else if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
-                targetFolder = this.dropdownTargetFolder;
-            } else {
-                targetFolder = this.selectedHomepageFolder || '';
-            }
+            const targetFolder =
+                explicitTargetFolder !== undefined ? explicitTargetFolder : this.inferredNewItemTargetFolder();
             this.closeDropdown();
             this.mobileSidebarOpen = false;
             this.createNameModalKind = kind;
@@ -5494,18 +6232,37 @@ function noteApp() {
         // Share Functions
         // ============================================================================
         
-        // Load list of shared note paths (for visual indicators)
+        // Load list of shared note paths (for visual indicators and Shared sidebar panel)
         async loadSharedNotePaths() {
             try {
                 const response = await fetch('/api/shared-notes');
                 if (response.ok) {
                     const data = await response.json();
                     this._sharedNotePaths = new Set(data.paths || []);
+                    this._syncSharedNotePathsList();
                 }
             } catch (error) {
                 console.error('Failed to load shared note paths:', error);
                 this._sharedNotePaths = new Set();
+                this._sharedNotePathsList = [];
             }
+        },
+
+        _syncSharedNotePathsList() {
+            this._sharedNotePathsList = [...this._sharedNotePaths].sort((a, b) =>
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
+            );
+        },
+
+        /** Display rows for Shared notes panel: name + folder line (search-style) */
+        getSharedPanelItems() {
+            return this._sharedNotePathsList.map((path) => {
+                const noMd = path.replace(/\.md$/i, '');
+                const last = Math.max(noMd.lastIndexOf('/'), noMd.lastIndexOf('\\'));
+                const name = last < 0 ? noMd : noMd.slice(last + 1);
+                const folder = last < 0 ? '' : noMd.slice(0, last).replace(/\\/g, '/');
+                return { path, name, folder: folder || 'Root' };
+            });
         },
         
         // Check if a note is currently shared (O(1) lookup)
@@ -5667,6 +6424,7 @@ function noteApp() {
                     this.shareInfo.shared = true;
                     // Update the shared paths set
                     this._sharedNotePaths.add(this.currentNote);
+                    this._syncSharedNotePathsList();
                 } else {
                     const error = await response.json();
                     this.toast(this.t('share.error_creating', { error: error.detail || 'Unknown error' }), { type: 'error' });
@@ -5725,6 +6483,7 @@ function noteApp() {
                     this.shareInfo = { shared: false };
                     // Update the shared paths set
                     this._sharedNotePaths.delete(this.currentNote);
+                    this._syncSharedNotePathsList();
                 } else {
                     const error = await response.json();
                     this.toast(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }), { type: 'error' });
