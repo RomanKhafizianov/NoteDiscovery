@@ -7,35 +7,45 @@
     <!-- Primary Meta Tags -->
     <title>NoteDiscovery - Your Self-Hosted Knowledge Base</title>
     <meta name="title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta name="description" content="A lightweight, privacy-focused Markdown note-taking application with AI assistant integration (MCP), wikilinks, graph view, embedded drawing editor, LaTeX math, Mermaid diagrams, tags, templates, and code highlighting. Works with Claude, Cursor, and other AI tools. Self-hosted, free, and open source.">
-    <meta name="keywords" content="note taking, markdown editor, self-hosted, knowledge base, open source, privacy, notes app, docker, second brain, obsidian alternative, notion, evernote, onenote, latex, mermaid, diagrams, drawing, sketch, whiteboard, math equations, templates, tags, yaml frontmatter, AI assistant, MCP, model context protocol, Claude, Cursor, AI notes, AI knowledge base, AI-powered notes">
+    <meta name="description" content="Self-hosted Markdown knowledge base with AI assistant integration (MCP) for Claude & Cursor, wikilinks, graph view, drawing editor, LaTeX, Mermaid — free and open source.">
+    <meta name="keywords" content="markdown notes, self-hosted, knowledge base, MCP, Claude, Cursor, obsidian alternative, open source">
     <meta name="author" content="Gamosoft">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://www.notediscovery.com">
-    
+
+    <!-- Preconnect / DNS prefetch for performance -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
+    <link rel="dns-prefetch" href="https://ko-fi.com">
+    <link rel="dns-prefetch" href="https://www.pikapods.com">
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.notediscovery.com">
     <meta property="og:title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta property="og:description" content="AI-powered note-taking with MCP integration for Claude, Cursor & more. LaTeX math, Mermaid diagrams, drawing editor, graph view, wikilinks. Self-hosted, free, and open source.">
+    <meta property="og:description" content="AI-powered note-taking with MCP integration for Claude, Cursor & more. Wikilinks, graph view, drawing editor, LaTeX, Mermaid. Self-hosted, free, open source.">
     <meta property="og:image" content="https://www.notediscovery.com/og-image.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="NoteDiscovery — self-hosted Markdown knowledge base">
     <meta property="og:site_name" content="NoteDiscovery">
-    
+    <meta property="og:locale" content="en_US">
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@gamosoft">
     <meta name="twitter:creator" content="@gamosoft">
+    <meta name="twitter:url" content="https://www.notediscovery.com">
     <meta name="twitter:title" content="NoteDiscovery - Your Self-Hosted Knowledge Base">
-    <meta name="twitter:description" content="AI-powered note-taking with MCP integration for Claude & Cursor. LaTeX, Mermaid diagrams, drawing editor, graph view. Self-hosted, free, open source.">
+    <meta name="twitter:description" content="AI-powered note-taking with MCP for Claude & Cursor. Wikilinks, graph view, drawing editor, LaTeX, Mermaid. Self-hosted, free, open source.">
     <meta name="twitter:image" content="https://www.notediscovery.com/og-image.png">
-    <meta name="twitter:image:alt" content="NoteDiscovery - Self-hosted note-taking application interface">
-    
+    <meta name="twitter:image:alt" content="NoteDiscovery — self-hosted Markdown knowledge base">
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="logo.svg">
-    
+
     <!-- Theme Color -->
     <meta name="theme-color" content="#667eea">
     <style>
@@ -708,104 +718,104 @@
             <h2>See It in Action</h2>
             <p>A clean, intuitive interface designed for productivity and focus</p>
             <div class="screenshot-container">
-                <div class="carousel">
+                <div class="carousel" role="region" aria-roledescription="carousel" aria-label="Product screenshots">
                     <div class="carousel-track" id="carouselTrack">
                         <!-- Slide 1: Main Interface -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Editor View • Main Interface</span>
                                 </div>
-                                <img src="carousel-1.jpg" alt="NoteDiscovery Main Interface" loading="lazy">
+                                <img src="carousel-1.jpg" alt="NoteDiscovery editor showing Markdown preview and sidebar" width="1600" height="1000" fetchpriority="high" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 2: Search -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Smart Search • Find Anything Instantly</span>
                                 </div>
-                                <img src="carousel-2.jpg" alt="NoteDiscovery Smart Search" loading="lazy">
+                                                <img src="carousel-2.jpg" alt="NoteDiscovery smart full-text search results" width="1600" height="1000" loading="lazy" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 3: Tag Filter -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Tag Filtering • Organize by Topics</span>
                                 </div>
-                                <img src="carousel-3.jpg" alt="NoteDiscovery Tag Filtering" loading="lazy">
+                                                <img src="carousel-3.jpg" alt="NoteDiscovery tag filtering panel" width="1600" height="1000" loading="lazy" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 4: Outline -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Outline Panel • Navigate Headings</span>
                                 </div>
-                                <img src="carousel-4.jpg" alt="NoteDiscovery Outline Panel" loading="lazy">
+                                                <img src="carousel-4.jpg" alt="NoteDiscovery outline panel for heading navigation" width="1600" height="1000" loading="lazy" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 5: Card View -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Card View • Visual Organization</span>
                                 </div>
-                                <img src="carousel-5.jpg" alt="NoteDiscovery Card View" loading="lazy">
+                                                <img src="carousel-5.jpg" alt="NoteDiscovery card view homepage with recent notes" width="1600" height="1000" loading="lazy" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 6: Graph View -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Graph View • Visualize Connections</span>
                                 </div>
-                                <img src="carousel-6.jpg" alt="NoteDiscovery Graph View" loading="lazy">
+                                                <img src="carousel-6.jpg" alt="NoteDiscovery graph view of linked notes" width="1600" height="1000" loading="lazy" decoding="async">
                             </div>
                         </div>
                         <!-- Slide 7: Mobile Support -->
                         <div class="carousel-slide">
                             <div class="screenshot-frame">
                                 <div class="screenshot-window-bar">
-                                    <div class="screenshot-dots">
+                                    <div class="screenshot-dots" aria-hidden="true">
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                         <div class="screenshot-dot"></div>
                                     </div>
                                     <span class="screenshot-title">Mobile Ready • Notes On The Go</span>
                                 </div>
-                                <img src="carousel-7.png" alt="NoteDiscovery Mobile Support" loading="lazy">
+                                                <img src="carousel-7.png" alt="NoteDiscovery responsive mobile interface" width="800" height="1400" loading="lazy" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -861,7 +871,7 @@
             <div class="feature animate-on-scroll">
                 <div class="feature-icon">✏️</div>
                 <h3>Drawing editor</h3>
-                <p>Sketch and annotate as PNG files next to your notes—autosave, shapes, eraser, and eyedropper.</p>
+                <p>Sketch and annotate directly in the browser—PNG files saved alongside your notes with autosave, shapes, eraser, eyedropper, and undo/redo.</p>
             </div>
 
             <div class="feature animate-on-scroll">
@@ -999,7 +1009,7 @@
                     <span class="emoji">🌐</span>
                     <div class="text">
                         <strong>Public Sharing</strong>
-                        Share notes via link, even with auth enabled
+                        Share notes via link (works with auth on) and manage them from a dedicated Shared panel in the sidebar
                     </div>
                 </div>
 
@@ -1191,26 +1201,103 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "NoteDiscovery",
-      "description": "A lightweight, AI-powered Markdown note-taking application with MCP integration for Claude, Cursor and other AI assistants. Features LaTeX math, Mermaid diagrams, drawing editor, graph view, and code highlighting. Self-hosted Obsidian and Evernote alternative. Free and open source.",
+      "alternateName": "NoteDiscovery - Your Self-Hosted Knowledge Base",
+      "description": "A lightweight, AI-powered Markdown note-taking application with MCP integration for Claude, Cursor and other AI assistants. Features wikilinks, graph view, drawing editor, LaTeX math, Mermaid diagrams, tags, templates, and code highlighting. Self-hosted Obsidian/Evernote alternative. Free and open source.",
       "url": "https://www.notediscovery.com",
+      "image": "https://www.notediscovery.com/og-image.png",
+      "screenshot": [
+        "https://www.notediscovery.com/carousel-1.jpg",
+        "https://www.notediscovery.com/carousel-2.jpg",
+        "https://www.notediscovery.com/carousel-3.jpg",
+        "https://www.notediscovery.com/carousel-4.jpg",
+        "https://www.notediscovery.com/carousel-5.jpg",
+        "https://www.notediscovery.com/carousel-6.jpg",
+        "https://www.notediscovery.com/carousel-7.png"
+      ],
       "applicationCategory": "ProductivityApplication",
+      "applicationSubCategory": "NoteTakingApplication",
       "operatingSystem": "Linux, Windows, macOS",
-      "featureList": "AI assistant integration, MCP (Model Context Protocol), Claude integration, Cursor integration, Markdown editor, Wikilinks, Graph view, Drawing editor, LaTeX math equations, Mermaid diagrams, Code syntax highlighting, Dark mode, Plugin system, Internal links, Properties panel, HTML export, Full-text search, Self-hosted, Obsidian alternative, Evernote alternative, Notion alternative, Second brain, AI-powered notes",
+      "browserRequirements": "Requires a modern browser with JavaScript enabled",
+      "softwareVersion": "0.22.1",
+      "datePublished": "2025-01-15",
+      "dateModified": "2026-04-24",
+      "license": "https://opensource.org/licenses/MIT",
+      "downloadUrl": "https://github.com/gamosoft/NoteDiscovery",
+      "codeRepository": "https://github.com/gamosoft/NoteDiscovery",
+      "isAccessibleForFree": true,
+      "featureList": "AI assistant integration, MCP (Model Context Protocol), Claude integration, Cursor integration, Markdown editor, Wikilinks, Graph view, Drawing editor, LaTeX math equations, Mermaid diagrams, Code syntax highlighting, Dark mode, Plugin system, Internal links, Properties panel, HTML export, Full-text search, Public sharing with dedicated sidebar panel, Self-hosted, Obsidian alternative, Evernote alternative, Notion alternative, Second brain, AI-powered notes",
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "USD"
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
       },
       "author": {
         "@type": "Person",
-        "name": "Gamosoft"
+        "name": "Gamosoft",
+        "url": "https://github.com/gamosoft"
       },
-      "softwareVersion": "1.0",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "5",
-        "ratingCount": "1"
+      "publisher": {
+        "@type": "Organization",
+        "name": "Gamosoft",
+        "url": "https://github.com/gamosoft",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.notediscovery.com/logo.png",
+          "width": 512,
+          "height": 512
+        }
       }
+    }
+    </script>
+
+    <!-- FAQ Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is NoteDiscovery really free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. NoteDiscovery is free and open source under the MIT license. There are no paid tiers, no accounts, and no telemetry. You self-host it on your own server."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work with AI tools like Claude or Cursor?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. NoteDiscovery ships with a built-in MCP (Model Context Protocol) server, so AI assistants like Claude Desktop and Cursor can read and edit your notes directly, without any copy-pasting back and forth."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do my notes ever leave my computer?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Everything stays on the server you choose. There is no cloud sync and no third-party storage. The AI integration runs locally over MCP, and your notes are never sent anywhere unless you explicitly publish a share link."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I move my notes in or out easily?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Notes are plain Markdown files in normal folders. You can drop an existing Obsidian vault straight in, or open the same files in any other Markdown editor. There is no proprietary database to escape from."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to be a developer to install it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Not really. The recommended setup is a single Docker command, and there is a one-click PikaPods option if you would rather not touch the command line at all."
+          }
+        }
+      ]
     }
     </script>
 </body>
