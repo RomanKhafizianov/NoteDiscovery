@@ -219,6 +219,7 @@
     "width": "Grosor del trazo",
     "tool_eraser": "Borrador (pinta con el color de fondo)",
     "tool_eyedropper": "Cuentagotas — tomar color del lienzo",
+    "tool_fill": "Cubo de pintura — rellenar área conectada con color",
     "clear": "Borrar",
     "clear_hint": "Sustituir por imagen en blanco",
     "clear_title": "¿Sustituir por lienzo en blanco?",

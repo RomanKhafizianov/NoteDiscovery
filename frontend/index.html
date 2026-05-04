@@ -2792,6 +2792,19 @@
                         <button
                             type="button"
                             class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'fill' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'fill'"
+                            :title="t('drawing.tool_fill')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3l9 9-7.5 7.5a2.121 2.121 0 01-3 0L3 16.5a2.121 2.121 0 010-3L9 3z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.5h15" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.5c0 1-1.5 3-1.5 3s-1.5-2-1.5-3a1.5 1.5 0 113 0z" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
                             :class="!drawingClearEnabled() ? 'opacity-40 cursor-not-allowed' : ''"
                             :style="!drawingClearEnabled()
                                 ? 'border-color: var(--border-primary); color: var(--text-secondary);'
@@ -3125,7 +3138,9 @@
                                                 class="drawing-surface block"
                                                 :style="drawingTool === 'eyedropper'
                                                     ? 'touch-action: none; cursor: copy; background: #fff;'
-                                                    : 'touch-action: none; cursor: crosshair; background: #fff;'"
+                                                    : drawingTool === 'fill'
+                                                        ? 'touch-action: none; cursor: cell; background: #fff;'
+                                                        : 'touch-action: none; cursor: crosshair; background: #fff;'"
                                                 @pointerdown.prevent="drawingPointerDown($event)"
                                                 @pointermove.prevent="drawingPointerMove($event)"
                                                 @pointerup.prevent="drawingPointerUp($event)"

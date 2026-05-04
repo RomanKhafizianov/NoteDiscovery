@@ -3007,6 +3007,12 @@ function noteApp() {
         
         _drawingDrawOp(ctx, op) {
             if (!op) return;
+            if (op.type === 'fill') {
+                if (op.bitmap) {
+                    ctx.drawImage(op.bitmap, op.x, op.y);
+                }
+                return;
+            }
             if (op.type === 'stroke') {
                 const pts = op.points;
                 if (!pts || pts.length < 2) return;
@@ -3090,6 +3096,30 @@ function noteApp() {
                 this._drawingRaf = null;
                 this.drawingRedraw();
             });
+        },
+
+        /**
+         * Render the current drawing state (background + base image + all committed ops) to a
+         * fresh off-screen canvas at the given document size. Used by drawingSave() to produce
+         * a device-independent PNG, and by drawingFill() to sample the visible state at full
+         * doc resolution before flood-filling. Returns the canvas, or null if a 2D context
+         * can't be obtained.
+         */
+        _drawingRenderToOffscreen(docW, docH) {
+            const off = document.createElement('canvas');
+            off.width = docW;
+            off.height = docH;
+            const ctx = off.getContext('2d');
+            if (!ctx) return null;
+            ctx.fillStyle = CONFIG.DRAWING_BACKGROUND;
+            ctx.fillRect(0, 0, docW, docH);
+            if (this._drawingBaseImage && this._drawingBaseImage.complete) {
+                ctx.drawImage(this._drawingBaseImage, 0, 0, docW, docH);
+            }
+            for (const op of this.drawingOps) {
+                this._drawingDrawOp(ctx, op);
+            }
+            return off;
         },
         
         _drawingDisconnectResizeObserver() {
@@ -3205,6 +3235,8 @@ function noteApp() {
             const wrap = this.$refs.drawingCanvasWrap;
             if (!canvas || !wrap) return;
             this._drawingCtx = canvas.getContext('2d');
+            this._drawingDisposeOps(this.drawingOps);
+            this._drawingDisposeOps(this.drawingRedoStack);
             this.drawingOps = [];
             this.drawingRedoStack = [];
             this.drawingDraft = null;
@@ -3272,6 +3304,93 @@ function noteApp() {
             return `#${h(r)}${h(g)}${h(b)}`;
         },
 
+        _drawingHexToRgb(hex) {
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+            if (!m) return { r: 0, g: 0, b: 0 };
+            return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+        },
+
+        /**
+         * Release the native bitmap memory backing any 'fill' ops in `ops`. Safe to call on a
+         * mixed list (vector ops are skipped). Caller is responsible for clearing the array
+         * itself afterwards if needed.
+         */
+        _drawingDisposeOps(ops) {
+            if (!ops) return;
+            for (const op of ops) {
+                if (op && op.type === 'fill' && op.bitmap && typeof op.bitmap.close === 'function') {
+                    try { op.bitmap.close(); } catch (_) { /* ignore */ }
+                }
+            }
+        },
+
+        /**
+         * Iterative scanline flood fill on an ImageData buffer. Marks every pixel that is
+         * connected to (sx, sy) and matches the seed color exactly (4-way connectivity).
+         * Returns { mask, minX, minY, maxX, maxY } describing the filled region's bounding
+         * box, or null if the seed pixel is already the same color as the fill (so the caller
+         * can skip pushing a no-op onto the undo stack). Stack-based — never recurses, so a
+         * full-canvas fill at 1600×1000 stays well under any browser stack limit.
+         *
+         * Known optimization opportunities (revisit only if fills feel slow in practice):
+         *   1) Add a `tolerance` parameter to soften antialiasing halos around strokes.
+         *   2) Push only the start of each new connected run above/below the current span
+         *      instead of every cell — the textbook scanline optimization, ~3–5× faster.
+         *   3) Replace the Array<[x,y]> stack with a flat Int32Array + top pointer to remove
+         *      per-push allocations and cut GC pressure on large fills.
+         */
+        _drawingFlood(imgData, sx, sy, fillRGB) {
+            const { data, width: W, height: H } = imgData;
+            if (sx < 0 || sy < 0 || sx >= W || sy >= H) return null;
+            const seedIdx = (sy * W + sx) * 4;
+            const tR = data[seedIdx];
+            const tG = data[seedIdx + 1];
+            const tB = data[seedIdx + 2];
+            const tA = data[seedIdx + 3];
+            if (tR === fillRGB.r && tG === fillRGB.g && tB === fillRGB.b && tA === 255) {
+                return null;
+            }
+            const mask = new Uint8Array(W * H);
+            let minX = sx, minY = sy, maxX = sx, maxY = sy;
+            const matches = (px, py) => {
+                if (mask[py * W + px]) return false;
+                const i = (py * W + px) * 4;
+                return (
+                    data[i] === tR &&
+                    data[i + 1] === tG &&
+                    data[i + 2] === tB &&
+                    data[i + 3] === tA
+                );
+            };
+            const stack = [[sx, sy]];
+            while (stack.length) {
+                const [x, y] = stack.pop();
+                if (!matches(x, y)) continue;
+                let lx = x;
+                while (lx > 0 && matches(lx - 1, y)) lx--;
+                let rx = x;
+                while (rx < W - 1 && matches(rx + 1, y)) rx++;
+                for (let i = lx; i <= rx; i++) {
+                    mask[y * W + i] = 1;
+                }
+                if (lx < minX) minX = lx;
+                if (rx > maxX) maxX = rx;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+                if (y > 0) {
+                    for (let i = lx; i <= rx; i++) {
+                        if (matches(i, y - 1)) stack.push([i, y - 1]);
+                    }
+                }
+                if (y < H - 1) {
+                    for (let i = lx; i <= rx; i++) {
+                        if (matches(i, y + 1)) stack.push([i, y + 1]);
+                    }
+                }
+            }
+            return { mask, minX, minY, maxX, maxY };
+        },
+
         /**
          * Sample visible canvas color under the pointer; sets drawingColor.
          * Pointer coords come in document space; we map to device pixels via the canvas's
@@ -3292,6 +3411,75 @@ function noteApp() {
             iy = Math.max(0, Math.min(iy, canvas.height - 1));
             const pix = ctx.getImageData(ix, iy, 1, 1).data;
             this.drawingColor = this._drawingRgbToHex(pix[0], pix[1], pix[2]);
+        },
+
+        /**
+         * Paint-bucket flood fill at the click point. Renders the current state to a fresh
+         * off-screen canvas at document resolution, runs an iterative scanline flood fill from
+         * the clicked pixel, then stores only the cropped delta as a 'fill' op so the existing
+         * undo/redo machinery (which just shuffles ops between drawingOps and drawingRedoStack)
+         * works unchanged. The cropped ImageBitmap keeps memory proportional to the filled
+         * area, not the canvas area.
+         */
+        async drawingFill(e) {
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
+            const docW = this._drawingClampDim(this.drawingDocW, CONFIG.DRAWING_DEFAULT_DOC_W);
+            const docH = this._drawingClampDim(this.drawingDocH, CONFIG.DRAWING_DEFAULT_DOC_H);
+            if (!docW || !docH) return;
+            const { x, y } = this._drawingCanvasCoords(e);
+            const sx = Math.floor(x);
+            const sy = Math.floor(y);
+            if (sx < 0 || sy < 0 || sx >= docW || sy >= docH) return;
+            const off = this._drawingRenderToOffscreen(docW, docH);
+            if (!off) return;
+            const offCtx = off.getContext('2d');
+            if (!offCtx) return;
+            const imgData = offCtx.getImageData(0, 0, docW, docH);
+            const fillRGB = this._drawingHexToRgb(this.drawingColor);
+            const result = this._drawingFlood(imgData, sx, sy, fillRGB);
+            // Clicked on a pixel that's already the fill color (or out of bounds): no-op.
+            if (!result) return;
+            const w = result.maxX - result.minX + 1;
+            const h = result.maxY - result.minY + 1;
+            const overlay = new ImageData(w, h);
+            const ovData = overlay.data;
+            const { mask } = result;
+            for (let py = 0; py < h; py++) {
+                const srcRow = (result.minY + py) * docW + result.minX;
+                const dstRow = py * w * 4;
+                for (let px = 0; px < w; px++) {
+                    if (mask[srcRow + px]) {
+                        const di = dstRow + px * 4;
+                        ovData[di] = fillRGB.r;
+                        ovData[di + 1] = fillRGB.g;
+                        ovData[di + 2] = fillRGB.b;
+                        ovData[di + 3] = 255;
+                    }
+                }
+            }
+            let bitmap;
+            try {
+                bitmap = await createImageBitmap(overlay);
+            } catch (err) {
+                ErrorHandler.handle('drawing fill', err);
+                return;
+            }
+            // Drawing may have closed (navigation, clear) while createImageBitmap awaited.
+            if (this.currentMediaType !== 'drawing' || !this.currentMedia) {
+                try { bitmap.close(); } catch (_) { /* ignore */ }
+                return;
+            }
+            this._drawingCancelAutosave();
+            this._drawingDisposeOps(this.drawingRedoStack);
+            this.drawingRedoStack = [];
+            this.drawingOps.push({
+                type: 'fill',
+                x: result.minX,
+                y: result.minY,
+                bitmap,
+            });
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
         },
 
         /** True when there is a loaded bitmap and/or session strokes to clear away. */
@@ -3327,6 +3515,8 @@ function noteApp() {
             this.drawingHasRasterFromFile = false;
             this.drawingDraft = null;
             this.drawingIsPointerDown = false;
+            this._drawingDisposeOps(this.drawingOps);
+            this._drawingDisposeOps(this.drawingRedoStack);
             this.drawingOps = [];
             this.drawingRedoStack = [];
             this.drawingRedraw();
@@ -3343,11 +3533,17 @@ function noteApp() {
                 this.drawingSampleColor(e);
                 return;
             }
+            if (tool === 'fill') {
+                e.preventDefault();
+                this.drawingFill(e);
+                return;
+            }
             this._drawingCancelAutosave();
             canvas.setPointerCapture(e.pointerId);
             this._drawingPointerId = e.pointerId;
             const { x, y } = this._drawingCanvasCoords(e);
             this.drawingIsPointerDown = true;
+            this._drawingDisposeOps(this.drawingRedoStack);
             this.drawingRedoStack = [];
             const lw = this.drawingLineWidth;
             const color = tool === 'eraser' ? CONFIG.DRAWING_BACKGROUND : this.drawingColor;
@@ -3489,19 +3685,8 @@ function noteApp() {
                 // from a future "resize drawing" feature can never leak between saves.
                 const docW = this._drawingClampDim(this.drawingDocW, CONFIG.DRAWING_DEFAULT_DOC_W);
                 const docH = this._drawingClampDim(this.drawingDocH, CONFIG.DRAWING_DEFAULT_DOC_H);
-                const off = document.createElement('canvas');
-                off.width = docW;
-                off.height = docH;
-                const offCtx = off.getContext('2d');
-                if (!offCtx) return;
-                offCtx.fillStyle = CONFIG.DRAWING_BACKGROUND;
-                offCtx.fillRect(0, 0, docW, docH);
-                if (this._drawingBaseImage && this._drawingBaseImage.complete) {
-                    offCtx.drawImage(this._drawingBaseImage, 0, 0, docW, docH);
-                }
-                for (const op of this.drawingOps) {
-                    this._drawingDrawOp(offCtx, op);
-                }
+                const off = this._drawingRenderToOffscreen(docW, docH);
+                if (!off) return;
                 // Keep the visible canvas in sync (cosmetic; UI doesn't have to wait for the upload).
                 this.drawingRedraw();
                 const blob = await new Promise((resolve, reject) => {

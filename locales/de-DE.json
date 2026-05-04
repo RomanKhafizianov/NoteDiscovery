@@ -219,6 +219,7 @@
     "width": "Strichstärke",
     "tool_eraser": "Radierer (malt mit Hintergrundfarbe)",
     "tool_eyedropper": "Pipette — Farbe vom Bild aufnehmen",
+    "tool_fill": "Farbeimer — verbundenen Bereich mit Farbe füllen",
     "clear": "Leeren",
     "clear_hint": "Durch leeres Bild ersetzen",
     "clear_title": "Durch leere Leinwand ersetzen?",

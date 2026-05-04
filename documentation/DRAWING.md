@@ -8,7 +8,7 @@ Use the **+ New** menu in the sidebar and choose **New drawing**. The app create
 
 ## Editor overview
 
-- **Tools** — Freehand pencil, straight line, rectangle, and ellipse; **eraser** (paints with the canvas background color); **eyedropper** to sample a color from the canvas.
+- **Tools** — Freehand pencil, straight line, rectangle, and ellipse; **eraser** (paints with the canvas background color); **eyedropper** to sample a color from the canvas; **paint bucket** to flood-fill a connected area with the current color (undo/redo supported like any other stroke).
 - **Color & stroke width** — Color picker and width slider appear on the same toolbar as the tools.
 - **Undo / redo** — Use the main toolbar buttons or **Ctrl+Z** / **Ctrl+Y** (same shortcuts as the note editor; they apply to strokes while a drawing is open).
 - **Clear** — Replaces the current session with a **blank white image** and schedules a save (see [FEATURES.md](FEATURES.md) for the exact behavior and confirmation).

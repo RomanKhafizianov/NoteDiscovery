@@ -219,6 +219,7 @@
     "width": "Vonalvastagság",
     "tool_eraser": "Radír (háttérszínnel fest)",
     "tool_eyedropper": "Pipetta — szín mintavétele a vászonról",
+    "tool_fill": "Festékesvödör — összefüggő terület kitöltése színnel",
     "clear": "Törlés",
     "clear_hint": "Üres képre cserélés",
     "clear_title": "Lecseréled üres vászonra?",

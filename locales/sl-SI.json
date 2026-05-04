@@ -218,6 +218,7 @@
     "width": "Debelina črte",
     "tool_eraser": "Radirka (riše z barvo ozadja)",
     "tool_eyedropper": "Kapalka — vzemi barvo s platna",
+    "tool_fill": "Vedro za barvanje — zapolni povezano območje z barvo",
     "clear": "Počisti",
     "clear_hint": "Zamenjaj s prazno sliko",
     "clear_title": "Zamenjaj s praznim platnom?",

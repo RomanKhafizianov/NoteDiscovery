@@ -218,6 +218,7 @@
     "width": "Spessore tratto",
     "tool_eraser": "Gomma (disegna col colore di sfondo)",
     "tool_eyedropper": "Contagocce — prendi un colore dal canvas",
+    "tool_fill": "Secchiello — riempi l'area connessa con il colore",
     "clear": "Svuota",
     "clear_hint": "Sostituisci con immagine vuota",
     "clear_title": "Sostituire con tela bianca?",

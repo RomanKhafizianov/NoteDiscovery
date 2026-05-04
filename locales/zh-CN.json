@@ -218,6 +218,7 @@
     "width": "线条粗细",
     "tool_eraser": "橡皮擦（使用背景色绘制）",
     "tool_eyedropper": "吸管 — 从画布取色",
+    "tool_fill": "油漆桶 — 用颜色填充连通区域",
     "clear": "清除",
     "clear_hint": "替换为空白图像",
     "clear_title": "替换为空白画布？",

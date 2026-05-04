@@ -218,6 +218,7 @@
     "width": "Stroke width",
     "tool_eraser": "Eraser (paints with background colour)",
     "tool_eyedropper": "Eyedropper — pick a colour from the canvas",
+    "tool_fill": "Paint bucket — fill connected area with colour",
     "clear": "Clear",
     "clear_hint": "Replace with a blank image",
     "clear_title": "Replace with a blank canvas?",
