@@ -6,6 +6,7 @@
 - **Rich markdown editor** with live preview
 - **Three view modes**: Edit, Split, Preview
 - **Auto-save** - Never lose your work
+- **Resume where you left off** - Editor scroll position is remembered per note within the session, so switching back to a long note returns you to the same spot
 - **Undo/Redo** - Ctrl+Z / Ctrl+Y support
 - **Note templates** - Create notes from templates with dynamic placeholders
 - **Syntax highlighting** for code blocks (50+ languages)

@@ -365,6 +365,11 @@ function noteApp() {
         maxHistorySize: CONFIG.MAX_UNDO_HISTORY,
         isUndoRedo: false,
         hasPendingHistoryChanges: false,
+
+        // Per-note editor scroll position, keyed by note path. Captured when leaving a note in
+        // loadNote() and restored when returning to the same note in the same session. Stays
+        // in memory only — cleared on page reload, intentionally (matches typical editor UX).
+        noteScrollPositions: {},
         
         // Stats plugin state
         statsPluginEnabled: false,
@@ -730,9 +735,15 @@ function noteApp() {
             // Watch view mode changes and auto-save
             this.$watch('viewMode', (newValue) => {
                 this.saveViewMode();
-                // Scroll to top when switching modes
+                // Re-apply the saved scroll position to whichever pane just became visible.
+                // x-show toggles display:none/block; an overflow:auto element resets its
+                // scrollTop on that transition, so the previously-hidden pane lands at 0
+                // unless we explicitly restore. $nextTick waits for Alpine to flush the
+                // x-show change, the rAF then waits for layout so scrollHeight is valid.
                 this.$nextTick(() => {
-                    this.scrollToTop();
+                    requestAnimationFrame(() => {
+                        this._restoreNoteScroll();
+                    });
                 });
             });
             
@@ -1151,7 +1162,12 @@ function noteApp() {
             }, 50); // 50ms debounce
         },
         
-        // Sync overlay scroll with textarea
+        // Sync overlay scroll with textarea. Per-note scroll restoration is captured separately
+        // inside the _editorScrollHandler / _previewScrollHandler in setupScrollSync(), where
+        // the existing isScrolling guard ensures we only record user-driven scrolls (not the
+        // programmatic mirrors between panes), and where we have access to the pane the user
+        // actually scrolled — important because the textarea's scroll event never fires in
+        // preview-only mode (the textarea is display:none).
         syncOverlayScroll() {
             const textarea = document.getElementById('note-editor');
             const overlay = document.getElementById('syntax-overlay');
@@ -3980,7 +3996,7 @@ function noteApp() {
             try {
                 // Close mobile sidebar when a note is selected
                 this.mobileSidebarOpen = false;
-                
+
                 const response = await fetch(`/api/notes/${notePath}`);
                 
                 // Check if note exists
@@ -4001,13 +4017,17 @@ function noteApp() {
                 }
                 
                 const data = await response.json();
-                
+
                 this.currentNote = notePath;
                 this._lastRenderedContent = ''; // Clear render cache for new note
                 this._lastRenderedNote = '';
                 this._cachedRenderedHTML = '';
                 this._initializedVideoSources = new Set(); // Clear video cache for new note
                 this.noteContent = data.content;
+                // Note: scroll restoration happens later in the post-$nextTick block below
+                // (where the existing scrollToTop call used to live), via _restoreNoteScroll().
+                // Doing it there means a single, unified restore path instead of two racing
+                // ones. See the post-$nextTick block for the full timing rationale.
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
                 if (this.currentMediaType === 'drawing') {
                     this._drawingDisconnectResizeObserver();
@@ -4078,8 +4098,19 @@ function noteApp() {
                     this.$nextTick(() => {
                         this.refreshDOMCache();
                         this.setupScrollSync();
-                        this.scrollToTop();
-                        
+                        // First pass: editor is ready (textarea reflows synchronously). Preview
+                        // may still have scrollHeight=0 because the markdown render pipeline
+                        // (marked + MathJax + Mermaid + syntax highlighting) is async.
+                        this._restoreNoteScroll();
+                        // Second pass on a later frame: by now the preview pane has typically
+                        // rendered and laid out, so its scrollTop write actually sticks. The
+                        // helper is idempotent — re-running for the editor is a no-op.
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                this._restoreNoteScroll();
+                            });
+                        });
+
                         // Apply or clear search highlighting
                         if (searchQuery) {
                             // Pass true to focus editor when loading from search result
@@ -5876,7 +5907,15 @@ function noteApp() {
                 
                 const scrollPercentage = editor.scrollTop / scrollableHeight;
                 const previewScrollableHeight = preview.scrollHeight - preview.clientHeight;
-                
+
+                // Remember the user-driven scroll position as a percentage so it restores
+                // correctly across view modes (edit / split / preview) where editor and
+                // preview have wildly different scrollHeights. Saving after the isScrolling
+                // guard means we only record real user input, never the programmatic mirror.
+                if (this.currentNote) {
+                    this.noteScrollPositions[this.currentNote] = scrollPercentage;
+                }
+
                 if (previewScrollableHeight > 0) {
                     this.isScrolling = true;
                     preview.scrollTop = scrollPercentage * previewScrollableHeight;
@@ -5894,7 +5933,13 @@ function noteApp() {
                 
                 const scrollPercentage = preview.scrollTop / scrollableHeight;
                 const editorScrollableHeight = editor.scrollHeight - editor.clientHeight;
-                
+
+                // Capture preview-driven scrolls too — this is the only path that fires in
+                // preview-only mode, where the textarea is display:none and never scrolls.
+                if (this.currentNote) {
+                    this.noteScrollPositions[this.currentNote] = scrollPercentage;
+                }
+
                 if (editorScrollableHeight > 0) {
                     this.isScrolling = true;
                     editor.scrollTop = scrollPercentage * editorScrollableHeight;
@@ -6387,6 +6432,40 @@ function noteApp() {
             localStorage.setItem('editorWidth', this.editorWidth.toString());
         },
         
+        /**
+         * Restore the saved scroll percentage for the current note in both panes. Called from
+         * loadNote() (after the new content has been laid out) and from the viewMode watcher
+         * (browsers reset scrollTop to 0 when an overflow:auto element transitions from
+         * display:none back to display:block via x-show, so newly-visible panes need
+         * re-positioning). Storing/applying a percentage means the same logical position is
+         * preserved across mode toggles even though editor and preview have different
+         * scrollHeights. Idempotent: safe to call multiple times. The isScrolling flag
+         * prevents the existing scroll-sync handlers from echoing these programmatic writes.
+         */
+        _restoreNoteScroll() {
+            if (!this.currentNote || this.currentMedia) return;
+            const pct = this.noteScrollPositions[this.currentNote] || 0;
+            if (!this._domCache.editor || !this._domCache.previewContainer) {
+                this.refreshDOMCache();
+            }
+            const editor = this._domCache.editor;
+            const preview = this._domCache.previewContainer;
+            if (editor) {
+                const scrollable = editor.scrollHeight - editor.clientHeight;
+                if (scrollable > 0) {
+                    this.isScrolling = true;
+                    editor.scrollTop = pct * scrollable;
+                }
+            }
+            if (preview) {
+                const scrollable = preview.scrollHeight - preview.clientHeight;
+                if (scrollable > 0) {
+                    this.isScrolling = true;
+                    preview.scrollTop = pct * scrollable;
+                }
+            }
+        },
+
         // Scroll to top of editor and preview
         scrollToTop() {
             // Disable scroll sync temporarily to prevent interference
