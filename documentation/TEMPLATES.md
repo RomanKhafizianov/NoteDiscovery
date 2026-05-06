@@ -46,6 +46,39 @@ Templates support dynamic placeholders that are replaced when you create a note:
 | `{{title}}` | Note name (without .md) | `Weekly Meeting` |
 | `{{folder}}` | Parent folder name | `Projects` |
 
+### Custom date/time formats
+
+Need a different format than the defaults above? Any of the three
+date/time placeholders — `{{date}}`, `{{time}}`, `{{datetime}}` — accepts
+an optional `:FORMAT` suffix to override its default format. `FORMAT` is
+any [Python `strftime()` format string](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes),
+so anything `strftime` can do, your template can do.
+
+> **One rule to remember:** pick the prefix whose default already covers
+> the components you want to format. Use `{{date:…}}` for date-only
+> formats, `{{time:…}}` for time-only formats, and `{{datetime:…}}` when
+> you need both.
+
+#### Common recipes
+
+| Template | Result | Use case |
+|---|---|---|
+| `{{date:%Y%m%d}}` | `20251126` | Date stamp for filenames |
+| `{{time:%H%M%S}}` | `143045` | Time stamp for filenames |
+| `{{datetime:%Y%m%d%H%M%S}}` | `20251126143045` | Sortable, filename-safe full stamp |
+| `{{datetime:%Y%m%dT%H%M%S}}` | `20251126T143045` | ISO-8601 basic, no separators |
+| `{{datetime:%Y-%m-%dT%H:%M:%S}}` | `2025-11-26T14:30:45` | ISO-8601 extended |
+| `{{date:%d/%m/%Y}}` | `26/11/2025` | European-style date |
+| `{{date:%m/%d/%Y}}` | `11/26/2025` | US-style date |
+| `{{date:%A}}` | `Wednesday` | Full weekday name |
+| `{{date:%a}}` | `Wed` | Short weekday name |
+| `{{date:%B}}` | `November` | Full month name |
+| `{{date:%V}}` | `48` | ISO week number |
+| `{{date:%j}}` | `330` | Day of year (1–366) |
+
+> Invalid format strings (typos) are left in the output unchanged so the
+> mistake is visible rather than silently swallowed.
+
 ### Example Template
 
 ```markdown
