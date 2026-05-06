@@ -703,17 +703,34 @@
             to { opacity: 1; }
         }
         
-        /* Syntax highlight colors using theme variables */
-        .syntax-overlay .md-heading { color: var(--accent-primary); font-weight: 600; }
-        .syntax-overlay .md-bold { color: var(--text-primary); font-weight: 700; }
-        .syntax-overlay .md-italic { color: var(--text-secondary); font-style: italic; }
-        .syntax-overlay .md-code { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
-        .syntax-overlay .md-link { color: var(--link-color, var(--accent-primary)); }
-        .syntax-overlay .md-link-url { color: var(--text-tertiary); }
-        .syntax-overlay .md-list { color: var(--accent-primary); }
-        .syntax-overlay .md-blockquote { color: var(--text-tertiary); font-style: italic; }
-        .syntax-overlay .md-hr { color: var(--border-primary); }
-        .syntax-overlay .md-wikilink { color: var(--link-internal, var(--accent-primary)); }
+        /*
+         * Syntax highlight colors — COLOR-ONLY (issue #212).
+         *
+         * Why no font-weight or font-style?
+         *   The overlay sits on top of a transparent <textarea>. Macs render
+         *   bold/italic monospace glyphs (Monaco, Menlo) with slightly
+         *   different advance widths than regular glyphs, which shifts the
+         *   overlay characters out of alignment with the textarea caret.
+         *   Color-only highlighting (Cursor / One Dark Pro / Monokai style)
+         *   keeps every glyph at the same width and the caret perfectly
+         *   aligned on every platform.
+         *
+         * Each token uses a dedicated CSS variable (--syntax-*) with a
+         * fallback chained to an existing semantic theme token, so all
+         * existing themes keep working with sensible defaults; individual
+         * themes can override --syntax-bold/--syntax-italic/--syntax-code
+         * for fine-tuning.
+         */
+        .syntax-overlay .md-heading   { color: var(--syntax-heading, var(--accent-primary)); }
+        .syntax-overlay .md-bold      { color: var(--syntax-bold, var(--warning)); }
+        .syntax-overlay .md-italic    { color: var(--syntax-italic, var(--accent-primary)); }
+        .syntax-overlay .md-code      { color: var(--syntax-code, var(--error)); background: var(--bg-tertiary); border-radius: 2px; }
+        .syntax-overlay .md-link      { color: var(--syntax-link, var(--link-color, var(--accent-primary))); }
+        .syntax-overlay .md-link-url  { color: var(--text-tertiary); }
+        .syntax-overlay .md-list      { color: var(--syntax-list, var(--accent-primary)); }
+        .syntax-overlay .md-blockquote{ color: var(--syntax-blockquote, var(--text-tertiary)); }
+        .syntax-overlay .md-hr        { color: var(--border-primary); }
+        .syntax-overlay .md-wikilink  { color: var(--syntax-wikilink, var(--link-internal, var(--accent-primary))); }
         .syntax-overlay .md-frontmatter { color: var(--text-tertiary); }
         .syntax-overlay .md-codeblock { color: var(--text-secondary); background: var(--bg-tertiary); }
         

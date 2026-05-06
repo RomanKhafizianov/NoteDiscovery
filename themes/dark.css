@@ -26,7 +26,17 @@
   --success: #34d399;
   --error: #f87171;
   --warning: #fbbf24;
-  
+
+  /* Markdown syntax-highlight colors (color-only, no font-weight / italic) */
+  --syntax-heading: #60a5fa; /* blue */
+  --syntax-bold:    #fbbf24; /* amber/yellow — Cursor-style */
+  --syntax-italic:  #c084fc; /* violet */
+  --syntax-code:    #f87171; /* salmon red */
+  --syntax-link:    #60a5fa;
+  --syntax-list:    #f59e0b; /* warm orange — stands out at line start */
+  --syntax-wikilink:#a5b4fc; /* indigo */
+  --syntax-blockquote: #9ca3af; /* muted gray */
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
