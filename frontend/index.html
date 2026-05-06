@@ -715,22 +715,30 @@
          *   keeps every glyph at the same width and the caret perfectly
          *   aligned on every platform.
          *
-         * Each token uses a dedicated CSS variable (--syntax-*) with a
-         * fallback chained to an existing semantic theme token, so all
-         * existing themes keep working with sensible defaults; individual
-         * themes can override --syntax-bold/--syntax-italic/--syntax-code
-         * for fine-tuning.
+         * Token → variable mapping:
+         *   Almost every token uses a semantic theme variable directly
+         *   (--accent-primary, --text-tertiary, --border-primary), so
+         *   adding a new theme requires zero syntax-highlight work — the
+         *   theme's own brand colour automatically propagates.
+         *
+         *   The two exceptions are bold and italic, which have no natural
+         *   semantic home (the originals relied on font-weight/style which
+         *   we can no longer use). They have universal warm/cool defaults
+         *   (yellow/cyan) and themes only override --syntax-bold or
+         *   --syntax-italic when the default would collide with their
+         *   accent (e.g. Cobalt2 yellow accent) or needs a deeper variant
+         *   for a light background.
          */
-        .syntax-overlay .md-heading   { color: var(--syntax-heading, var(--accent-primary)); }
-        .syntax-overlay .md-bold      { color: var(--syntax-bold, var(--warning)); }
-        .syntax-overlay .md-italic    { color: var(--syntax-italic, var(--accent-primary)); }
-        .syntax-overlay .md-code      { color: var(--syntax-code, var(--error)); background: var(--bg-tertiary); border-radius: 2px; }
-        .syntax-overlay .md-link      { color: var(--syntax-link, var(--link-color, var(--accent-primary))); }
+        .syntax-overlay .md-heading   { color: var(--accent-primary); }
+        .syntax-overlay .md-bold      { color: var(--syntax-bold, #fbbf24); }
+        .syntax-overlay .md-italic    { color: var(--syntax-italic, #22d3ee); }
+        .syntax-overlay .md-code      { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
+        .syntax-overlay .md-link      { color: var(--link-color, var(--accent-primary)); }
         .syntax-overlay .md-link-url  { color: var(--text-tertiary); }
-        .syntax-overlay .md-list      { color: var(--syntax-list, var(--accent-primary)); }
-        .syntax-overlay .md-blockquote{ color: var(--syntax-blockquote, var(--text-tertiary)); }
+        .syntax-overlay .md-list      { color: var(--accent-primary); }
+        .syntax-overlay .md-blockquote{ color: var(--text-tertiary); }
         .syntax-overlay .md-hr        { color: var(--border-primary); }
-        .syntax-overlay .md-wikilink  { color: var(--syntax-wikilink, var(--link-internal, var(--accent-primary))); }
+        .syntax-overlay .md-wikilink  { color: var(--link-internal, var(--accent-primary)); }
         .syntax-overlay .md-frontmatter { color: var(--text-tertiary); }
         .syntax-overlay .md-codeblock { color: var(--text-secondary); background: var(--bg-tertiary); }
         

@@ -27,15 +27,9 @@
   --error: #ef4444;
   --warning: #f59e0b;
 
-  /* Markdown syntax-highlight colors (color-only, no font-weight / italic) */
-  --syntax-heading: #2563eb; /* deep blue */
-  --syntax-bold:    #b45309; /* deep amber — readable on white */
-  --syntax-italic:  #7c3aed; /* deep violet */
-  --syntax-code:    #be123c; /* crimson */
-  --syntax-link:    #2563eb;
-  --syntax-list:    #c2410c; /* burnt orange */
-  --syntax-wikilink:#4f46e5; /* indigo */
-  --syntax-blockquote: #6b7280; /* slate */
+  /* Bold/italic overrides: deeper variants for readability on light background. */
+  --syntax-bold:   #b45309; /* deep amber */
+  --syntax-italic: #0891b2; /* deep cyan */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
