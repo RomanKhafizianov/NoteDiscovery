@@ -48,7 +48,7 @@
 
 Sketch beside your notes without leaving NoteDiscovery. **+ New → New drawing** creates a **`drawing-{timestamp}.png`** next to your markdown files; those open in the drawing viewer, other images open as usual.
 
-- **Tools** — Pencil, lines, rectangles, ellipses, eraser, eyedropper, clear; color and stroke width on the toolbar; undo/redo while you work.
+- **Tools** — Pencil, lines, rectangles, ellipses, eraser, eyedropper, paint bucket, text labels, clear; color and stroke width on the toolbar; undo/redo while you work.
 - **Saving** — Autosave and **Ctrl+S** / **Cmd+S** like the rest of the app.
 - **Files** — Plain PNGs in your vault—link them in notes and back them up with everything else.
 
