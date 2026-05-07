@@ -708,6 +708,7 @@ Creates a new note from a template with placeholder replacement.
 - `{{day}}` - Current day (DD)
 - `{{title}}` - Note name without extension
 - `{{folder}}` - Parent folder name
+- `{{date:FMT}}` / `{{time:FMT}}` / `{{datetime:FMT}}` - Custom [`strftime`](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) format (e.g. `{{datetime:%Y%m%d%H%M%S}}` → `20251126153045`, `{{date:%A}}` → `Wednesday`); invalid format strings are left verbatim. See [TEMPLATES.md](TEMPLATES.md) for a recipe table.
 
 **Response:**
 ```json
