@@ -29,10 +29,9 @@
     --error: #e51400;
     --warning: #f6a623;
 
-    /* Bold/italic overrides: deeper variants for readability on light background,
-       picked to match VS Code Light+ token colours. */
+    /* Bold + italic — VS brown-amber + deeper VS blue (cohesive with blue heading on white) */
     --syntax-bold:   #795e26; /* VS function brown-amber */
-    --syntax-italic: #267f99; /* VS type teal */
+    --syntax-italic: #1e40af; /* deeper blue — same family as heading, distinct by depth */
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.08);

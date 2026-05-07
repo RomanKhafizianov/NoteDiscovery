@@ -703,35 +703,10 @@
             to { opacity: 1; }
         }
         
-        /*
-         * Syntax highlight colors — COLOR-ONLY (issue #212).
-         *
-         * Why no font-weight or font-style?
-         *   The overlay sits on top of a transparent <textarea>. Macs render
-         *   bold/italic monospace glyphs (Monaco, Menlo) with slightly
-         *   different advance widths than regular glyphs, which shifts the
-         *   overlay characters out of alignment with the textarea caret.
-         *   Color-only highlighting (Cursor / One Dark Pro / Monokai style)
-         *   keeps every glyph at the same width and the caret perfectly
-         *   aligned on every platform.
-         *
-         * Token → variable mapping:
-         *   Almost every token uses a semantic theme variable directly
-         *   (--accent-primary, --text-tertiary, --border-primary), so
-         *   adding a new theme requires zero syntax-highlight work — the
-         *   theme's own brand colour automatically propagates.
-         *
-         *   The two exceptions are bold and italic, which have no natural
-         *   semantic home (the originals relied on font-weight/style which
-         *   we can no longer use). They have universal warm/cool defaults
-         *   (yellow/cyan) and themes only override --syntax-bold or
-         *   --syntax-italic when the default would collide with their
-         *   accent (e.g. Cobalt2 yellow accent) or needs a deeper variant
-         *   for a light background.
-         */
+        /* Syntax highlight colors (color-only — see issue #212) */
         .syntax-overlay .md-heading   { color: var(--accent-primary); }
         .syntax-overlay .md-bold      { color: var(--syntax-bold, #fbbf24); }
-        .syntax-overlay .md-italic    { color: var(--syntax-italic, #22d3ee); }
+        .syntax-overlay .md-italic    { color: var(--syntax-italic, #a78bfa); }
         .syntax-overlay .md-code      { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
         .syntax-overlay .md-link      { color: var(--link-color, var(--accent-primary)); }
         .syntax-overlay .md-link-url  { color: var(--text-tertiary); }

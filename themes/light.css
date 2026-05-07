@@ -27,9 +27,9 @@
   --error: #ef4444;
   --warning: #f59e0b;
 
-  /* Bold/italic overrides: deeper variants for readability on light background. */
+  /* Bold + italic — warm emphasis + deeper primary for italic (cohesive on white) */
   --syntax-bold:   #b45309; /* deep amber */
-  --syntax-italic: #0891b2; /* deep cyan */
+  --syntax-italic: #1d4ed8; /* deeper blue — same family as heading, distinct by depth */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);

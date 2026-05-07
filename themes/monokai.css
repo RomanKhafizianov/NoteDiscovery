@@ -29,8 +29,9 @@
     --error: #f92672;
     --warning: #e6db74;
 
-    /* Italic override: accent is cyan, so default cyan italic would collide. */
-    --syntax-italic: #ae81ff; /* Monokai purple — cool but distinct */
+    /* Bold + italic — Monokai yellow + lighter cyan (cohesive with cyan heading) */
+    --syntax-bold:   #e6db74; /* Monokai yellow (strings) */
+    --syntax-italic: #a5f3fc; /* lighter cyan — same family as heading */
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
