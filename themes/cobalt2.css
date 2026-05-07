@@ -28,7 +28,13 @@
     --success: #3ad900;
     --error: #ff0088;
     --warning: #ffc600;
-    
+
+    /* Bold + italic — Cobalt2 native orange + cyan.
+       Heading is yellow (warm), so italic uses Cobalt2's signature cyan
+       instead of "lighter primary" to preserve warm/cool hierarchy. */
+    --syntax-bold:   #ff9d00; /* cobalt2 orange */
+    --syntax-italic: #9effff; /* cobalt2 cyan */
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);

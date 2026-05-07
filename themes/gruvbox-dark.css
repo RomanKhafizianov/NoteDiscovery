@@ -28,7 +28,11 @@
     --success: #b8bb26; /* Green */
     --error: #fb4934;   /* Red */
     --warning: #fabd2f; /* Yellow */
-    
+
+    /* Bold + italic — Gruvbox yellow + lighter peach (cohesive with orange heading) */
+    --syntax-bold:   #fabd2f; /* gruvbox yellow */
+    --syntax-italic: #fdba74; /* lighter peach — same family as orange heading */
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);

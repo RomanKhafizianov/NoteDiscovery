@@ -703,17 +703,17 @@
             to { opacity: 1; }
         }
         
-        /* Syntax highlight colors using theme variables */
-        .syntax-overlay .md-heading { color: var(--accent-primary); font-weight: 600; }
-        .syntax-overlay .md-bold { color: var(--text-primary); font-weight: 700; }
-        .syntax-overlay .md-italic { color: var(--text-secondary); font-style: italic; }
-        .syntax-overlay .md-code { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
-        .syntax-overlay .md-link { color: var(--link-color, var(--accent-primary)); }
-        .syntax-overlay .md-link-url { color: var(--text-tertiary); }
-        .syntax-overlay .md-list { color: var(--accent-primary); }
-        .syntax-overlay .md-blockquote { color: var(--text-tertiary); font-style: italic; }
-        .syntax-overlay .md-hr { color: var(--border-primary); }
-        .syntax-overlay .md-wikilink { color: var(--link-internal, var(--accent-primary)); }
+        /* Syntax highlight colors (color-only — see issue #212) */
+        .syntax-overlay .md-heading   { color: var(--accent-primary); }
+        .syntax-overlay .md-bold      { color: var(--syntax-bold, #fbbf24); }
+        .syntax-overlay .md-italic    { color: var(--syntax-italic, #a78bfa); }
+        .syntax-overlay .md-code      { color: var(--accent-secondary, var(--accent-primary)); background: var(--bg-tertiary); border-radius: 2px; }
+        .syntax-overlay .md-link      { color: var(--link-color, var(--accent-primary)); }
+        .syntax-overlay .md-link-url  { color: var(--text-tertiary); }
+        .syntax-overlay .md-list      { color: var(--accent-primary); }
+        .syntax-overlay .md-blockquote{ color: var(--text-tertiary); }
+        .syntax-overlay .md-hr        { color: var(--border-primary); }
+        .syntax-overlay .md-wikilink  { color: var(--link-internal, var(--accent-primary)); }
         .syntax-overlay .md-frontmatter { color: var(--text-tertiary); }
         .syntax-overlay .md-codeblock { color: var(--text-secondary); background: var(--bg-tertiary); }
         

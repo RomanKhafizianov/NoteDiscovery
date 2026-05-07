@@ -287,6 +287,7 @@ Create notes from reusable templates with dynamic placeholder replacement.
 - `{{day}}` - Current day (DD)
 - `{{title}}` - Note name (without extension)
 - `{{folder}}` - Parent folder name
+- `{{date:FORMAT}}` / `{{time:FORMAT}}` / `{{datetime:FORMAT}}` - Custom format using any Python `strftime()` string, e.g. `{{datetime:%Y%m%d%H%M%S}}` → `20251126143045`. See [Templates](TEMPLATES.md#custom-datetime-formats) for the full recipe list.
 
 ### Example Template
 ```markdown

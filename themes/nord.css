@@ -28,7 +28,11 @@
     --success: #a3be8c;
     --error: #bf616a;
     --warning: #ebcb8b;
-    
+
+    /* Bold + italic — aurora yellow + lighter frost (cohesive with frost-cyan heading) */
+    --syntax-bold:   #ebcb8b; /* nord13 — aurora yellow */
+    --syntax-italic: #bae6fd; /* lighter frost — same family as heading, distinct by luminance */
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);

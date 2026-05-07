@@ -28,7 +28,11 @@
     --success: #4caf50;
     --error: #ff5252;
     --warning: #ffb74d;
-    
+
+    /* Bold + italic — warm amber + lighter Vue green (cohesive with green heading) */
+    --syntax-bold:   #ffb74d; /* warm amber */
+    --syntax-italic: #86efac; /* lighter green — same family as heading, distinct by luminance */
+
     /* Shadows - deeper for high contrast */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.7);

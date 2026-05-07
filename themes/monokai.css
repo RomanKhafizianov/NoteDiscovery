@@ -28,7 +28,11 @@
     --success: #a6e22e;
     --error: #f92672;
     --warning: #e6db74;
-    
+
+    /* Bold + italic — Monokai yellow + lighter cyan (cohesive with cyan heading) */
+    --syntax-bold:   #e6db74; /* Monokai yellow (strings) */
+    --syntax-italic: #a5f3fc; /* lighter cyan — same family as heading */
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);

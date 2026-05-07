@@ -964,31 +964,64 @@ def get_template_content(notes_dir: str, template_name: str) -> Optional[str]:
         return None
 
 
+# Matches custom strftime placeholders like {{date:%Y%m%d}} or {{time:%H%M%S}}.
+# The three prefixes mirror the bare {{date}}, {{time}}, {{datetime}} placeholders;
+# disallowing '{' and '}' inside the format keeps parsing unambiguous and
+# guarantees we never swallow an adjacent placeholder.
+_STRFTIME_PLACEHOLDER_RE = re.compile(r'\{\{(date|time|datetime):([^{}]+)\}\}')
+
+
 def apply_template_placeholders(content: str, note_path: str) -> str:
     """
     Replace template placeholders with actual values.
-    
-    Supported placeholders:
+
+    Built-in named placeholders (fixed default formats):
         {{date}}       - Current date (YYYY-MM-DD)
         {{time}}       - Current time (HH:MM:SS)
         {{datetime}}   - Current datetime (YYYY-MM-DD HH:MM:SS)
-        {{timestamp}}  - Unix timestamp
+        {{timestamp}}  - Unix timestamp (seconds)
         {{year}}       - Current year (YYYY)
         {{month}}      - Current month (MM)
         {{day}}        - Current day (DD)
         {{title}}      - Note name without extension
         {{folder}}     - Parent folder name
-    
+
+    Custom date/time formats (strftime escape hatch):
+        {{date:FMT}}, {{time:FMT}}, {{datetime:FMT}}
+
+        Any of the three date/time placeholders above also accepts an
+        optional ":FMT" suffix where FMT is a Python strftime() format
+        string. Pick the prefix whose default format covers the same
+        components you want to format. Examples:
+
+            {{datetime:%Y%m%d%H%M%S}}  -> 20260506154200  (filename-safe stamp)
+            {{date:%d/%m/%Y}}          -> 06/05/2026      (European date)
+            {{date:%A}}                -> Wednesday       (full weekday name)
+            {{time:%H%M%S}}            -> 154200          (compact time)
+            {{date:%V}}                -> 19              (ISO week number)
+
+        Invalid format strings are left in the output unchanged so a typo
+        is visible rather than silently swallowed.
+
     Args:
         content: Template content with placeholders
         note_path: Path of the note being created
-        
+
     Returns:
         Content with placeholders replaced
     """
     now = datetime.now()
     note = Path(note_path)
-    
+
+    def _strftime_sub(match: 're.Match[str]') -> str:
+        fmt = match.group(2)
+        try:
+            return now.strftime(fmt)
+        except (ValueError, TypeError):
+            return match.group(0)
+
+    content = _STRFTIME_PLACEHOLDER_RE.sub(_strftime_sub, content)
+
     replacements = {
         '{{date}}': now.strftime('%Y-%m-%d'),
         '{{time}}': now.strftime('%H:%M:%S'),
@@ -1000,11 +1033,11 @@ def apply_template_placeholders(content: str, note_path: str) -> str:
         '{{title}}': note.stem,
         '{{folder}}': note.parent.name if str(note.parent) != '.' else 'Root',
     }
-    
+
     result = content
     for placeholder, value in replacements.items():
         result = result.replace(placeholder, value)
-    
+
     return result
 
 

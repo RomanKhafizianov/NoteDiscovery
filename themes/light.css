@@ -26,7 +26,11 @@
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
-  
+
+  /* Bold + italic — warm emphasis + deeper primary for italic (cohesive on white) */
+  --syntax-bold:   #b45309; /* deep amber */
+  --syntax-italic: #1d4ed8; /* deeper blue — same family as heading, distinct by depth */
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);

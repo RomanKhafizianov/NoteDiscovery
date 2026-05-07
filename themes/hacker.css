@@ -28,6 +28,10 @@
   --error: #ff6b8a;
   --warning: #ffd447;
 
+  /* Bold + italic — amber CRT alert + lighter matrix green (same green family) */
+  --syntax-bold:   #ffd447; /* amber CRT alert (historically authentic — amber CRTs existed) */
+  --syntax-italic: #86efac; /* lighter green — same family as matrix-green heading */
+
   /* Shadows — heavy, like a dim room */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.55);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.65);
