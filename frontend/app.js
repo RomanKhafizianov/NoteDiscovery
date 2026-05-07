@@ -620,6 +620,15 @@ function noteApp() {
         drawingRedoStack: [],
         drawingDraft: null,
         drawingIsPointerDown: false,
+        // Text tool — pending input state. The HTML overlay <input> binds to drawingTextValue
+        // while drawingTextActive is true; on commit a 'text' op is pushed to drawingOps.
+        drawingTextActive: false,
+        drawingTextDocX: 0,         // commit position in DOC space
+        drawingTextDocY: 0,
+        drawingTextCssX: 0,         // overlay <input> position in CSS pixels (canvas-relative)
+        drawingTextCssY: 0,
+        drawingTextValue: '',
+        drawingTextDocFontSize: 24, // font size in DOC pixels (auto-scales to display)
         /** True after the PNG from disk has been decoded into _drawingBaseImage; false after Clear. */
         drawingHasRasterFromFile: false,
         /** Prevents overlapping drawingSave() runs (Ctrl+S + autosave + fast retries). */
@@ -3029,6 +3038,17 @@ function noteApp() {
                 }
                 return;
             }
+            if (op.type === 'text') {
+                const text = op.text;
+                if (typeof text !== 'string' || text === '') return;
+                ctx.save();
+                ctx.fillStyle = op.color;
+                ctx.font = `${op.fontSize}px sans-serif`;
+                ctx.textBaseline = 'top';
+                ctx.fillText(text, op.x, op.y);
+                ctx.restore();
+                return;
+            }
             if (op.type === 'stroke') {
                 const pts = op.points;
                 if (!pts || pts.length < 2) return;
@@ -3257,6 +3277,8 @@ function noteApp() {
             this.drawingRedoStack = [];
             this.drawingDraft = null;
             this.drawingIsPointerDown = false;
+            this.drawingTextActive = false;
+            this.drawingTextValue = '';
             this._drawingBaseImage = null;
             this.drawingHasRasterFromFile = false;
             // Reset to defaults; replaced by the loaded PNG's natural size below.
@@ -3535,6 +3557,8 @@ function noteApp() {
             this._drawingDisposeOps(this.drawingRedoStack);
             this.drawingOps = [];
             this.drawingRedoStack = [];
+            this.drawingTextActive = false;
+            this.drawingTextValue = '';
             this.drawingRedraw();
             this._drawingScheduleAutosave();
         },
@@ -3552,6 +3576,11 @@ function noteApp() {
             if (tool === 'fill') {
                 e.preventDefault();
                 this.drawingFill(e);
+                return;
+            }
+            if (tool === 'text') {
+                e.preventDefault();
+                this.drawingTextStart(e);
                 return;
             }
             this._drawingCancelAutosave();
@@ -3676,6 +3705,115 @@ function noteApp() {
             this.drawingOps.push(this.drawingRedoStack.pop());
             this.drawingRedraw();
             this._drawingScheduleAutosave();
+        },
+        
+        /**
+         * Text tool — single-line, commit-once. Clicking the canvas spawns a floating <input>
+         * at the click position; pressing Enter or losing focus rasterizes the text into a
+         * 'text' op (rendered in DOC space via ctx.fillText so it auto-scales with the canvas).
+         * Esc cancels without writing. Each commit pushes one op so undo/redo handles it just
+         * like any other shape — no separate "edit text" mode, no DOM cleanup gymnastics.
+         */
+        drawingTextStart(e) {
+            const canvas = this._drawingCanvasEl;
+            if (!canvas) return;
+            // If a previous input was still open (e.g. mobile pointerdown before blur fires),
+            // commit it first so we never lose typed text.
+            if (this.drawingTextActive) {
+                this.drawingTextCommit();
+            }
+            // CSS coords are stored relative to the WRAP (the input's offset parent), not the
+            // canvas: the wrap is a flex container that centers the canvas, so when the canvas
+            // is narrower than the wrap there are gutters on either side that would otherwise
+            // shift the floating input away from the click point.
+            const wrap = this.$refs.drawingCanvasWrap || canvas.parentElement;
+            const wrapRect = wrap.getBoundingClientRect();
+            const { x: docX, y: docY } = this._drawingCanvasCoords(e);
+            this.drawingTextDocX = docX;
+            this.drawingTextDocY = docY;
+            this.drawingTextCssX = e.clientX - wrapRect.left;
+            this.drawingTextCssY = e.clientY - wrapRect.top;
+            this.drawingTextDocFontSize = Math.max(14, this.drawingLineWidth * 6);
+            this.drawingTextValue = '';
+            this.drawingTextActive = true;
+            this.drawingDraft = null;
+            this.$nextTick(() => {
+                const el = document.getElementById('drawing-text-input');
+                if (!el) return;
+                // Wipe any leftover text from a previous session before focusing — contenteditable
+                // doesn't auto-clear from setting drawingTextValue alone.
+                el.textContent = '';
+                el.focus();
+            });
+        },
+        
+        /**
+         * Live-preview handler for the text tool. The contenteditable div is invisible
+         * (color: transparent), so the only thing the user actually SEES of their typing
+         * is whatever drawingRedraw paints from drawingDraft. Pushing the in-progress
+         * text into drawingDraft means the live preview goes through the very same
+         * ctx.fillText call path as the final commit — guaranteeing zero pixel drift.
+         */
+        drawingTextOnInput(e) {
+            if (!this.drawingTextActive) return;
+            const text = (e.target.textContent || '');
+            this.drawingTextValue = text;
+            if (text.length === 0) {
+                this.drawingDraft = null;
+            } else {
+                this.drawingDraft = {
+                    type: 'text',
+                    color: this.drawingColor,
+                    x: this.drawingTextDocX,
+                    y: this.drawingTextDocY,
+                    text,
+                    fontSize: this.drawingTextDocFontSize,
+                };
+            }
+            this._drawingScheduleRedraw();
+        },
+        
+        drawingTextCommit() {
+            if (!this.drawingTextActive) return;
+            // Read straight from the DOM so we capture the very last keystroke even if the
+            // @input event hasn't fired yet (it usually has, but Enter can race it).
+            const el = document.getElementById('drawing-text-input');
+            const raw = el ? (el.textContent || '') : (this.drawingTextValue || '');
+            const text = raw.trim();
+            const docX = this.drawingTextDocX;
+            const docY = this.drawingTextDocY;
+            const fontSize = this.drawingTextDocFontSize;
+            const color = this.drawingColor;
+            this.drawingTextActive = false;
+            this.drawingTextValue = '';
+            this.drawingDraft = null;
+            if (el) el.textContent = '';
+            if (!text) {
+                this.drawingRedraw();
+                return;
+            }
+            this._drawingDisposeOps(this.drawingRedoStack);
+            this.drawingRedoStack = [];
+            this.drawingOps.push({
+                type: 'text',
+                color,
+                x: docX,
+                y: docY,
+                text,
+                fontSize,
+            });
+            this.drawingRedraw();
+            this._drawingScheduleAutosave();
+        },
+        
+        drawingTextCancel() {
+            if (!this.drawingTextActive) return;
+            this.drawingTextActive = false;
+            this.drawingTextValue = '';
+            this.drawingDraft = null;
+            const el = document.getElementById('drawing-text-input');
+            if (el) el.textContent = '';
+            this.drawingRedraw();
         },
         
         /**

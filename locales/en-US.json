@@ -220,6 +220,7 @@
     "tool_eraser": "Eraser (paints with background color)",
     "tool_eyedropper": "Eyedropper — pick a color from the canvas",
     "tool_fill": "Paint bucket — fill connected area with color",
+    "tool_text": "Text — click on the canvas to type",
     "clear": "Clear",
     "clear_hint": "Replace with a blank image",
     "clear_title": "Replace with a blank canvas?",
