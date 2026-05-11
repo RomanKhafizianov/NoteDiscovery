@@ -3748,6 +3748,18 @@ function noteApp() {
         },
         
         /**
+         * Normalize text-tool input: ctx.fillText doesn't honor line breaks (renders them
+         * as literal LF glyphs / tofu), and Firefox treats contenteditable="plaintext-only"
+         * as plain "true" so multi-line paste sneaks newlines into textContent. Also clamp
+         * length defensively so a giant paste can't bloat the op / autosave payload.
+         */
+        _drawingTextSanitize(s) {
+            if (typeof s !== 'string' || s.length === 0) return '';
+            const collapsed = s.replace(/[\r\n\t\v\f]+/g, ' ');
+            return collapsed.length > 1024 ? collapsed.slice(0, 1024) : collapsed;
+        },
+        
+        /**
          * Live-preview handler for the text tool. The contenteditable div is invisible
          * (color: transparent), so the only thing the user actually SEES of their typing
          * is whatever drawingRedraw paints from drawingDraft. Pushing the in-progress
@@ -3756,7 +3768,7 @@ function noteApp() {
          */
         drawingTextOnInput(e) {
             if (!this.drawingTextActive) return;
-            const text = (e.target.textContent || '');
+            const text = this._drawingTextSanitize(e.target.textContent || '');
             this.drawingTextValue = text;
             if (text.length === 0) {
                 this.drawingDraft = null;
@@ -3779,7 +3791,7 @@ function noteApp() {
             // @input event hasn't fired yet (it usually has, but Enter can race it).
             const el = document.getElementById('drawing-text-input');
             const raw = el ? (el.textContent || '') : (this.drawingTextValue || '');
-            const text = raw.trim();
+            const text = this._drawingTextSanitize(raw).trim();
             const docX = this.drawingTextDocX;
             const docY = this.drawingTextDocY;
             const fontSize = this.drawingTextDocFontSize;
@@ -3823,6 +3835,14 @@ function noteApp() {
          */
         async drawingSave() {
             if (!this.currentMedia || this.currentMediaType !== 'drawing') return;
+            // Commit any in-progress text BEFORE the in-flight guard so the typed value
+            // makes it into drawingOps before the next line wipes drawingDraft. Otherwise
+            // Ctrl+S (or autosave) mid-typing would silently drop whatever the user just
+            // typed from the saved PNG. drawingTextCommit will trigger another autosave,
+            // but that's harmless — the next save just re-uploads the same bytes.
+            if (this.drawingTextActive) {
+                this.drawingTextCommit();
+            }
             if (this._drawingSaveInFlight) {
                 this._drawingSaveQueued = true;
                 return;
