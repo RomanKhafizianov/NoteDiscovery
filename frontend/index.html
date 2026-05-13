@@ -2805,6 +2805,17 @@
                         <button
                             type="button"
                             class="p-2 rounded-lg border transition-colors"
+                            :style="drawingTool === 'text' ? 'background-color: var(--accent-primary); color: white; border-color: var(--accent-primary);' : 'background-color: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-primary);'"
+                            @click="drawingTool = 'text'"
+                            :title="t('drawing.tool_text')"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h14M12 4v16M8 20h8" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg border transition-colors"
                             :class="!drawingClearEnabled() ? 'opacity-40 cursor-not-allowed' : ''"
                             :style="!drawingClearEnabled()
                                 ? 'border-color: var(--border-primary); color: var(--text-secondary);'
@@ -3130,7 +3141,7 @@
                                     >
                                         <div 
                                             x-ref="drawingCanvasWrap"
-                                            class="flex-1 w-full min-h-0 min-w-0 flex items-center justify-center"
+                                            class="flex-1 w-full min-h-0 min-w-0 flex items-center justify-center relative"
                                             style="min-height: 0; background-color: var(--bg-secondary);"
                                         >
                                             <canvas
@@ -3140,12 +3151,54 @@
                                                     ? 'touch-action: none; cursor: copy; background: #fff;'
                                                     : drawingTool === 'fill'
                                                         ? 'touch-action: none; cursor: cell; background: #fff;'
-                                                        : 'touch-action: none; cursor: crosshair; background: #fff;'"
+                                                        : drawingTool === 'text'
+                                                            ? 'touch-action: none; cursor: text; background: #fff;'
+                                                            : 'touch-action: none; cursor: crosshair; background: #fff;'"
                                                 @pointerdown.prevent="drawingPointerDown($event)"
                                                 @pointermove.prevent="drawingPointerMove($event)"
                                                 @pointerup.prevent="drawingPointerUp($event)"
                                                 @pointercancel.prevent="drawingPointerUp($event)"
                                             ></canvas>
+                                            <!-- Text-tool floating editor — only visible while placing text.
+                                                 The contenteditable's typed glyphs are kept INVISIBLE
+                                                 (color: transparent) on purpose: HTML and canvas text-rendering
+                                                 land glyphs on subtly different pixels even with identical font /
+                                                 size / line-height, so showing both would always result in a tiny
+                                                 jump on commit. Instead we render the typed text live on the
+                                                 canvas (via drawingDraft), so what the user sees while typing IS
+                                                 the canvas output — pixel-identical to the rasterized op on Enter.
+                                                 Only the caret (caret-color) and the dashed outline remain
+                                                 visible to indicate where the text will land. -->
+                                            <div
+                                                id="drawing-text-input"
+                                                x-show="drawingTextActive"
+                                                contenteditable="plaintext-only"
+                                                spellcheck="false"
+                                                @keydown.enter.prevent="drawingTextCommit()"
+                                                @keydown.escape.prevent="drawingTextCancel()"
+                                                @blur="drawingTextCommit()"
+                                                @input="drawingTextOnInput($event)"
+                                                :style="`position: absolute;
+                                                    left: ${drawingTextCssX}px;
+                                                    top: ${drawingTextCssY}px;
+                                                    font-size: ${Math.max(12, drawingTextDocFontSize * ((($refs.drawingCanvas && $refs.drawingCanvas.clientWidth) || drawingDocW) / drawingDocW))}px;
+                                                    line-height: 1;
+                                                    font-family: sans-serif;
+                                                    color: transparent;
+                                                    caret-color: ${drawingColor};
+                                                    background: transparent;
+                                                    border: 0;
+                                                    border-radius: 0;
+                                                    padding: 0;
+                                                    margin: 0;
+                                                    outline: 1px dashed ${drawingColor};
+                                                    outline-offset: -1px;
+                                                    box-shadow: none;
+                                                    z-index: 5;
+                                                    min-width: 4ch;
+                                                    white-space: pre;`"
+                                                x-cloak
+                                            ></div>
                                         </div>
                                     </div>
                                 </template>

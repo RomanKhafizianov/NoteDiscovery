@@ -220,6 +220,7 @@
     "tool_eraser": "Gomme (peint avec la couleur de fond)",
     "tool_eyedropper": "Pipette — choisir une couleur sur le canevas",
     "tool_fill": "Pot de peinture — remplir la zone connectée avec la couleur",
+    "tool_text": "Texte — cliquez sur le canevas pour écrire",
     "clear": "Effacer",
     "clear_hint": "Remplacer par une image vide",
     "clear_title": "Remplacer par un canevas vide ?",

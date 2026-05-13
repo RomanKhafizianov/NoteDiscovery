@@ -220,6 +220,7 @@
     "tool_eraser": "Radierer (malt mit Hintergrundfarbe)",
     "tool_eyedropper": "Pipette — Farbe vom Bild aufnehmen",
     "tool_fill": "Farbeimer — verbundenen Bereich mit Farbe füllen",
+    "tool_text": "Text — auf die Leinwand klicken, um zu schreiben",
     "clear": "Leeren",
     "clear_hint": "Durch leeres Bild ersetzen",
     "clear_title": "Durch leere Leinwand ersetzen?",
