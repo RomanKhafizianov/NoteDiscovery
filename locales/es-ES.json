@@ -62,6 +62,8 @@
     "sort_smallest": "Ordenar por más pequeño (solo archivos)",
     "toggle_sidebar": "Alternar barra lateral",
     "go_to_homepage": "Ir al inicio",
+    "hide_panel": "Ocultar el panel lateral",
+    "show_panel": "Mostrar el panel lateral",
     "files": "Archivos",
     "search": "Buscar",
     "search_title": "BÚSQUEDA",

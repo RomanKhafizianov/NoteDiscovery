@@ -119,6 +119,7 @@ To link to a heading, convert the heading text to a slug: **lowercase, spaces â†
 
 ### Layout
 - **Resizable sidebar** - Drag to adjust width
+- **Collapsible sidebar panel** - Show/hide the sidebar contents while keeping the icon rail in place
 - **View mode memory** - Remembers Edit/Split/Preview preference
 - **Responsive design** - Works on all screen sizes
 

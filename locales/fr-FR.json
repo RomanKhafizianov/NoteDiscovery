@@ -62,6 +62,8 @@
     "sort_smallest": "Trier par plus petit (fichiers uniquement)",
     "toggle_sidebar": "Afficher/Masquer la barre latérale",
     "go_to_homepage": "Aller à l'accueil",
+    "hide_panel": "Masquer le panneau latéral",
+    "show_panel": "Afficher le panneau latéral",
     "files": "Fichiers",
     "search": "Rechercher",
     "search_title": "RECHERCHE",

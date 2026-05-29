@@ -61,6 +61,8 @@
     "sort_smallest": "小さい順（ファイルのみ）",
     "toggle_sidebar": "サイドバー切替",
     "go_to_homepage": "ホームへ",
+    "hide_panel": "サイドバーを非表示",
+    "show_panel": "サイドバーを表示",
     "files": "ファイル",
     "search": "検索",
     "search_title": "検索",

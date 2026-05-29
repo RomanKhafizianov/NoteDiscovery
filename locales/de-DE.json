@@ -62,6 +62,8 @@
     "sort_smallest": "Nach kleinsten sortieren (nur Dateien)",
     "toggle_sidebar": "Seitenleiste umschalten",
     "go_to_homepage": "Zur Startseite",
+    "hide_panel": "Seitenleiste ausblenden",
+    "show_panel": "Seitenleiste einblenden",
     "files": "Dateien",
     "search": "Suchen",
     "search_title": "SUCHE",

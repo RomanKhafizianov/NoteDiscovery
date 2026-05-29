@@ -61,6 +61,8 @@
     "sort_smallest": "按最小排序（仅文件）",
     "toggle_sidebar": "切换侧边栏",
     "go_to_homepage": "前往主页",
+    "hide_panel": "隐藏侧边栏",
+    "show_panel": "显示侧边栏",
     "files": "文件",
     "search": "搜索",
     "search_title": "搜索",

@@ -61,6 +61,8 @@
     "sort_smallest": "Ordina per più piccolo (solo file)",
     "toggle_sidebar": "Mostra/nascondi barra laterale",
     "go_to_homepage": "Vai alla home",
+    "hide_panel": "Nascondi il pannello laterale",
+    "show_panel": "Mostra il pannello laterale",
     "files": "File",
     "search": "Cerca",
     "search_title": "CERCA",

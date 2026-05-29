@@ -61,6 +61,8 @@
     "sort_smallest": "Sort by smallest (files only)",
     "toggle_sidebar": "Toggle sidebar",
     "go_to_homepage": "Go to homepage",
+    "hide_panel": "Hide sidebar panel",
+    "show_panel": "Show sidebar panel",
     "files": "Files",
     "search": "Search",
     "search_title": "SEARCH",
