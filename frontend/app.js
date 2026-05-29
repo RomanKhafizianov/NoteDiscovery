@@ -42,6 +42,7 @@ const LOCAL_SETTINGS = {
     tagsExpanded: { key: 'tagsExpanded', type: 'boolean', default: false },
     hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
     tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
+    sidebarPanelCollapsed: { key: 'sidebarPanelCollapsed', type: 'boolean', default: false },
     // String settings
     sortMode: { key: 'sortMode', type: 'string', default: 'a-z' },
     // Number settings with validation
@@ -273,6 +274,11 @@ function noteApp() {
         lastSaved: false,
         linkCopied: false,
         zenMode: false,
+        // Hides only the .sidebar-panel content (files / search / tags / outline / etc.) while
+        // keeping the icon rail visible — a lighter "focus mode" than zenMode. Persisted via
+        // LOCAL_SETTINGS so it survives reload; hydrated by loadLocalSettings() at app init,
+        // which is why the initial value here matches the LOCAL_SETTINGS default.
+        sidebarPanelCollapsed: false,
         previousViewMode: 'split',
         favorites: [],
         favoritesSet: new Set(), // For O(1) lookups
@@ -1048,6 +1054,41 @@ function noteApp() {
         toggleTabInsertsTab() {
             this.tabInsertsTab = !this.tabInsertsTab;
             localStorage.setItem('tabInsertsTab', this.tabInsertsTab);
+        },
+
+        // Hide / show only the sidebar PANEL (files, search, outline, etc.); the icon rail
+        // stays put so users can still switch panels with one click after re-expanding.
+        // Width is animated via CSS; sidebarWidth itself is intentionally NOT touched, so a
+        // user's custom drag-resized width is restored automatically on expand.
+        toggleSidebarPanel() {
+            this.sidebarPanelCollapsed = !this.sidebarPanelCollapsed;
+            localStorage.setItem('sidebarPanelCollapsed', this.sidebarPanelCollapsed);
+        },
+
+        // Switch the active sidebar panel (Files / Search / Tags / Outline / Backlinks / Shared
+        // / Settings) with smart toggle behaviour for the icon rail:
+        //
+        //   collapsed       + click any icon X  → expand + switch to X
+        //   expanded, on Y  + click icon X      → switch to X (no collapse change)
+        //   expanded, on X  + click icon X      → collapse (symmetric "click active to close")
+        //
+        // That third rule matches the VS Code / Cursor / JetBrains / Obsidian convention where
+        // re-clicking the active sidebar icon hides the panel. Without it, the only way to
+        // collapse would be the dedicated toggle button, which is fine but leaves an asymmetry.
+        //
+        // On mobile (≤768px) the desktop collapse is CSS-overridden, so the panel is always
+        // visible; we deliberately skip toggling in that case so a one-off mobile tap doesn't
+        // silently clear the user's persisted desktop preference.
+        openSidebarPanel(panelName) {
+            const isDesktop = window.innerWidth > 768;
+            if (isDesktop && this.activePanel === panelName && !this.sidebarPanelCollapsed) {
+                this.toggleSidebarPanel();
+                return;
+            }
+            this.activePanel = panelName;
+            if (isDesktop && this.sidebarPanelCollapsed) {
+                this.toggleSidebarPanel();
+            }
         },
 
         // Handle Tab key in editor (inserts tab if setting enabled; Shift+Tab outdents matching lines)

@@ -62,6 +62,8 @@
     "sort_smallest": "Legkisebb elöl (csak fájlok)",
     "toggle_sidebar": "Oldalsáv megjelenítése",
     "go_to_homepage": "Ugrás a kezdőlapra",
+    "hide_panel": "Oldalsáv elrejtése",
+    "show_panel": "Oldalsáv megjelenítése",
     "files": "Fájlok",
     "search": "Keresés",
     "search_title": "KERESÉS",
