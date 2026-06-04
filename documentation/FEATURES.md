@@ -9,6 +9,7 @@
 - **Resume where you left off** - Editor scroll position is remembered per note within the session, so switching back to a long note returns you to the same spot
 - **Undo/Redo** - Ctrl+Z / Ctrl+Y support
 - **Note templates** - Create notes from templates with dynamic placeholders
+- **Quick-create** - Set the **+ / New** button to skip the type chooser and create your most common item (note, folder, template, or drawing) in one click; **Shift+click** always shows the full chooser. Optionally pre-fill new note titles with a `yyyymmddHHMMSS` timestamp.
 - **Syntax highlighting** for code blocks (50+ languages)
 - **Copy code blocks** - One-click copy button on hover
 - **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax (see [MATHJAX.md](MATHJAX.md))

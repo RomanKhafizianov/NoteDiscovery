@@ -43,22 +43,13 @@ const LOCAL_SETTINGS = {
     hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
     tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
     sidebarPanelCollapsed: { key: 'sidebarPanelCollapsed', type: 'boolean', default: false },
-    // When true, the New Note name modal opens with a yyyymmddHHMMSS title pre-selected
-    // (Zettelkasten-style). Press Enter to accept, or type to replace. See issue #217.
     autoFillNoteTitle: { key: 'autoFillNoteTitle', type: 'boolean', default: false },
     // String settings
     sortMode: { key: 'sortMode', type: 'string', default: 'a-z' },
-    // What clicking + (or the top-level New button) does. 'chooser' preserves the
-    // current dropdown-with-4-options behaviour; the other values dispatch straight
-    // to that creation flow. Shift+click always falls back to 'chooser'. See #217.
     newButtonAction: {
         key: 'newButtonAction', type: 'string', default: 'chooser',
         valid: ['chooser', 'note', 'folder', 'template', 'drawing']
     },
-    // Name of the last template that successfully created a note. Used to pre-select
-    // it the next time the "Create from Template" modal opens, so the common case of
-    // "I always use the same template" is one click less. Cleared / ignored silently
-    // if the template no longer exists.
     lastUsedTemplate: { key: 'lastUsedTemplate', type: 'string', default: '' },
     // Number settings with validation
     sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
@@ -423,9 +414,6 @@ function noteApp() {
         availableTemplates: [],
         selectedTemplate: '',
         newTemplateNoteName: '',
-        // Persisted via LOCAL_SETTINGS; hydrated by loadLocalSettings() at app init.
-        // Inline defaults below mirror the LOCAL_SETTINGS defaults so the reactive
-        // proxy has the right type/shape before hydration runs. See issue #217.
         newButtonAction: 'chooser',
         autoFillNoteTitle: false,
         lastUsedTemplate: '',
@@ -1763,8 +1751,6 @@ function noteApp() {
                 
                 const data = await response.json();
                 
-                // Remember for pre-selection next time openTemplateModal() runs (see #217).
-                // Captured BEFORE the reset below so the name is still available.
                 this.lastUsedTemplate = this.selectedTemplate;
                 try { localStorage.setItem('lastUsedTemplate', this.selectedTemplate); } catch (_) {}
                 
@@ -4596,18 +4582,7 @@ function noteApp() {
         // DROPDOWN MENU SYSTEM
         // =====================================================
         
-        // Entry point for every "+" button and the top-level "New" button. Either opens
-        // the type-chooser dropdown (default behaviour) or dispatches straight to a
-        // single creation flow, depending on the user's `newButtonAction` setting.
-        //
-        // Shift+click ALWAYS forces the chooser regardless of configured default — a
-        // single discoverable escape hatch (mentioned in the settings description) that
-        // saves users from needing to open Settings just to reach the other modes once
-        // in a while. See issue #217.
-        //
-        // Folder context (dropdownTargetFolder) is set by the calling site BEFORE this
-        // method runs; each dispatched action reads it via inferredNewItemTargetFolder()
-        // and clears the dropdown state itself, so we don't call closeDropdown() here.
+        // Shift+click always forces the chooser regardless of newButtonAction.
         toggleNewDropdown(event) {
             const wantsChooser =
                 (event && event.shiftKey) ||
@@ -4628,9 +4603,6 @@ function noteApp() {
             }
         },
         
-        // Open the type-chooser dropdown anchored next to the clicking element. Extracted
-        // verbatim from the original toggleNewDropdown body so existing positioning logic
-        // is preserved bit-for-bit; the new routing layer above is a thin wrapper.
         _openNewDropdownChooser(event) {
             this.showNewDropdown = true;
             
@@ -4652,14 +4624,6 @@ function noteApp() {
             }
         },
         
-        // Open "Create from Template" modal. Shared by:
-        //   - the type-chooser dropdown's "from template" button
-        //   - the quick-dispatch path from toggleNewDropdown()
-        // so both paths consistently pre-select the last-used template (if it still
-        // exists) AND pre-fill the name when autoFillNoteTitle is on, matching the
-        // plain New Note popup behaviour. dropdownTargetFolder is intentionally NOT
-        // cleared — it's read at submit time by createNoteFromTemplate() via
-        // inferredNewItemTargetFolder(). See issue #217.
         openTemplateModal() {
             this.showNewDropdown = false;
             this.mobileSidebarOpen = false;
@@ -4668,10 +4632,7 @@ function noteApp() {
             this.selectedTemplate = hasLastUsed ? this.lastUsedTemplate : '';
             this.newTemplateNoteName = this.autoFillNoteTitle ? this._autoTitleTimestamp() : '';
             this.showTemplateModal = true;
-            // If a template was pre-selected the modal can be submitted with Enter
-            // alone, so focus the name input and select its contents (so typing
-            // immediately replaces). When no template is pre-selected the user has
-            // to pick one first, so we don't steal focus from the dropdown.
+            // Only steal focus when the modal is one-Enter-away from submission.
             if (hasLastUsed) {
                 this.$nextTick(() => {
                     const el = document.getElementById('template-note-name-input');
@@ -4743,10 +4704,6 @@ function noteApp() {
             this.mobileSidebarOpen = false;
             this.createNameModalKind = kind;
             this.createNameModalTargetFolder = targetFolder;
-            // Auto-fill title with a yyyymmddHHMMSS timestamp when the user opted in
-            // (notes only; doesn't make sense for folders). The input gets .select()'d
-            // below, so typing anything immediately replaces it — Enter accepts it as
-            // a Zettelkasten-style filename. See issue #217.
             this.createNameModalInput =
                 (kind === 'note' && this.autoFillNoteTitle) ? this._autoTitleTimestamp() : '';
             this.showCreateNameModal = true;
@@ -4759,9 +4716,7 @@ function noteApp() {
             });
         },
         
-        // Zettelkasten convention: yyyymmddHHMMSS — compact, sorts chronologically,
-        // and contains no characters that need escaping on any filesystem. Local
-        // time deliberately (matches what users see on the clock).
+        // Zettelkasten-style yyyymmddHHMMSS in local time.
         _autoTitleTimestamp() {
             const d = new Date();
             const pad = (n) => String(n).padStart(2, '0');
