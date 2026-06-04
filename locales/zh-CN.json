@@ -268,7 +268,16 @@
     "hide_underscore_folders": "隐藏系统文件夹",
     "hide_underscore_folders_desc": "从侧边栏隐藏 _attachments、_templates 等下划线文件夹",
     "tab_inserts_tab": "Tab键插入制表符",
-    "tab_inserts_tab_desc": "按Tab键插入制表符而不是切换焦点"
+    "tab_inserts_tab_desc": "按Tab键插入制表符而不是切换焦点",
+    "new_button_action": "点击 + 时",
+    "new_button_action_desc": "Shift+点击始终显示选择器。",
+    "new_button_option_chooser": "显示选择器（默认）",
+    "new_button_option_note": "新建笔记",
+    "new_button_option_folder": "新建文件夹",
+    "new_button_option_template": "从模板新建笔记",
+    "new_button_option_drawing": "新建绘图",
+    "auto_fill_note_title": "用时间戳自动填充标题",
+    "auto_fill_note_title_desc": "yyyymmddHHMMSS。Enter 接受，输入以替换。"
   },
   "homepage": {
     "title": "首页",
