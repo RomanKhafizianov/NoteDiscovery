@@ -43,8 +43,14 @@ const LOCAL_SETTINGS = {
     hideUnderscoreFolders: { key: 'hideUnderscoreFolders', type: 'boolean', default: false },
     tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
     sidebarPanelCollapsed: { key: 'sidebarPanelCollapsed', type: 'boolean', default: false },
+    autoFillNoteTitle: { key: 'autoFillNoteTitle', type: 'boolean', default: false },
     // String settings
     sortMode: { key: 'sortMode', type: 'string', default: 'a-z' },
+    newButtonAction: {
+        key: 'newButtonAction', type: 'string', default: 'chooser',
+        valid: ['chooser', 'note', 'folder', 'template', 'drawing']
+    },
+    lastUsedTemplate: { key: 'lastUsedTemplate', type: 'string', default: '' },
     // Number settings with validation
     sidebarWidth: { key: 'sidebarWidth', type: 'number', default: CONFIG.DEFAULT_SIDEBAR_WIDTH, min: 200, max: 600 },
     editorWidth: { key: 'editorWidth', type: 'number', default: 50, min: 20, max: 80 },
@@ -408,6 +414,9 @@ function noteApp() {
         availableTemplates: [],
         selectedTemplate: '',
         newTemplateNoteName: '',
+        newButtonAction: 'chooser',
+        autoFillNoteTitle: false,
+        lastUsedTemplate: '',
         
         // New note / folder name modal (replaces window.prompt)
         showCreateNameModal: false,
@@ -1741,6 +1750,9 @@ function noteApp() {
                 }
                 
                 const data = await response.json();
+                
+                this.lastUsedTemplate = this.selectedTemplate;
+                try { localStorage.setItem('lastUsedTemplate', this.selectedTemplate); } catch (_) {}
                 
                 // Close modal and reset state
                 this.showTemplateModal = false;
@@ -4570,16 +4582,35 @@ function noteApp() {
         // DROPDOWN MENU SYSTEM
         // =====================================================
         
+        // Shift+click always forces the chooser regardless of newButtonAction.
         toggleNewDropdown(event) {
-            this.showNewDropdown = true; // Always open (or keep open)
+            const wantsChooser =
+                (event && event.shiftKey) ||
+                !this.newButtonAction ||
+                this.newButtonAction === 'chooser';
+            
+            if (wantsChooser) {
+                this._openNewDropdownChooser(event);
+                return;
+            }
+            
+            switch (this.newButtonAction) {
+                case 'note':     this.createNote();         break;
+                case 'folder':   this.createFolder();       break;
+                case 'template': this.openTemplateModal();  break;
+                case 'drawing':  this.createNewDrawing();   break;
+                default:         this._openNewDropdownChooser(event);
+            }
+        },
+        
+        _openNewDropdownChooser(event) {
+            this.showNewDropdown = true;
             
             if (event && event.target) {
                 const rect = event.target.getBoundingClientRect();
-                // Position dropdown next to the clicked element
-                let top = rect.bottom + 4; // 4px spacing
+                let top = rect.bottom + 4;
                 let left = rect.left;
                 
-                // Keep dropdown on screen
                 const dropdownWidth = 200;
                 const dropdownHeight = 150;
                 if (left + dropdownWidth > window.innerWidth) {
@@ -4590,6 +4621,26 @@ function noteApp() {
                 }
                 
                 this.dropdownPosition = { top, left };
+            }
+        },
+        
+        openTemplateModal() {
+            this.showNewDropdown = false;
+            this.mobileSidebarOpen = false;
+            const hasLastUsed = !!this.lastUsedTemplate &&
+                this.availableTemplates.some(t => t.name === this.lastUsedTemplate);
+            this.selectedTemplate = hasLastUsed ? this.lastUsedTemplate : '';
+            this.newTemplateNoteName = this.autoFillNoteTitle ? this._autoTitleTimestamp() : '';
+            this.showTemplateModal = true;
+            // Only steal focus when the modal is one-Enter-away from submission.
+            if (hasLastUsed) {
+                this.$nextTick(() => {
+                    const el = document.getElementById('template-note-name-input');
+                    if (el) {
+                        el.focus();
+                        el.select();
+                    }
+                });
             }
         },
         
@@ -4653,7 +4704,8 @@ function noteApp() {
             this.mobileSidebarOpen = false;
             this.createNameModalKind = kind;
             this.createNameModalTargetFolder = targetFolder;
-            this.createNameModalInput = '';
+            this.createNameModalInput =
+                (kind === 'note' && this.autoFillNoteTitle) ? this._autoTitleTimestamp() : '';
             this.showCreateNameModal = true;
             this.$nextTick(() => {
                 const el = document.getElementById('create-name-modal-input');
@@ -4662,6 +4714,14 @@ function noteApp() {
                     el.select();
                 }
             });
+        },
+        
+        // Zettelkasten-style yyyymmddHHMMSS in local time.
+        _autoTitleTimestamp() {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` +
+                   `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
         },
         
         closeCreateNameModal() {

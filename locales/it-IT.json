@@ -268,7 +268,16 @@
     "hide_underscore_folders": "Nascondi cartelle di sistema",
     "hide_underscore_folders_desc": "Nascondi _attachments, _templates e altre cartelle con underscore",
     "tab_inserts_tab": "Tab inserisce tabulazione",
-    "tab_inserts_tab_desc": "Premi Tab per inserire una tabulazione invece di cambiare focus"
+    "tab_inserts_tab_desc": "Premi Tab per inserire una tabulazione invece di cambiare focus",
+    "new_button_action": "Quando clicchi su +",
+    "new_button_action_desc": "Shift+clic mostra sempre il selettore.",
+    "new_button_option_chooser": "Mostra selettore (predefinito)",
+    "new_button_option_note": "Nuova nota",
+    "new_button_option_folder": "Nuova cartella",
+    "new_button_option_template": "Nuova nota da modello",
+    "new_button_option_drawing": "Nuovo disegno",
+    "auto_fill_note_title": "Compila titolo con timestamp",
+    "auto_fill_note_title_desc": "aaaammddHHMMSS. Invio accetta, digita per sostituire."
   },
   "homepage": {
     "title": "Home",

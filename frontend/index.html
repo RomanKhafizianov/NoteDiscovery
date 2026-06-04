@@ -2158,11 +2158,11 @@
                                 
                                 <!-- Syntax Highlighting Toggle -->
                                 <div class="mb-4">
-                                    <label class="flex items-center justify-between cursor-pointer">
-                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('syntax_highlight.title')"></span>
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('syntax_highlight.title')"></span>
                                         <div 
                                             @click="toggleSyntaxHighlight()"
-                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
                                             :style="syntaxHighlightEnabled ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
                                         >
                                             <div 
@@ -2176,11 +2176,11 @@
                                 
                                 <!-- Readable Line Length Toggle -->
                                 <div class="mb-4">
-                                    <label class="flex items-center justify-between cursor-pointer">
-                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.readable_line_length')"></span>
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('settings.readable_line_length')"></span>
                                         <div 
                                             @click="toggleReadableLineLength()"
-                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
                                             :style="readableLineLength ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
                                         >
                                             <div 
@@ -2194,11 +2194,11 @@
                                 
                                 <!-- Hide Underscore Folders Toggle -->
                                 <div class="mb-4">
-                                    <label class="flex items-center justify-between cursor-pointer">
-                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.hide_underscore_folders')"></span>
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('settings.hide_underscore_folders')"></span>
                                         <div 
                                             @click="toggleHideUnderscoreFolders()"
-                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
                                             :style="hideUnderscoreFolders ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
                                         >
                                             <div 
@@ -2212,11 +2212,11 @@
 
                                 <!-- Tab inserts tab -->
                                 <div class="mb-4">
-                                    <label class="flex items-center justify-between cursor-pointer">
-                                        <span class="text-xs font-medium" style="color: var(--text-secondary);" x-text="t('settings.tab_inserts_tab')"></span>
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('settings.tab_inserts_tab')"></span>
                                         <div 
                                             @click="toggleTabInsertsTab()"
-                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
                                             :style="tabInsertsTab ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
                                         >
                                             <div 
@@ -2226,6 +2226,40 @@
                                         </div>
                                     </label>
                                     <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.tab_inserts_tab_desc')"></p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);" x-text="t('settings.new_button_action')"></label>
+                                    <select
+                                        x-model="newButtonAction"
+                                        @change="localStorage.setItem('newButtonAction', newButtonAction)"
+                                        class="w-full px-3 py-2 rounded border text-sm"
+                                        style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
+                                    >
+                                        <option value="chooser"  x-text="t('settings.new_button_option_chooser')"></option>
+                                        <option value="note"     x-text="t('settings.new_button_option_note')"></option>
+                                        <option value="folder"   x-text="t('settings.new_button_option_folder')"></option>
+                                        <option value="template" x-text="t('settings.new_button_option_template')"></option>
+                                        <option value="drawing"  x-text="t('settings.new_button_option_drawing')"></option>
+                                    </select>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.new_button_action_desc')"></p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('settings.auto_fill_note_title')"></span>
+                                        <div
+                                            @click="autoFillNoteTitle = !autoFillNoteTitle; localStorage.setItem('autoFillNoteTitle', autoFillNoteTitle)"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
+                                            :style="autoFillNoteTitle ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
+                                        >
+                                            <div
+                                                class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                                                :style="'background-color: var(--bg-primary);' + (autoFillNoteTitle ? ' transform: translateX(20px);' : '')"
+                                            ></div>
+                                        </div>
+                                    </label>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.auto_fill_note_title_desc')"></p>
                                 </div>
                                 
                                 <!-- Logout (if auth enabled) - uses authEnabled from main app state -->
@@ -3083,7 +3117,7 @@
                                         class="flex items-center justify-between px-3 py-2 cursor-pointer"
                                         style="border-bottom: 1px solid var(--border-primary);"
                                     >
-                                        <span class="text-xs font-medium" style="color: var(--text-secondary);">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);">
                                             ⚙️ Properties
                                         </span>
                                         <span class="text-xs opacity-40">▲ Collapse</span>
@@ -3449,7 +3483,7 @@
                 <span x-text="t('sidebar.new_folder')"></span>
             </button>
             <button 
-                @click.stop="showTemplateModal = true; showNewDropdown = false; mobileSidebarOpen = false"
+                @click.stop="openTemplateModal()"
                 class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
                 style="color: var(--text-primary);"
                 onmouseover="this.style.backgroundColor='var(--bg-hover)'"
@@ -3505,6 +3539,7 @@
                 <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);" x-text="t('notes.prompt_name')">
                 </label>
                 <input 
+                    id="template-note-name-input"
                     x-model="newTemplateNoteName"
                     type="text"
                     :placeholder="t('notes.input_placeholder')"
@@ -3538,7 +3573,7 @@
                     :disabled="!selectedTemplate || !newTemplateNoteName.trim() || availableTemplates.length === 0"
                     class="flex-1 px-4 py-2 rounded font-medium text-white transition-colors"
                     style="background-color: var(--accent-primary);"
-                    :style="(!selectedTemplate || !newTemplateNoteName.trim() || availableTemplates.length === 0) ? 'opacity: 0.5; cursor: not-allowed;' : ''"
+                    :style="(!selectedTemplate || !newTemplateNoteName.trim() || availableTemplates.length === 0) ? { opacity: '0.5', cursor: 'not-allowed' } : {}"
                     onmouseover="if(!this.disabled) this.style.backgroundColor='var(--accent-hover)'"
                     onmouseout="if(!this.disabled) this.style.backgroundColor='var(--accent-primary)'"
                     x-text="t('templates.create_note')"
@@ -3657,6 +3692,7 @@
     <div x-show="showConfirmModal"
          @click.self="confirmModalCancel()"
          @keydown.escape.window="showConfirmModal && confirmModalCancel()"
+         @keydown.enter.window="if (showConfirmModal) { $event.preventDefault(); confirmModalConfirm(); }"
          class="fixed inset-0 flex items-center justify-center p-4"
          style="background-color: rgba(0, 0, 0, 0.5); z-index: 1250;"
          x-cloak>

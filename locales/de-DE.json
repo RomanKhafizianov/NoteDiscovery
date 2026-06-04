@@ -269,7 +269,16 @@
     "hide_underscore_folders": "Systemordner ausblenden",
     "hide_underscore_folders_desc": "_attachments, _templates und andere Unterstrich-Ordner ausblenden",
     "tab_inserts_tab": "Tab-Taste fügt Tab ein",
-    "tab_inserts_tab_desc": "Tab drücken, um ein Tabulatorzeichen einzufügen statt den Fokus zu wechseln"
+    "tab_inserts_tab_desc": "Tab drücken, um ein Tabulatorzeichen einzufügen statt den Fokus zu wechseln",
+    "new_button_action": "Wenn du auf + klickst",
+    "new_button_action_desc": "Umschalt+Klick zeigt immer die Auswahl.",
+    "new_button_option_chooser": "Auswahl anzeigen (Standard)",
+    "new_button_option_note": "Neue Notiz",
+    "new_button_option_folder": "Neuer Ordner",
+    "new_button_option_template": "Neue Notiz aus Vorlage",
+    "new_button_option_drawing": "Neue Zeichnung",
+    "auto_fill_note_title": "Titel mit Zeitstempel",
+    "auto_fill_note_title_desc": "jjjjmmttHHMMSS. Enter akzeptiert, Tippen ersetzt."
   },
   "homepage": {
     "title": "Startseite",

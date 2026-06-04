@@ -268,7 +268,16 @@
     "hide_underscore_folders": "Skrij sistemske mape",
     "hide_underscore_folders_desc": "Skrij _attachments, _templates in druge mape s podčrtajem",
     "tab_inserts_tab": "Tipka Tab vstavi tabulator",
-    "tab_inserts_tab_desc": "Pritisnite Tab za vstavljanje tabulatorja namesto premikanja fokusa"
+    "tab_inserts_tab_desc": "Pritisnite Tab za vstavljanje tabulatorja namesto premikanja fokusa",
+    "new_button_action": "Ko kliknete +",
+    "new_button_action_desc": "Shift+klik vedno pokaže izbirnik.",
+    "new_button_option_chooser": "Pokaži izbirnik (privzeto)",
+    "new_button_option_note": "Nova zabeležka",
+    "new_button_option_folder": "Nova mapa",
+    "new_button_option_template": "Nova zabeležka iz predloge",
+    "new_button_option_drawing": "Nova risba",
+    "auto_fill_note_title": "Časovni žig v naslovu",
+    "auto_fill_note_title_desc": "llllmmddUUMMSS. Enter potrdi, tipkanje zamenja."
   },
   "homepage": {
     "title": "Domov",

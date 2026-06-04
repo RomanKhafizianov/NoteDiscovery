@@ -269,7 +269,16 @@
     "hide_underscore_folders": "Hide system folders",
     "hide_underscore_folders_desc": "Hide _attachments, _templates and other underscore folders from sidebar",
     "tab_inserts_tab": "Tab key inserts tab",
-    "tab_inserts_tab_desc": "Press Tab to insert a tab character instead of changing focus"
+    "tab_inserts_tab_desc": "Press Tab to insert a tab character instead of changing focus",
+    "new_button_action": "When you click +",
+    "new_button_action_desc": "Shift+click always shows the chooser.",
+    "new_button_option_chooser": "Show chooser (default)",
+    "new_button_option_note": "New note",
+    "new_button_option_folder": "New folder",
+    "new_button_option_template": "New note from template",
+    "new_button_option_drawing": "New drawing",
+    "auto_fill_note_title": "Auto-fill title with timestamp",
+    "auto_fill_note_title_desc": "yyyymmddHHMMSS. Enter to accept, type to replace."
   },
   "homepage": {
     "title": "Home",
