@@ -270,15 +270,15 @@
     "hide_underscore_folders_desc": "_attachments, _templates és más aláhúzásos mappák elrejtése",
     "tab_inserts_tab": "Tab billentyű több helyet hagy a szövegben",
     "tab_inserts_tab_desc": "Nyomd meg a Tab-ot, hogy több helyet hagyj a szövegben a fókuszváltás helyett",
-    "new_button_action": "A + gombra kattintáskor",
-    "new_button_action_desc": "Shift+kattintás mindig megmutatja a választót.",
-    "new_button_option_chooser": "Választó megjelenítése (alapértelmezett)",
+    "new_button_action": "A + gombra kattintva",
+    "new_button_action_desc": "Shift+kattintás mindig az opciókat mutatjat.",
+    "new_button_option_chooser": "Opciók megjelenítése (alapértelmezett)",
     "new_button_option_note": "Új jegyzet",
     "new_button_option_folder": "Új mappa",
     "new_button_option_template": "Új jegyzet sablonból",
     "new_button_option_drawing": "Új rajz",
     "auto_fill_note_title": "Cím kitöltése időbélyeggel",
-    "auto_fill_note_title_desc": "éééé.hh.nn.ÓÓ.PP.MM. Enter elfogad, gépelés felülír."
+    "auto_fill_note_title_desc": "éééé.hh.nn.ÓÓ.PP.MM."
   },
   "homepage": {
     "title": "Főoldal",
