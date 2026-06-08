@@ -67,6 +67,30 @@ environment:
   - UPLOAD_MAX_VIDEO_MB=500
 ```
 
+### User Interface
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AUTOSAVE_DELAY_MS` | integer | `1000` | Autosave debounce in milliseconds (applies to note typing and drawing autosave). Server-clamped to 250–60000ms. |
+
+#### Example: Slower autosave for very large notes
+
+```bash
+# Docker
+docker run -e AUTOSAVE_DELAY_MS=5000 ...
+
+# Docker Compose
+environment:
+  - AUTOSAVE_DELAY_MS=5000
+```
+
+Equivalent in `config.yaml`:
+
+```yaml
+ui:
+  autosave_delay_ms: 5000
+```
+
 ## 🎯 Configuration Priority
 
 Configuration is loaded in this order (later overrides earlier):

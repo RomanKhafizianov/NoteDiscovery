@@ -2,7 +2,7 @@
 
 // Configuration constants
 const CONFIG = {
-    AUTOSAVE_DELAY: 1000,              // ms - Debounce before note save (autoSave) and drawing PNG autosave (_drawingScheduleAutosave)
+    AUTOSAVE_DELAY: 1000,              // ms - Fallback only; runtime value lives on this.autosaveDelayMs (hydrated from /api/config). Used by autoSave() and _drawingScheduleAutosave().
     /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
     DRAWING_BACKGROUND: '#ffffff',
     /**
@@ -260,6 +260,7 @@ function noteApp() {
         authEnabled: false,
         demoMode: false,
         alreadyDonated: false,
+        autosaveDelayMs: CONFIG.AUTOSAVE_DELAY,  // hydrated from /api/config in loadConfig()
         notes: [],
         currentNote: '',
         currentNoteName: '',
@@ -959,6 +960,10 @@ function noteApp() {
                 this.authEnabled = config.authentication?.enabled || false;
                 this.demoMode = config.demoMode || false;
                 this.alreadyDonated = config.alreadyDonated || false;
+                // Server already clamps autosaveDelayMs to a sane range; we just sanity-check the type.
+                if (Number.isFinite(config.autosaveDelayMs) && config.autosaveDelayMs > 0) {
+                    this.autosaveDelayMs = config.autosaveDelayMs;
+                }
             } catch (error) {
                 console.error('Failed to load config:', error);
             }
@@ -3253,7 +3258,7 @@ function noteApp() {
                 this._drawingAutosaveTimeout = null;
                 this.drawingSave();
             };
-            this._drawingAutosaveTimeout = setTimeout(attemptSave, CONFIG.AUTOSAVE_DELAY);
+            this._drawingAutosaveTimeout = setTimeout(attemptSave, this.autosaveDelayMs);
         },
         
         /**
@@ -5064,7 +5069,7 @@ function noteApp() {
                     this.commitToHistory();
                 }
                 this.saveNote();
-            }, CONFIG.AUTOSAVE_DELAY);
+            }, this.autosaveDelayMs);
         },
         
         // Mark that we have pending changes (called on each keystroke)

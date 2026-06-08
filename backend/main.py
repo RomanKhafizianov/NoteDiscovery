@@ -230,6 +230,16 @@ UPLOAD_MAX_AUDIO_MB = int(os.getenv('UPLOAD_MAX_AUDIO_MB', '50'))
 UPLOAD_MAX_VIDEO_MB = int(os.getenv('UPLOAD_MAX_VIDEO_MB', '100'))
 UPLOAD_MAX_PDF_MB = int(os.getenv('UPLOAD_MAX_PDF_MB', '20'))
 
+# Autosave debounce in milliseconds (applies to note typing AND drawing PNG autosave).
+try:
+    _autosave_raw = int(os.getenv(
+        'AUTOSAVE_DELAY_MS',
+        str(config.get('ui', {}).get('autosave_delay_ms', 1000))
+    ))
+except (TypeError, ValueError):
+    _autosave_raw = 1000
+AUTOSAVE_DELAY_MS = max(250, min(60000, _autosave_raw))
+
 if DEMO_MODE:
     # Enable rate limiting for demo deployments
     limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
@@ -488,6 +498,7 @@ async def get_config():
         "searchEnabled": config['search']['enabled'],
         "demoMode": DEMO_MODE,  # Expose demo mode flag to frontend
         "alreadyDonated": ALREADY_DONATED,  # Hide support buttons if true
+        "autosaveDelayMs": AUTOSAVE_DELAY_MS,  # Debounce for note/drawing autosave
         "authentication": {
             "enabled": config.get('authentication', {}).get('enabled', False)
         }

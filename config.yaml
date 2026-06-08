@@ -22,7 +22,14 @@ storage:
   
 search:
   enabled: true
-  
+
+# User interface behavior
+ui:
+  # Autosave debounce in milliseconds (applies to note typing and drawing autosave).
+  # Lower = saves more often (more disk writes); higher = saves less often.
+  # Override via the AUTOSAVE_DELAY_MS env var. Server clamps to 250-60000ms.
+  autosave_delay_ms: 1000
+
 authentication:
   # Authentication settings
   # Set enabled to true to require login
