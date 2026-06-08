@@ -87,6 +87,64 @@ Add this to your `~/.cursor/mcp.json` (or Claude Desktop config):
 
 > **Note:** The `PYTHONPATH` is required so Python can find the `mcp_server` module. On Windows, use backslashes: `"PYTHONPATH": "C:\\path\\to\\NoteDiscovery"`
 
+### Advanced: 24×7 / Remote Access (mcp-proxy)
+
+The setups above spawn the MCP server **per session** — your AI client starts a fresh container/process every time you open a chat and tears it down when you close it. That's the recommended default: zero setup, no auth surface, no long-lived process to maintain.
+
+If you'd rather run the MCP server as a **long-lived service** so one host serves many devices, use the community tool [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) to wrap the stdio server and expose it over SSE:
+
+```bash
+# Make sure the image is fresh
+docker pull ghcr.io/gamosoft/notediscovery:latest
+
+# Run mcp-proxy in front of the stdio server
+# (`--` separates mcp-proxy flags from the wrapped command — required so the
+#  parser doesn't try to interpret `--rm`, `-i`, etc. as its own arguments)
+mcp-proxy --port 3000 -- docker run --rm -i \
+  -e NOTEDISCOVERY_URL=https://notediscovery.homelab.local \
+  ghcr.io/gamosoft/notediscovery:latest python -m mcp_server
+```
+
+> If you get `unrecognized arguments` from mcp-proxy, your version may use `--sse-port` instead of `--port`. Run `mcp-proxy --help` to check.
+
+The example above assumes a specific topology: mcp-proxy runs on your host, the MCP server spawns as a short-lived container per SSE connection, and a separately-running NoteDiscovery instance is reachable at `https://notediscovery.homelab.local`. That's just one valid placement — **NoteDiscovery and mcp-proxy don't need to live in the same place**. `NOTEDISCOVERY_URL` can point at any reachable URL, for example:
+
+- Remote homelab / LAN server (as in the example above): `https://notediscovery.homelab.local`
+- Same host via Docker's special hostname: `http://host.docker.internal:8000`
+- Sibling service in the same `docker-compose.yml`: `http://notediscovery:8000`
+- Native Python install on the same host: `http://localhost:8000`
+
+If you want both in one stack (NoteDiscovery + mcp-proxy together), a `docker-compose.yml` with both as services on the same Docker network is the cleanest setup — use the Docker service name for `NOTEDISCOVERY_URL` (`http://notediscovery:8000`) rather than a host-bound URL, which keeps the traffic on the internal network and survives host networking changes.
+
+> **Heads up on scope:** [`mcp-proxy`](https://github.com/sparfenyuk/mcp-proxy) is a community project maintained independently from NoteDiscovery, and its CLI flags, configuration options, and behavior can (and do) change between releases. This section shows the general integration pattern. for anything proxy-specific (CLI changes, TLS termination, auth in front of the proxy, multi-client behavior, daemonization, compose recipes, etc.) please consult their docs and issue tracker. If you hit something that looks NoteDiscovery-side (a tool returning unexpected data, the underlying MCP server crashing, missing capabilities) — just open an issue here. 🙂
+
+Then point each client at the SSE endpoint — one shared config across all your devices:
+
+```json
+{
+  "mcpServers": {
+    "notediscovery": {
+      "url": "http://your-host:3000/sse"
+    }
+  }
+}
+```
+
+For production use, wrap `mcp-proxy` in a `systemd` unit or a `docker-compose` service with a restart policy so it survives reboots and crashes, or use a container.
+
+#### Trade-offs vs. the default per-session setup
+
+| | Per-session (default) | 24×7 with mcp-proxy |
+|---|---|---|
+| Setup complexity | None — JSON config and done | Persistent process to manage (systemd, docker-compose, etc.) |
+| Startup cost | ~1–2s container cold start per session | None — server is always warm |
+| Multi-device | Each device spawns its own | One shared instance |
+| Network exposure | None (local pipes only) | HTTP endpoint — **you** own the auth, TLS, and firewalling |
+| Concurrent clients | One per spawned container | Depends on how `mcp-proxy` is configured |
+| State / leak resilience | Fresh process every session | Long-running — restart policy recommended |
+
+**Per-session stdio is the right default** for single-user, single-machine setups. Reach for the 24×7 setup only if you genuinely need shared or remote access and you're comfortable owning the auth and network-exposure side of it (e.g., LAN-only, or behind a reverse proxy with authentication).
+
 ## Configuration
 
 ### Environment Variables
