@@ -9,7 +9,7 @@ description = "A beautiful, fast markdown notes discovery and browsing tool"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "NoteDiscovery", email = "contact@notediscovery.com"}
+    {name = "NoteDiscovery"}
 ]
 keywords = [
     "notes",
