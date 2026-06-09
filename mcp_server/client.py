@@ -254,9 +254,10 @@ class NoteDiscoveryClient:
         Returns:
             APIResponse with creation result
         """
+        # The /api/templates/create-note endpoint reads `templateName` and `notePath`.
         data = {
-            "template": template_name,
-            "path": note_path,
+            "templateName": template_name,
+            "notePath": note_path,
         }
         if variables:
             data["variables"] = variables
