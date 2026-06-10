@@ -5771,8 +5771,10 @@ function noteApp() {
                             case 'video':
                                 return `<div class="media-embed media-video"><video controls preload="none" poster="" src="${mediaSrc}" title="${safeAlt}"></video></div>`;
                             case 'document':
-                                // Local PDFs: show iframe preview
-                                return `<div class="media-embed media-pdf"><iframe src="${mediaSrc}" title="${safeAlt}"></iframe></div>`;
+                                // DOMPurify strips <iframe>, so emit a sentinel <span>
+                                // that survives sanitization; the DOM walker below
+                                // upgrades it to a media-pdf wrapper + iframe. Issue #239.
+                                return `<span class="md-pdf-embed" data-src="${mediaSrc}" data-alt="${safeAlt}"></span>`;
                             default: // image
                                 return `<img src="${mediaSrc}" alt="${safeAlt}" title="${safeAlt}">`;
                         }
@@ -5948,7 +5950,20 @@ function noteApp() {
                     img.setAttribute('title', altText);
                 }
             });
-            
+
+            // Upgrade PDF sentinels emitted by the wiki-embed pre-processor.
+            // Must run AFTER DOMPurify because iframes are stripped by the sanitizer.
+            tempDiv.querySelectorAll('span.md-pdf-embed').forEach(span => {
+                const src = span.dataset.src || '';
+                const alt = span.dataset.alt || '';
+                if (!src) return;
+                const safeAlt = alt.replace(/"/g, '&quot;');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'media-embed media-pdf';
+                wrapper.innerHTML = `<iframe src="${src}" title="${safeAlt}"></iframe>`;
+                span.replaceWith(wrapper);
+            });
+
             html = tempDiv.innerHTML;
             
             // Debounced MathJax rendering (avoid re-running on every keystroke)
