@@ -22,13 +22,13 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "string",
                     "description": "Search query. Can be keywords, phrases, or natural language."
                 },
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of results to return. Useful for large vaults. If not specified, returns all matches."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of results to skip. Use with max_results for pagination."
+                    "description": "Number of results to skip. Use with limit for pagination."
                 }
             },
             "required": ["query"]
@@ -40,13 +40,13 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all notes."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of notes to skip. Use with max_results for pagination."
+                    "description": "Number of notes to skip. Use with limit for pagination."
                 }
             },
             "required": []
@@ -89,13 +89,13 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "string",
                     "description": "Tag name (without the # symbol)"
                 },
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all matches."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of notes to skip. Use with max_results for pagination."
+                    "description": "Number of notes to skip. Use with limit for pagination."
                 }
             },
             "required": ["tag"]
@@ -292,6 +292,20 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "health_check",
         "description": "Check if NoteDiscovery server is running and healthy. Use this to verify connectivity.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "get_config",
+        "description": (
+            "Get NoteDiscovery server configuration: app name, version, "
+            "whether search is enabled, authentication mode, autosave delay. "
+            "Useful for confirming what server you're connected to and what "
+            "features are available before calling other tools."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {},

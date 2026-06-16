@@ -210,20 +210,21 @@ The MCP server provides these tools to AI assistants:
 | Tool | Description |
 |------|-------------|
 | `health_check` | Verify server connectivity |
+| `get_config` | Get server config (name, version, enabled features, autosave delay) |
 
 ## Tool Details
 
-### Pagination with `max_results` and `offset`
+### Pagination with `limit` and `offset`
 
 Some tools support optional pagination parameters for large vaults:
 
 | Tool | Parameters | Description |
 |------|------------|-------------|
-| `search_notes` | `max_results`, `offset` | Paginate search results |
-| `list_notes` | `max_results`, `offset` | Paginate notes list |
-| `get_notes_by_tag` | `max_results`, `offset` | Paginate notes by tag |
+| `search_notes` | `limit`, `offset` | Paginate search results |
+| `list_notes` | `limit`, `offset` | Paginate notes list |
+| `get_notes_by_tag` | `limit`, `offset` | Paginate notes by tag |
 
-- `max_results` - Maximum items to return (omit for all)
+- `limit` - Maximum items to return (omit for all)
 - `offset` - Number of items to skip (for pagination)
 
 **Example prompts:**
