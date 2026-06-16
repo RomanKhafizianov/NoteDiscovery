@@ -248,16 +248,19 @@ class NoteDiscoveryClient:
         self,
         template_name: str,
         note_path: str,
-        variables: dict | None = None
     ) -> APIResponse:
         """
         Create a note from a template.
-        
+
+        Built-in placeholders ({{title}}, {{date}}, {{datetime}},
+        {{folder}}, {{date:FMT}}, etc.) are substituted server-side
+        by apply_template_placeholders. There is no per-call variable
+        injection; use update_note after creation for custom content.
+
         Args:
             template_name: Name of the template
             note_path: Path for the new note
-            variables: Variables to substitute in the template
-            
+
         Returns:
             APIResponse with creation result
         """
@@ -266,9 +269,6 @@ class NoteDiscoveryClient:
             "templateName": template_name,
             "notePath": note_path,
         }
-        if variables:
-            data["variables"] = variables
-        
         return self._request("POST", "/api/templates/create-note", data=data)
     
     # =========================================================================

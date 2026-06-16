@@ -627,20 +627,19 @@ class MCPServer:
         """Create a note from a template."""
         template_name = args.get("template_name", "")
         note_path = args.get("note_path", "")
-        variables = args.get("variables", {})
-        
+
         if not template_name:
             return "Error: template_name is required"
-        
+
         is_valid, error = self._validate_path(note_path)
         if not is_valid:
             return f"Error: note_path - {error}"
-        
-        response = self.client.create_note_from_template(template_name, note_path, variables)
-        
+
+        response = self.client.create_note_from_template(template_name, note_path)
+
         if not response.success:
             return f"Failed to create note from template: {response.error}"
-        
+
         return f"✅ Note created from template '{template_name}': {note_path}"
     
     def _tool_health_check(self, args: dict) -> str:

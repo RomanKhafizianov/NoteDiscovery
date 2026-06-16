@@ -238,7 +238,12 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "create_note_from_template",
-        "description": "Create a new note from a template with variable substitution. Variables in the template like {{variable_name}} will be replaced.",
+        "description": (
+            "Create a new note from a template. Built-in placeholders like "
+            "{{title}}, {{date}}, {{datetime}}, {{folder}}, {{date:FMT}} are "
+            "substituted automatically (FMT is a Python strftime string). "
+            "Use update_note afterwards if you need to inject custom content."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -249,10 +254,6 @@ TOOLS: list[dict[str, Any]] = [
                 "note_path": {
                     "type": "string",
                     "description": "Path for the new note (e.g., 'meetings/2024-03-13.md')"
-                },
-                "variables": {
-                    "type": "object",
-                    "description": "Variables to substitute in the template (e.g., {\"project\": \"Alpha\", \"date\": \"2024-03-13\"})"
                 }
             },
             "required": ["template_name", "note_path"]

@@ -203,7 +203,7 @@ The MCP server provides these tools to AI assistants:
 |------|-------------|
 | `list_templates` | List available templates |
 | `get_template` | Get template content |
-| `create_note_from_template` | Create a note from a template with variable substitution |
+| `create_note_from_template` | Create a note from a template (built-in placeholders only) |
 
 ### System
 
@@ -292,15 +292,18 @@ Get recently modified notes. Useful for context about what you've been working o
 
 ### `create_note_from_template`
 
-Create a new note from a template with variable substitution.
+Create a new note from a template. Built-in placeholders are substituted
+server-side. Need to inject custom content? Call `update_note` after creation.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `template_name` | string | Yes | Template name (e.g., "meeting-notes") |
 | `note_path` | string | Yes | Path for the new note |
-| `variables` | object | No | Variables to substitute (e.g., `{"project": "Alpha"}`) |
 
-**Built-in placeholders:** `{{date}}`, `{{time}}`, `{{datetime}}`, `{{title}}`, `{{folder}}`
+**Built-in placeholders:** `{{title}}`, `{{date}}`, `{{time}}`, `{{datetime}}`,
+`{{timestamp}}`, `{{year}}`, `{{month}}`, `{{day}}`, `{{folder}}`, plus the
+`strftime` escape hatch — `{{date:FMT}}`, `{{time:FMT}}`, `{{datetime:FMT}}`
+where `FMT` is a Python `strftime()` format string. See [TEMPLATES.md](TEMPLATES.md).
 
 **Example prompt:** "Create a new meeting note for Project Alpha using the meeting-notes template"
 
