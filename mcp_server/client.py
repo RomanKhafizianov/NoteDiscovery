@@ -163,16 +163,23 @@ class NoteDiscoveryClient:
     def get_note(self, path: str) -> APIResponse:
         """
         Get a specific note's content.
-        
+
         Args:
             path: Note path (e.g., "folder/note.md")
-            
+
         Returns:
             APIResponse with note content and metadata
         """
-        # URL-encode the path
+        # /api/notes/{path} defaults to include_backlinks=True server-side,
+        # which scans every note in the vault. The MCP get_note tool only
+        # surfaces content + metadata, so we skip the backlinks computation.
+        # Backlinks are still available via the dedicated get_backlinks method.
         encoded_path = urllib.parse.quote(path, safe="")
-        return self._request("GET", f"/api/notes/{encoded_path}")
+        return self._request(
+            "GET",
+            f"/api/notes/{encoded_path}",
+            params={"include_backlinks": "false"},
+        )
     
     def create_note(self, path: str, content: str) -> APIResponse:
         """
@@ -241,16 +248,19 @@ class NoteDiscoveryClient:
         self,
         template_name: str,
         note_path: str,
-        variables: dict | None = None
     ) -> APIResponse:
         """
         Create a note from a template.
-        
+
+        Built-in placeholders ({{title}}, {{date}}, {{datetime}},
+        {{folder}}, {{date:FMT}}, etc.) are substituted server-side
+        by apply_template_placeholders. There is no per-call variable
+        injection; use update_note after creation for custom content.
+
         Args:
             template_name: Name of the template
             note_path: Path for the new note
-            variables: Variables to substitute in the template
-            
+
         Returns:
             APIResponse with creation result
         """
@@ -259,9 +269,6 @@ class NoteDiscoveryClient:
             "templateName": template_name,
             "notePath": note_path,
         }
-        if variables:
-            data["variables"] = variables
-        
         return self._request("POST", "/api/templates/create-note", data=data)
     
     # =========================================================================

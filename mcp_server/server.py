@@ -13,6 +13,7 @@ import sys
 import traceback
 from typing import Any, Optional
 
+from . import __version__
 from .config import load_config, MCPConfig
 from .client import NoteDiscoveryClient, APIResponse
 from .tools import TOOLS, get_tool_names
@@ -21,10 +22,11 @@ from .tools import TOOLS, get_tool_names
 # MCP Protocol version
 MCP_VERSION = "2024-11-05"
 
-# Server info
+# Server info: version comes from the package (resolved against the VERSION
+# file at repo root, or importlib.metadata when pip-installed).
 SERVER_INFO = {
     "name": "notediscovery-mcp",
-    "version": "1.0.0",
+    "version": __version__,
 }
 
 
@@ -208,14 +210,14 @@ class MCPServer:
     def _tool_search_notes(self, args: dict) -> str:
         """Search notes by query."""
         query = args.get("query", "").strip()
-        max_results = args.get("max_results")
+        limit = args.get("limit")
         offset = args.get("offset", 0)
-        
+
         if not query:
             return "No search term provided. Please specify a query."
-        
-        # Use server-side pagination if max_results is specified
-        response = self.client.search(query, limit=max_results, offset=offset)
+
+        # Use server-side pagination if limit is specified
+        response = self.client.search(query, limit=limit, offset=offset)
         
         if not response.success:
             return f"Search failed: {response.error}"
@@ -252,17 +254,17 @@ class MCPServer:
         
         # Add pagination hint if there are more results
         if pagination and pagination.get("has_more"):
-            output.append(f"... more results available (use max_results and offset to paginate)")
-        
+            output.append(f"... more results available (use limit and offset to paginate)")
+
         return "\n".join(output)
-    
+
     def _tool_list_notes(self, args: dict) -> str:
         """List all notes."""
-        max_results = args.get("max_results")
+        limit = args.get("limit")
         offset = args.get("offset", 0)
-        
-        # Use server-side pagination if max_results is specified
-        response = self.client.list_notes(limit=max_results, offset=offset)
+
+        # Use server-side pagination if limit is specified
+        response = self.client.list_notes(limit=limit, offset=offset)
         
         if not response.success:
             return f"Failed to list notes: {response.error}"
@@ -298,10 +300,10 @@ class MCPServer:
         
         # Add pagination hint if there are more results
         if pagination and pagination.get("has_more"):
-            output.append(f"... more notes available (use max_results to limit)")
-        
+            output.append(f"... more notes available (use limit and offset to paginate)")
+
         return "\n".join(output)
-    
+
     def _tool_get_note(self, args: dict) -> str:
         """Get note content."""
         path = args.get("path", "")
@@ -350,14 +352,14 @@ class MCPServer:
     def _tool_get_notes_by_tag(self, args: dict) -> str:
         """Get notes with a specific tag."""
         tag = args.get("tag", "")
-        max_results = args.get("max_results")
+        limit = args.get("limit")
         offset = args.get("offset", 0)
-        
+
         if not tag:
             return "Error: tag is required"
 
-        # Use server-side pagination if max_results is specified
-        response = self.client.get_notes_by_tag(tag, limit=max_results, offset=offset)
+        # Use server-side pagination if limit is specified
+        response = self.client.get_notes_by_tag(tag, limit=limit, offset=offset)
 
         if not response.success:
             return f"Failed to get notes by tag: {response.error}"
@@ -382,7 +384,7 @@ class MCPServer:
 
         # Add pagination hint if there are more results
         if pagination and pagination.get("has_more"):
-            output.append(f"\n... more notes available (use max_results to limit)")
+            output.append(f"\n... more notes available (use limit and offset to paginate)")
 
         return "\n".join(output)
     
@@ -625,20 +627,19 @@ class MCPServer:
         """Create a note from a template."""
         template_name = args.get("template_name", "")
         note_path = args.get("note_path", "")
-        variables = args.get("variables", {})
-        
+
         if not template_name:
             return "Error: template_name is required"
-        
+
         is_valid, error = self._validate_path(note_path)
         if not is_valid:
             return f"Error: note_path - {error}"
-        
-        response = self.client.create_note_from_template(template_name, note_path, variables)
-        
+
+        response = self.client.create_note_from_template(template_name, note_path)
+
         if not response.success:
             return f"Failed to create note from template: {response.error}"
-        
+
         return f"✅ Note created from template '{template_name}': {note_path}"
     
     def _tool_health_check(self, args: dict) -> str:
@@ -649,6 +650,26 @@ class MCPServer:
             return f"❌ NoteDiscovery is not reachable: {response.error}"
         
         return f"✅ NoteDiscovery is healthy at {self.config.base_url}"
+
+    def _tool_get_config(self, args: dict) -> str:
+        """Get NoteDiscovery server configuration."""
+        response = self.client.get_config()
+
+        if not response.success:
+            return f"Failed to get config: {response.error}"
+
+        data = response.data or {}
+        if not data:
+            return "Server returned empty configuration."
+
+        output = ["NoteDiscovery Server Configuration:\n"]
+        for key in sorted(data.keys()):
+            value = data[key]
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value, ensure_ascii=False)
+            output.append(f"  {key}: {value}")
+
+        return "\n".join(output)
     
     # =========================================================================
     # Main Loop

@@ -22,13 +22,13 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "string",
                     "description": "Search query. Can be keywords, phrases, or natural language."
                 },
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of results to return. Useful for large vaults. If not specified, returns all matches."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of results to skip. Use with max_results for pagination."
+                    "description": "Number of results to skip. Use with limit for pagination."
                 }
             },
             "required": ["query"]
@@ -40,13 +40,13 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all notes."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of notes to skip. Use with max_results for pagination."
+                    "description": "Number of notes to skip. Use with limit for pagination."
                 }
             },
             "required": []
@@ -89,13 +89,13 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "string",
                     "description": "Tag name (without the # symbol)"
                 },
-                "max_results": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of notes to return. Useful for large vaults. If not specified, returns all matches."
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "Number of notes to skip. Use with max_results for pagination."
+                    "description": "Number of notes to skip. Use with limit for pagination."
                 }
             },
             "required": ["tag"]
@@ -238,7 +238,12 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "create_note_from_template",
-        "description": "Create a new note from a template with variable substitution. Variables in the template like {{variable_name}} will be replaced.",
+        "description": (
+            "Create a new note from a template. Built-in placeholders like "
+            "{{title}}, {{date}}, {{datetime}}, {{folder}}, {{date:FMT}} are "
+            "substituted automatically (FMT is a Python strftime string). "
+            "Use update_note afterwards if you need to inject custom content."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -249,10 +254,6 @@ TOOLS: list[dict[str, Any]] = [
                 "note_path": {
                     "type": "string",
                     "description": "Path for the new note (e.g., 'meetings/2024-03-13.md')"
-                },
-                "variables": {
-                    "type": "object",
-                    "description": "Variables to substitute in the template (e.g., {\"project\": \"Alpha\", \"date\": \"2024-03-13\"})"
                 }
             },
             "required": ["template_name", "note_path"]
@@ -292,6 +293,20 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "health_check",
         "description": "Check if NoteDiscovery server is running and healthy. Use this to verify connectivity.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "get_config",
+        "description": (
+            "Get NoteDiscovery server configuration: app name, version, "
+            "whether search is enabled, authentication mode, autosave delay. "
+            "Useful for confirming what server you're connected to and what "
+            "features are available before calling other tools."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {},
