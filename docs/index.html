@@ -14,8 +14,6 @@
     <link rel="canonical" href="https://www.notediscovery.com">
 
     <!-- Preconnect / DNS prefetch for performance -->
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
-    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
     <link rel="dns-prefetch" href="https://ko-fi.com">
     <link rel="dns-prefetch" href="https://www.pikapods.com">
 
@@ -669,21 +667,31 @@
 
     </style>
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2TVGZ9N7LF"></script>
+    <!-- Google Analytics — only loads on the canonical domain.
+         Forks and clones deployed elsewhere never contact Google. -->
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+        (function () {
+            var h = location.hostname;
+            if (h !== 'notediscovery.com' && !h.endsWith('.notediscovery.com')) return;
 
-        gtag('config', 'G-2TVGZ9N7LF');
-    </script>    
+            var GA_ID = 'G-2TVGZ9N7LF';
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+            document.head.appendChild(s);
+
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function gtag(){ dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', GA_ID);
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="header-buttons">
-                <a href="https://ko-fi.com/gamosoft" class="kofi-mini" target="_blank" rel="noopener" aria-label="Support on Ko-fi">
+                <a href="https://ko-fi.com/gamosoft" class="kofi-mini" target="_blank" rel="noopener" aria-label="Support on Ko-fi" data-track="cta_kofi_click" data-track-location="header">
                     <span>☕</span>
                     <span>Support</span>
                 </a>
@@ -701,13 +709,13 @@
                 <h2>Take Control of Your Notes</h2>
                 <p>A lightweight, privacy-focused note-taking application with powerful features: AI assistant integration (MCP), LaTeX math equations, Mermaid diagrams, an embedded drawing editor for quick sketches, smart tags, custom templates, code highlighting, and more. Write and organize your notes with a beautiful, modern interface all running on your own server.</p>
                 <div class="cta-buttons">
-                    <a href="https://gamosoft-notediscovery-demo.hf.space" class="cta-button demo" target="_blank" rel="noopener">Try Live Demo</a>
-                    <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button" target="_blank" rel="noopener">Get Started on GitHub →</a>
+                    <a href="https://gamosoft-notediscovery-demo.hf.space" class="cta-button demo" target="_blank" rel="noopener" data-track="cta_demo_click" data-track-location="header">Try Live Demo</a>
+                    <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button" target="_blank" rel="noopener" data-track="cta_github_click" data-track-location="header" data-track-intent="get_started">Get Started on GitHub →</a>
                 </div>
                 <p class="demo-notice">✨ Demo resets daily · For demonstration purposes only</p>
                 <div class="pikapods-deploy" style="margin-top: 1.5rem;">
                     <p style="margin-bottom: 0.75rem; font-size: 0.95rem;">☁️ Or deploy your own instance in one click:</p>
-                    <a href="https://www.pikapods.com/pods?run=notediscovery" target="_blank" rel="noopener">
+                    <a href="https://www.pikapods.com/pods?run=notediscovery" target="_blank" rel="noopener" data-track="cta_pikapods_click" data-track-location="header">
                         <img src="https://www.pikapods.com/static/run-button.svg" alt="Run on PikaPods" style="height: 40px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     </a>
                 </div>
@@ -1036,13 +1044,13 @@
                 <h2>Ready to Get Started?</h2>
                 <p>Join the self-hosting community and take back control of your notes today.</p>
                 <div class="cta-buttons">
-                    <a href="https://gamosoft-notediscovery-demo.hf.space" class="cta-button demo" target="_blank" rel="noopener">Try Live Demo</a>
-                    <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button" target="_blank" rel="noopener">View on GitHub →</a>
+                    <a href="https://gamosoft-notediscovery-demo.hf.space" class="cta-button demo" target="_blank" rel="noopener" data-track="cta_demo_click" data-track-location="footer">Try Live Demo</a>
+                    <a href="https://github.com/gamosoft/NoteDiscovery" class="cta-button" target="_blank" rel="noopener" data-track="cta_github_click" data-track-location="footer" data-track-intent="view">View on GitHub →</a>
                 </div>
                 <p class="demo-notice">✨ Demo resets daily · For demonstration purposes only</p>
                 <div class="pikapods-deploy" style="margin-top: 1.5rem;">
                     <p style="margin-bottom: 0.75rem; font-size: 0.95rem;">☁️ Don't want to self-host? Deploy on PikaPods:</p>
-                    <a href="https://www.pikapods.com/pods?run=notediscovery" target="_blank" rel="noopener">
+                    <a href="https://www.pikapods.com/pods?run=notediscovery" target="_blank" rel="noopener" data-track="cta_pikapods_click" data-track-location="footer">
                         <img src="https://www.pikapods.com/static/run-button.svg" alt="Run on PikaPods" style="height: 40px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     </a>
                 </div>
@@ -1052,8 +1060,8 @@
         <footer>
             <p>Made with ❤️ for the self-hosting community</p>
             <p>
-                <a href="https://github.com/gamosoft/NoteDiscovery" class="github-link" target="_blank" rel="noopener">Star on GitHub</a> • 
-                <a href="https://github.com/gamosoft/NoteDiscovery/issues" class="github-link" target="_blank" rel="noopener">Report Issues</a>
+                <a href="https://github.com/gamosoft/NoteDiscovery" class="github-link" target="_blank" rel="noopener" data-track="cta_github_click" data-track-location="footer_link" data-track-intent="star">Star on GitHub</a> • 
+                <a href="https://github.com/gamosoft/NoteDiscovery/issues" class="github-link" target="_blank" rel="noopener" data-track="cta_issues_click" data-track-location="footer_link">Report Issues</a>
             </p>
         </footer>
     </div>
@@ -1191,6 +1199,27 @@
                         }
                     }
                 }
+            });
+        })();
+
+        // Reads data-track / data-track-* attributes for declarative wiring.
+        (function () {
+            function track(event, params) {
+                if (typeof gtag !== 'function') return;
+                gtag('event', event, params || {});
+            }
+
+            document.addEventListener('click', function (e) {
+                const el = e.target.closest('[data-track]');
+                if (!el) return;
+
+                const params = { transport_type: 'beacon' };
+                for (const attr of el.attributes) {
+                    if (attr.name.startsWith('data-track-')) {
+                        params[attr.name.slice('data-track-'.length)] = attr.value;
+                    }
+                }
+                track(el.dataset.track, params);
             });
         })();
     </script>
