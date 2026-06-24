@@ -1,13 +1,17 @@
-# 📝 NoteDiscovery
+<p align="center">
+  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat">
+  <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml">
+  <img alt="Latest Version" src="https://img.shields.io/github/v/tag/gamosoft/notediscovery">
+  <img alt="License" src="https://img.shields.io/github/license/gamosoft/notediscovery">
+</p>
 
-![GitHub Stars](https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat)
-![Build](https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml)
-![Latest Version](https://img.shields.io/github/v/tag/gamosoft/notediscovery)
-![License](https://img.shields.io/github/license/gamosoft/notediscovery)
+<p align="center">
+  <img src="docs/logo.svg" alt="NoteDiscovery" width="120">
+</p>
 
+<h1 align="center">NoteDiscovery</h1>
 
-
-> Your Self-Hosted Knowledge Base
+<p align="center"><i>Your Self-Hosted Knowledge Base</i></p>
 
 ## What is NoteDiscovery?
 
