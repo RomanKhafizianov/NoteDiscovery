@@ -17,7 +17,12 @@
 
 NoteDiscovery is a **lightweight, self-hosted note-taking application** that puts you in complete control of your knowledge base. Write, organize, and discover your notes with a beautiful, modern interface—all running on your own server.
 
-![Note Discovery](docs/carousel-1.jpg)
+<p align="center">
+  <img src="docs/carousel-1.jpg" alt="Editor and sidebar" width="32%">
+  <img src="docs/carousel-2.jpg" alt="Full-text search" width="32%">
+  <img src="docs/carousel-6.jpg" alt="Graph view of linked notes" width="32%">
+</p>
+<p align="center"><sub><i>Write · Find · Discover</i></sub></p>
 
 ## 🎯 Who is it for?
 
@@ -106,6 +111,15 @@ NoteDiscovery includes a built-in **Model Context Protocol (MCP)** server, letti
 ```
 
 > 💡 **See [MCP.md](documentation/MCP.md)** for complete setup instructions and all available tools.
+
+## 📺 Watch the tour
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=qur5uemWeJA">
+    <img src="https://img.youtube.com/vi/qur5uemWeJA/maxresdefault.jpg" alt="Watch a short tour" width="720">
+  </a>
+</p>
+<p align="center"><i>▶ Small walkthrough — sharing, favorites, search, backlinks, and more</i></p>
 
 ## 🚀 Quick Start
 
