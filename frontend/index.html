@@ -544,7 +544,35 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
-        
+
+        /* Callouts — GitHub-style admonitions (> [!NOTE], etc.) */
+        .markdown-preview .callout {
+            margin: 1rem 0;
+            padding: 0.75rem 1rem;
+            border-left: 4px solid var(--callout-color, var(--accent-primary));
+            border-radius: 0.375rem;
+            background: var(--callout-bg, var(--bg-secondary));
+        }
+        .markdown-preview .callout-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--callout-color, var(--accent-primary));
+            margin-bottom: 0.25rem;
+        }
+        .markdown-preview .callout-icon {
+            font-size: 1.1em;
+            line-height: 1;
+        }
+        .markdown-preview .callout-body > :first-child { margin-top: 0; }
+        .markdown-preview .callout-body > :last-child  { margin-bottom: 0; }
+        .markdown-preview .callout-note      { --callout-color: #0969da; --callout-bg: rgba(9, 105, 218, 0.08); }
+        .markdown-preview .callout-tip       { --callout-color: #1a7f37; --callout-bg: rgba(26, 127, 55, 0.08); }
+        .markdown-preview .callout-important { --callout-color: #8250df; --callout-bg: rgba(130, 80, 223, 0.08); }
+        .markdown-preview .callout-warning   { --callout-color: #9a6700; --callout-bg: rgba(154, 103, 0, 0.08); }
+        .markdown-preview .callout-caution   { --callout-color: #d1242f; --callout-bg: rgba(209, 36, 47, 0.08); }
+
         /* Task lists */
         .markdown-preview input[type="checkbox"] {
             margin-right: 0.5rem;
@@ -3031,6 +3059,7 @@
                                     @scroll="syncOverlayScroll()"
                                     @keydown.enter="handleEditorEnterKey($event)"
                                     @keydown.tab="handleTabKey($event)"
+                                    @dblclick="trimSelectionTrailingSpace($event)"
                                     @drop="onEditorDrop($event)"
                                     @dragover.prevent="onEditorDragOver($event)"
                                     @dragenter="onEditorDragEnter($event)"
