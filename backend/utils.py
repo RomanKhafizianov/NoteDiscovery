@@ -8,6 +8,7 @@ import shutil
 import threading
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, TypeVar, Callable
@@ -218,48 +219,113 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
                 _scan_cache_set(cache_key, normalized_value)
                 return normalized_value
 
+    # TODO: remove this flag and the legacy branch below once the parallel
+    # path has been validated in production with large vaults. To revert to
+    # the pre-parallel behavior, flip _USE_PARALLEL_TAG_SCAN to False.
+    _USE_PARALLEL_TAG_SCAN = True
+
     notes: List[Dict] = []
     folders_set = set()
 
-    for root, dirnames, filenames in os.walk(notes_path):
-        # Skip descending into dot-dirs
-        dirnames[:] = [d for d in dirnames if not d.startswith('.')]
+    if not _USE_PARALLEL_TAG_SCAN:
+        # ===== LEGACY: sequential tag extraction inline with the walk =====
+        for root, dirnames, filenames in os.walk(notes_path):
+            # Skip descending into dot-dirs
+            dirnames[:] = [d for d in dirnames if not d.startswith('.')]
 
-        root_path = Path(root)
-        rel_folder = root_path.relative_to(notes_path).as_posix()
-        if rel_folder != "." and not rel_folder.startswith('.'):
-            folders_set.add(rel_folder)
+            root_path = Path(root)
+            rel_folder = root_path.relative_to(notes_path).as_posix()
+            if rel_folder != "." and not rel_folder.startswith('.'):
+                folders_set.add(rel_folder)
 
-        for filename in filenames:
-            if filename.startswith('.'):
-                continue
+            for filename in filenames:
+                if filename.startswith('.'):
+                    continue
 
-            full_path = root_path / filename
-            try:
-                st = full_path.stat()
-            except OSError:
-                continue
+                full_path = root_path / filename
+                try:
+                    st = full_path.stat()
+                except OSError:
+                    continue
 
-            relative_path = full_path.relative_to(notes_path)
-            media_type = get_media_type(filename) if include_media else None
-            is_markdown = full_path.suffix.lower() == '.md'
-            should_include = is_markdown or (include_media and media_type is not None)
+                relative_path = full_path.relative_to(notes_path)
+                media_type = get_media_type(filename) if include_media else None
+                is_markdown = full_path.suffix.lower() == '.md'
+                should_include = is_markdown or (include_media and media_type is not None)
 
-            if not should_include:
-                continue
+                if not should_include:
+                    continue
 
-            folder = relative_path.parent.as_posix()
-            # Get tags for this note (cached)
-            tags = get_tags_cached(full_path) if is_markdown else []
-            notes.append({
-                "name": full_path.stem,
-                "path": relative_path.as_posix(),
-                "folder": "" if folder == "." else folder,
-                "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-                "size": st.st_size,
-                "type": media_type if media_type else "note",
-                "tags": tags,
-            })
+                folder = relative_path.parent.as_posix()
+                tags = get_tags_cached(full_path) if is_markdown else []
+                notes.append({
+                    "name": full_path.stem,
+                    "path": relative_path.as_posix(),
+                    "folder": "" if folder == "." else folder,
+                    "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
+                    "size": st.st_size,
+                    "type": media_type if media_type else "note",
+                    "tags": tags,
+                })
+    else:
+        # ===== NEW: tag extraction deferred out of the walk and parallelized =====
+        # Indices of markdown entries in `notes` plus their full paths, so we can
+        # defer tag extraction (the expensive part) out of the walk and parallelize
+        # it across files. Tags are filled in after the walk completes.
+        md_to_tag: List[Tuple[int, Path]] = []
+
+        for root, dirnames, filenames in os.walk(notes_path):
+            dirnames[:] = [d for d in dirnames if not d.startswith('.')]
+
+            root_path = Path(root)
+            rel_folder = root_path.relative_to(notes_path).as_posix()
+            if rel_folder != "." and not rel_folder.startswith('.'):
+                folders_set.add(rel_folder)
+
+            for filename in filenames:
+                if filename.startswith('.'):
+                    continue
+
+                full_path = root_path / filename
+                try:
+                    st = full_path.stat()
+                except OSError:
+                    continue
+
+                relative_path = full_path.relative_to(notes_path)
+                media_type = get_media_type(filename) if include_media else None
+                is_markdown = full_path.suffix.lower() == '.md'
+                should_include = is_markdown or (include_media and media_type is not None)
+
+                if not should_include:
+                    continue
+
+                folder = relative_path.parent.as_posix()
+                notes.append({
+                    "name": full_path.stem,
+                    "path": relative_path.as_posix(),
+                    "folder": "" if folder == "." else folder,
+                    "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
+                    "size": st.st_size,
+                    "type": media_type if media_type else "note",
+                    "tags": [],
+                })
+                if is_markdown:
+                    md_to_tag.append((len(notes) - 1, full_path))
+
+        # Parallelize for large vaults (sequential branch avoids thread-spawn
+        # overhead for small vaults). get_tags_cached is mtime-keyed so this is
+        # mostly free on warm cache; the win is the cold first call.
+        if md_to_tag:
+            if len(md_to_tag) >= 50:
+                workers = min(8, (os.cpu_count() or 4))
+                paths = [p for _, p in md_to_tag]
+                with ThreadPoolExecutor(max_workers=workers) as ex:
+                    for (idx, _), tags in zip(md_to_tag, ex.map(get_tags_cached, paths)):
+                        notes[idx]["tags"] = tags
+            else:
+                for idx, p in md_to_tag:
+                    notes[idx]["tags"] = get_tags_cached(p)
 
     value = (sorted(notes, key=lambda x: x.get('modified', ''), reverse=True), sorted(folders_set))
     if use_cache:
