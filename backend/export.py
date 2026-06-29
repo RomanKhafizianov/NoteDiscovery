@@ -527,7 +527,37 @@ def generate_export_html(
             border-left: 4px solid var(--accent-primary, #0366d6);
             color: var(--text-secondary, #6a737d);
         }}
-        
+
+        /* Callouts / admonitions (GitHub-style: > [!NOTE], > [!TIP], etc.)
+           Mirrors the in-app preview styles so exported/shared notes match.
+           Hard-coded GitHub palette with rgba backgrounds blends with any theme. */
+        .markdown-preview .callout {{
+            margin: 1rem 0;
+            padding: 0.75rem 1rem;
+            border-left: 4px solid var(--callout-color, var(--accent-primary, #0366d6));
+            border-radius: 0.375rem;
+            background: var(--callout-bg, var(--bg-secondary, #f6f8fa));
+        }}
+        .markdown-preview .callout-title {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--callout-color, var(--accent-primary, #0366d6));
+            margin-bottom: 0.25rem;
+        }}
+        .markdown-preview .callout-icon {{
+            font-size: 1.1em;
+            line-height: 1;
+        }}
+        .markdown-preview .callout-body > :first-child {{ margin-top: 0; }}
+        .markdown-preview .callout-body > :last-child  {{ margin-bottom: 0; }}
+        .markdown-preview .callout-note      {{ --callout-color: #0969da; --callout-bg: rgba(9, 105, 218, 0.08); }}
+        .markdown-preview .callout-tip       {{ --callout-color: #1a7f37; --callout-bg: rgba(26, 127, 55, 0.08); }}
+        .markdown-preview .callout-important {{ --callout-color: #8250df; --callout-bg: rgba(130, 80, 223, 0.08); }}
+        .markdown-preview .callout-warning   {{ --callout-color: #9a6700; --callout-bg: rgba(154, 103, 0, 0.08); }}
+        .markdown-preview .callout-caution   {{ --callout-color: #d1242f; --callout-bg: rgba(209, 36, 47, 0.08); }}
+
         .markdown-preview ul,
         .markdown-preview ol {{
             padding-left: 2em;
@@ -766,10 +796,57 @@ def generate_export_html(
 
         // Raw markdown content
         const markdown = `{escaped_content}`;
-        
+
+        // Convert GitHub/Obsidian-style callouts (admonitions) before marked parses.
+        // Mirrors the in-app preview preprocessor so exported/shared notes match.
+        // Code blocks are protected with placeholders so callout syntax inside
+        // fenced/inline code is preserved verbatim. Only the 5 GitHub-canonical
+        // types are recognised; unknown types fall through to plain blockquotes.
+        let processed;
+        {{
+            const CALLOUT_RE = /^>\\s*\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]\\s*(.*)$/i;
+            const CALLOUT_ICONS = {{ note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑' }};
+            const CALLOUT_TITLES = {{ note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' }};
+            const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const codeBlocks = [];
+            processed = markdown
+                .replace(/```[\\s\\S]*?```/g, function(m) {{ codeBlocks.push(m); return '\\x00CODEBLOCK' + (codeBlocks.length - 1) + '\\x00'; }})
+                .replace(/`[^`]+`/g, function(m) {{ codeBlocks.push(m); return '\\x00CODEBLOCK' + (codeBlocks.length - 1) + '\\x00'; }});
+            const srcLines = processed.split('\\n');
+            const outLines = [];
+            let li = 0;
+            while (li < srcLines.length) {{
+                const m = srcLines[li].match(CALLOUT_RE);
+                if (!m) {{ outLines.push(srcLines[li]); li++; continue; }}
+                const type = m[1].toLowerCase();
+                const title = escapeAttr((m[2] || '').trim() || CALLOUT_TITLES[type]);
+                const icon = CALLOUT_ICONS[type];
+                const bodyLines = [];
+                li++;
+                while (li < srcLines.length && srcLines[li].startsWith('>')) {{
+                    bodyLines.push(srcLines[li].replace(/^>\\s?/, ''));
+                    li++;
+                }}
+                outLines.push(
+                    '',
+                    '<div class="callout callout-' + type + '">',
+                    '<div class="callout-title"><span class="callout-icon" aria-hidden="true">' + icon + '</span><span class="callout-title-text">' + title + '</span></div>',
+                    '<div class="callout-body">',
+                    '',
+                    bodyLines.join('\\n'),
+                    '',
+                    '</div>',
+                    '</div>',
+                    ''
+                );
+            }}
+            processed = outLines.join('\\n')
+                .replace(/\\x00CODEBLOCK(\\d+)\\x00/g, function(_, idx) {{ return codeBlocks[parseInt(idx)]; }});
+        }}
+
         // Render markdown with XSS sanitization
         // DOMPurify strips scripts, iframes, and event handlers while allowing safe HTML/SVG
-        const rawHtml = marked.parse(markdown);
+        const rawHtml = marked.parse(processed);
         const safeHtml = DOMPurify.sanitize(rawHtml);
         document.getElementById('content').innerHTML = safeHtml;
         

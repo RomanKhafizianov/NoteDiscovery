@@ -270,6 +270,34 @@ graph TD
 
 📄 **See the [MERMAID](MERMAID.md) note for diagram examples and syntax reference.**
 
+## 💬 Callouts / Admonitions
+
+GitHub-style callouts highlight important information in your notes. They render as colored, bordered blocks in the preview pane and are fully compatible with notes imported from GitHub or Obsidian.
+
+### Syntax
+
+Start a blockquote with `> [!TYPE]` on its own line, then continue with the body:
+
+```markdown
+> [!NOTE]
+> Useful information that users should know, even when skimming.
+
+> [!TIP] Custom title
+> Helpful advice for doing things better or more easily.
+```
+
+The first line can include an optional custom title after the type. Inner markdown (bold, links, lists, code) is fully parsed.
+
+### Supported Types
+
+- `[!NOTE]` - General information (blue)
+- `[!TIP]` - Helpful advice (green)
+- `[!IMPORTANT]` - Crucial information (purple)
+- `[!WARNING]` - Urgent caution required (amber)
+- `[!CAUTION]` - Negative consequences if ignored (red)
+
+Unknown types fall through to a normal blockquote, so existing notes are never broken.
+
 ## 📄 Note Templates
 
 Create notes from reusable templates with dynamic placeholder replacement.

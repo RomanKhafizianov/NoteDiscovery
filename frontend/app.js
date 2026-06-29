@@ -5811,6 +5811,54 @@ function noteApp() {
                 }
             );
             
+            // Step 2c: Convert GitHub/Obsidian-style callouts (admonitions).
+            // Runs while code blocks are still placeholders so callout syntax
+            // inside fenced/inline code is preserved verbatim. The body is
+            // emitted as a raw HTML block surrounded by blank lines so marked
+            // still parses inner markdown (bold, links, lists, etc.) per CommonMark.
+            // Only the 5 GitHub-canonical types are recognised; unknown types
+            // (e.g. `> [!CUSTOM]`) fall through to plain blockquotes.
+            {
+                const CALLOUT_RE = /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$/i;
+                const CALLOUT_ICONS = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑' };
+                const CALLOUT_TITLES = { note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' };
+                const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                const srcLines = contentToRender.split('\n');
+                const outLines = [];
+                let li = 0;
+                while (li < srcLines.length) {
+                    const m = srcLines[li].match(CALLOUT_RE);
+                    if (!m) {
+                        outLines.push(srcLines[li]);
+                        li++;
+                        continue;
+                    }
+                    const type = m[1].toLowerCase();
+                    const title = escapeAttr((m[2] || '').trim() || CALLOUT_TITLES[type]);
+                    const icon = CALLOUT_ICONS[type];
+                    const bodyLines = [];
+                    li++;
+                    while (li < srcLines.length && srcLines[li].startsWith('>')) {
+                        bodyLines.push(srcLines[li].replace(/^>\s?/, ''));
+                        li++;
+                    }
+                    outLines.push(
+                        '',
+                        `<div class="callout callout-${type}">`,
+                        `<div class="callout-title"><span class="callout-icon" aria-hidden="true">${icon}</span><span class="callout-title-text">${title}</span></div>`,
+                        `<div class="callout-body">`,
+                        '',
+                        bodyLines.join('\n'),
+                        '',
+                        `</div>`,
+                        `</div>`,
+                        ''
+                    );
+                }
+                contentToRender = outLines.join('\n');
+            }
+
             // Step 3: Restore code blocks
             contentToRender = contentToRender.replace(/\x00CODEBLOCK(\d+)\x00/g, (match, index) => {
                 return codeBlocks[parseInt(index)];
