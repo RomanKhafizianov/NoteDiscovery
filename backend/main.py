@@ -12,12 +12,15 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 import yaml
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional
 import aiofiles
 from datetime import datetime
 import bcrypt
 import secrets
+
+logger = logging.getLogger("uvicorn.error")
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -79,9 +82,9 @@ with open(version_path, 'r', encoding='utf-8') as f:
 if 'AUTHENTICATION_ENABLED' in os.environ:
     auth_enabled = os.getenv('AUTHENTICATION_ENABLED', 'false').lower() in ('true', '1', 'yes')
     config['authentication']['enabled'] = auth_enabled
-    print(f"🔐 Authentication {'ENABLED' if auth_enabled else 'DISABLED'} (from AUTHENTICATION_ENABLED env var)")
+    logger.info("Authentication %s (from AUTHENTICATION_ENABLED env var)", 'ENABLED' if auth_enabled else 'DISABLED')
 else:
-    print(f"🔐 Authentication {'ENABLED' if config.get('authentication', {}).get('enabled', False) else 'DISABLED'} (from config.yaml)")
+    logger.info("Authentication %s (from config.yaml)", 'ENABLED' if config.get('authentication', {}).get('enabled', False) else 'DISABLED')
 
 # Password configuration priority:
 # 1. AUTHENTICATION_PASSWORD env var (hashed at startup)
@@ -94,9 +97,9 @@ if 'AUTHENTICATION_PASSWORD' in os.environ:
             plain_password.encode('utf-8'), 
             bcrypt.gensalt()
         ).decode('utf-8')
-        print("🔑 Password loaded from AUTHENTICATION_PASSWORD env var")
+        logger.info("Password loaded from AUTHENTICATION_PASSWORD env var")
     else:
-        print("⚠️  WARNING: AUTHENTICATION_PASSWORD env var is empty - ignoring")
+        logger.warning("AUTHENTICATION_PASSWORD env var is empty - ignoring")
 elif config.get('authentication', {}).get('password', '').strip():
     plain_password = config['authentication']['password'].strip()
     config['authentication']['password_hash'] = bcrypt.hashpw(
@@ -104,12 +107,12 @@ elif config.get('authentication', {}).get('password', '').strip():
         bcrypt.gensalt()
     ).decode('utf-8')
     del config['authentication']['password']
-    print("🔑 Password loaded from config.yaml")
+    logger.info("Password loaded from config.yaml")
 
 # Allow secret key to be set via environment variable (for session security)
 if 'AUTHENTICATION_SECRET_KEY' in os.environ:
     config['authentication']['secret_key'] = os.getenv('AUTHENTICATION_SECRET_KEY')
-    print("🔐 Secret key loaded from AUTHENTICATION_SECRET_KEY env var")
+    logger.info("Secret key loaded from AUTHENTICATION_SECRET_KEY env var")
 
 # API key configuration for external integrations (MCP servers, scripts, etc.)
 # Priority: AUTHENTICATION_API_KEY env var > authentication.api_key in config.yaml
@@ -117,11 +120,11 @@ if 'AUTHENTICATION_API_KEY' in os.environ:
     api_key_value = os.getenv('AUTHENTICATION_API_KEY', '').strip()
     if api_key_value:
         config['authentication']['api_key'] = api_key_value
-        print("🔑 API key loaded from AUTHENTICATION_API_KEY env var")
+        logger.info("API key loaded from AUTHENTICATION_API_KEY env var")
     else:
         config['authentication']['api_key'] = ''
 elif config.get('authentication', {}).get('api_key', '').strip():
-    print("🔑 API key loaded from config.yaml")
+    logger.info("API key loaded from config.yaml")
 else:
     config['authentication']['api_key'] = ''
 
@@ -133,15 +136,15 @@ if config.get('authentication', {}).get('enabled', False):
     _is_default_secret = _secret_key in ('', 'change_this_to_a_random_secret_key_in_production')
     
     if not _has_password and not _has_api_key:
-        print("🚨 CRITICAL: Authentication enabled but NO auth methods configured - ALL access will be denied!")
+        logger.critical("Authentication enabled but NO auth methods configured - ALL access will be denied!")
     else:
         if not _has_password:
-            print("⚠️  WARNING: No password configured - web UI login will not work")
+            logger.warning("No password configured - web UI login will not work")
         if not _has_api_key:
-            print("⚠️  WARNING: No API key configured - external integrations will require session cookies")
+            logger.warning("No API key configured - external integrations will require session cookies")
     
     if _is_default_secret:
-        print("🚨 SECURITY WARNING: Using default secret_key - sessions can be forged! Change it in config.yaml")
+        logger.critical("Using default secret_key - sessions can be forged! Change it in config.yaml")
 
 # OpenAPI tag metadata for grouping endpoints in Swagger UI
 tags_metadata = [
@@ -178,7 +181,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print(f"🌐 CORS allowed origins: {allowed_origins}")
+logger.info("CORS allowed origins: %s", allowed_origins)
 
 # ===========================================================
 # =================
@@ -201,7 +204,7 @@ def safe_error_message(error: Exception, user_message: str = "An error occurred"
     error_details = f"{type(error).__name__}: {str(error)}"
     
     # Always log the full error server-side
-    print(f"⚠️  [ERROR] {error_details}")
+    logger.error(error_details)
     
     # In debug mode, return detailed error to help with development
     if config.get('server', {}).get('debug', False):
@@ -247,7 +250,7 @@ if DEMO_MODE:
     limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    print("🎭 DEMO MODE enabled - Rate limiting active")
+    logger.info("DEMO MODE enabled - Rate limiting active")
 else:
     # Production/self-hosted mode - no restrictions
     # Create a dummy limiter that doesn't actually limit
@@ -416,7 +419,7 @@ def verify_password(password: str) -> bool:
     try:
         return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
     except Exception as e:
-        print(f"Password verification error: {e}")
+        logger.error("Password verification error: %s", e)
         return False
 
 
@@ -1832,13 +1835,15 @@ app.include_router(pages_router)
 @app.on_event("startup")
 def _warmup_note_index() -> None:
     import threading
+    import time
 
     def _build() -> None:
+        t0 = time.perf_counter()
         try:
             ensure_index_built(config['storage']['notes_dir'])
-            print("✅ Note index warmed up")
+            logger.info("Note index ready (%.2fs)", time.perf_counter() - t0)
         except Exception as exc:
-            print(f"⚠️  Note index warmup failed (will build on first request): {exc}")
+            logger.warning("Note index build failed (will retry on first request): %s", exc)
 
     threading.Thread(target=_build, name="note-index-warmup", daemon=True).start()
 
