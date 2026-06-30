@@ -19,11 +19,11 @@ import aiofiles
 from datetime import datetime
 import bcrypt
 import secrets
-
-logger = logging.getLogger("uvicorn.error")
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+logger = logging.getLogger("uvicorn.error")
 
 from .utils import (
     scan_notes_fast_walk,
@@ -1829,9 +1829,8 @@ app.include_router(pages_router)
 # ============================================================================
 # Startup warmup
 # ============================================================================
-# Pre-build the note index in a daemon thread so the first /api/notes request
-# hits a warm index. Concurrent requests landing mid-warmup are safe: bulk_set
-# is serialized by the index RLock and short-circuits via the fingerprint hash.
+# Pre-build the note index off the request path. Mid-warmup requests are safe
+# (bulk_set is serialized and short-circuits on the fingerprint).
 @app.on_event("startup")
 def _warmup_note_index() -> None:
     import threading

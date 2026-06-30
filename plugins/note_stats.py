@@ -12,7 +12,6 @@ import re
 
 logger = logging.getLogger("uvicorn.error")
 
-# Average reading speed used to derive `reading_time_minutes`.
 WORDS_PER_MINUTE = 200
 
 

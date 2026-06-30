@@ -37,7 +37,6 @@ def get_port():
     return "8000"
 
 def main():
-    # Make sure runtime deps are present before invoking uvicorn.
     try:
         import fastapi  # noqa: F401
         import uvicorn  # noqa: F401
@@ -50,9 +49,6 @@ def main():
 
     port = get_port()
 
-    # Short pre-launch banner. Detailed startup logs come from uvicorn /
-    # backend.main below (INFO: / WARNING: / ERROR:), so the user can tell
-    # exactly when the server is actually accepting connections.
     print(f"🚀 NoteDiscovery → http://localhost:{port}")
     print(f"   notes: ./data/   plugins: ./plugins/   stop: Ctrl+C")
     print()
