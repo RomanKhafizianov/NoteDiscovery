@@ -40,6 +40,7 @@ from .utils import (
     rename_folder,
     delete_folder,
     save_uploaded_image,
+    _scan_cache_invalidate,
     validate_path_security,
     get_all_tags,
     get_notes_by_tag,
@@ -861,7 +862,8 @@ async def move_media_endpoint(request: Request, data: dict):
         # Move the file
         import shutil
         shutil.move(str(old_full_path), str(new_full_path))
-        
+        _scan_cache_invalidate()
+
         return {"success": True, "message": "Media moved successfully", "newPath": new_path}
         
     except HTTPException:

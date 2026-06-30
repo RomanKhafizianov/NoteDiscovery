@@ -735,6 +735,7 @@ def save_uploaded_image(
         try:
             with open(full_path, "wb") as f:
                 f.write(file_data)
+            _scan_cache_invalidate()
             return str(full_path.relative_to(base).as_posix())
         except OSError as e:
             logger.error("Error saving image: %s", e)
@@ -754,6 +755,7 @@ def save_uploaded_image(
     try:
         with open(full_path, "wb") as f:
             f.write(file_data)
+        _scan_cache_invalidate()
         return str(full_path.relative_to(base).as_posix())
     except OSError as e:
         logger.error("Error saving image: %s", e)
