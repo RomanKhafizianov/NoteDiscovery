@@ -11,6 +11,7 @@ facades at the bottom of this file.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import threading
@@ -20,6 +21,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+
+logger = logging.getLogger("uvicorn.error")
 
 
 # Below this many markdown files, parallel tag extraction adds more overhead
@@ -899,7 +902,7 @@ def on_note_saved(notes_dir: str, full_path: Path, content: str) -> None:
         )
         _index.update_note(record, extract_links_from_content(content), content=content)
     except Exception as e:
-        print(f"note_index: on_note_saved failed for {full_path}: {e}")
+        logger.error("note_index: on_note_saved failed for %s: %s", full_path, e)
 
 
 def on_note_deleted(notes_dir: str, full_path: Path) -> None:
@@ -907,7 +910,7 @@ def on_note_deleted(notes_dir: str, full_path: Path) -> None:
         rel_path = full_path.relative_to(Path(notes_dir)).as_posix()
         _index.remove_note(rel_path)
     except Exception as e:
-        print(f"note_index: on_note_deleted failed for {full_path}: {e}")
+        logger.error("note_index: on_note_deleted failed for %s: %s", full_path, e)
 
 
 def on_note_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) -> None:
@@ -918,7 +921,7 @@ def on_note_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) ->
             new_full_path.relative_to(base).as_posix(),
         )
     except Exception as e:
-        print(f"note_index: on_note_renamed failed: {e}")
+        logger.error("note_index: on_note_renamed failed: %s", e)
 
 
 def on_folder_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) -> None:
@@ -930,7 +933,7 @@ def on_folder_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) 
             new_full_path.relative_to(base).as_posix(),
         )
     except Exception as e:
-        print(f"note_index: on_folder_renamed failed: {e}")
+        logger.error("note_index: on_folder_renamed failed: %s", e)
         _index.invalidate()
 
 
@@ -939,7 +942,7 @@ def on_folder_deleted(notes_dir: str, full_path: Path) -> None:
         rel_prefix = full_path.relative_to(Path(notes_dir)).as_posix()
         _index.remove_folder_prefix(rel_prefix)
     except Exception as e:
-        print(f"note_index: on_folder_deleted failed: {e}")
+        logger.error("note_index: on_folder_deleted failed: %s", e)
         _index.invalidate()
 
 
@@ -952,7 +955,7 @@ def populate_from_scan(
     try:
         _index.bulk_set(notes_meta, folders, sources_raw)
     except Exception as e:
-        print(f"note_index: populate_from_scan failed: {e}")
+        logger.error("note_index: populate_from_scan failed: %s", e)
 
 
 def ensure_search_index(notes_dir: str) -> bool:

@@ -4,6 +4,7 @@ Handles creating, storing, and revoking share tokens for public note access.
 """
 
 import json
+import logging
 import secrets
 import string
 from pathlib import Path
@@ -12,6 +13,8 @@ from typing import Optional, Dict, Any
 import threading
 
 from .utils import validate_path_security
+
+logger = logging.getLogger("uvicorn.error")
 
 # Thread lock for safe concurrent access
 _lock = threading.Lock()
@@ -99,7 +102,7 @@ def save_tokens(data_dir: str, tokens: Dict[str, Dict[str, Any]]) -> bool:
             json.dump(tokens, f, indent=2, ensure_ascii=False)
         return True
     except IOError as e:
-        print(f"Failed to save share tokens: {e}")
+        logger.error("Failed to save share tokens: %s", e)
         return False
 
 

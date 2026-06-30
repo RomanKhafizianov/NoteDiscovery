@@ -8,6 +8,7 @@ replaced with placeholder HTML since they would make exports too large.
 """
 
 import base64
+import logging
 import re
 from pathlib import Path
 from typing import Optional, Tuple
@@ -15,6 +16,8 @@ import mimetypes
 
 # Import shared media type definitions and scanner from utils to avoid duplication
 from backend.utils import MEDIA_EXTENSIONS, get_media_type, scan_notes_fast_walk
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:
@@ -41,7 +44,7 @@ def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:
         base64_data = base64.b64encode(media_data).decode('utf-8')
         return (f"data:{mime_type};base64,{base64_data}", media_type)
     except Exception as e:
-        print(f"Failed to read media {media_path}: {e}")
+        logger.error("Failed to read media %s: %s", media_path, e)
         return None
 
 

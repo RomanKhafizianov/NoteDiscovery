@@ -5,6 +5,7 @@ Heavy work (backlinks, graph, full-text search, tag aggregation) is delegated
 to the in-memory index in note_index.py.
 """
 
+import logging
 import os
 import re
 import shutil
@@ -20,6 +21,8 @@ from datetime import datetime, timezone
 
 from . import note_index
 from .note_index import NoteRecord, extract_links_from_content
+
+logger = logging.getLogger("uvicorn.error")
 
 
 # ============================================================================
@@ -443,13 +446,13 @@ def delete_folder(notes_dir: str, folder_path: str) -> bool:
         full_path = Path(notes_dir) / folder_path
 
         if not validate_path_security(notes_dir, full_path):
-            print(f"Security: Path is outside notes directory: {full_path}")
+            logger.warning("Security: Path is outside notes directory: %s", full_path)
             return False
         if not full_path.exists():
-            print(f"Folder does not exist: {full_path}")
+            logger.warning("Folder does not exist: %s", full_path)
             return False
         if not full_path.is_dir():
-            print(f"Path is not a directory: {full_path}")
+            logger.warning("Path is not a directory: %s", full_path)
             return False
 
         _drop_prefix_caches(full_path)
@@ -458,8 +461,8 @@ def delete_folder(notes_dir: str, folder_path: str) -> bool:
         _scan_cache_invalidate()
         return True
     except Exception as e:
-        print(f"Error deleting folder '{folder_path}': {e}")
-        traceback.print_exc()
+        logger.error("Error deleting folder '%s': %s", folder_path, e)
+        logger.error(traceback.format_exc())
         return False
 
 
@@ -734,7 +737,7 @@ def save_uploaded_image(
                 f.write(file_data)
             return str(full_path.relative_to(base).as_posix())
         except OSError as e:
-            print(f"Error saving image: {e}")
+            logger.error("Error saving image: %s", e)
             return None
 
     sanitized_name = sanitize_filename(filename)
@@ -746,14 +749,14 @@ def save_uploaded_image(
     attachments_dir.mkdir(parents=True, exist_ok=True)
     full_path = attachments_dir / final_filename
     if not validate_path_security(notes_dir, full_path):
-        print(f"Security: Attempted to save image outside notes directory: {full_path}")
+        logger.warning("Security: Attempted to save image outside notes directory: %s", full_path)
         return None
     try:
         with open(full_path, "wb") as f:
             f.write(file_data)
         return str(full_path.relative_to(base).as_posix())
     except OSError as e:
-        print(f"Error saving image: {e}")
+        logger.error("Error saving image: %s", e)
         return None
 
 
@@ -869,8 +872,7 @@ def parse_tags(content: str) -> List[str]:
         return sorted(list(set(tags)))
         
     except Exception as e:
-        # If parsing fails, return empty list
-        print(f"Error parsing tags: {e}")
+        logger.error("Error parsing tags: %s", e)
         return []
 
 
@@ -923,15 +925,14 @@ def get_templates(notes_dir: str) -> List[Dict]:
     
     # Security check: ensure _templates folder is within notes directory
     if not validate_path_security(notes_dir, templates_path):
-        print(f"Security: Templates directory is outside notes directory: {templates_path}")
+        logger.warning("Security: Templates directory is outside notes directory: %s", templates_path)
         return templates
     
     try:
         for template_file in templates_path.glob("*.md"):
             try:
-                # Security check: ensure each template is within notes directory
                 if not validate_path_security(notes_dir, template_file):
-                    print(f"Security: Skipping template outside notes directory: {template_file}")
+                    logger.warning("Security: Skipping template outside notes directory: %s", template_file)
                     continue
                 
                 stat = template_file.stat()
@@ -941,10 +942,10 @@ def get_templates(notes_dir: str) -> List[Dict]:
                     "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
                 })
             except Exception as e:
-                print(f"Error reading template {template_file}: {e}")
+                logger.error("Error reading template %s: %s", template_file, e)
                 continue
     except Exception as e:
-        print(f"Error accessing templates directory: {e}")
+        logger.error("Error accessing templates directory: %s", e)
     
     return sorted(templates, key=lambda x: x['name'])
 
@@ -967,14 +968,14 @@ def get_template_content(notes_dir: str, template_name: str) -> Optional[str]:
     
     # Security check: ensure template is within notes directory
     if not validate_path_security(notes_dir, template_path):
-        print(f"Security: Template path is outside notes directory: {template_path}")
+        logger.warning("Security: Template path is outside notes directory: %s", template_path)
         return None
     
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
-        print(f"Error reading template {template_name}: {e}")
+        logger.error("Error reading template %s: %s", template_name, e)
         return None
 
 
