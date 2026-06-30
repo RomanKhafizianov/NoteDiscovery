@@ -103,18 +103,24 @@ When a note is saved, the plugin:
 3. Click to expand/collapse the stats panel
 4. Statistics update in real-time as you type
 
-### In Docker Logs
+### In Server Logs
 ```bash
-docker-compose logs -f | grep "📊"
+# Docker (any host OS)
+docker-compose logs -f | grep "note_stats"
+
+# Running locally (Linux / macOS)
+python run.py 2>&1 | grep "note_stats"
+
+# Running locally (Windows / PowerShell)
+python run.py 2>&1 | findstr "note_stats"
 ```
 
-Example output:
+Example output (single line, prefixed with uvicorn's `INFO:`):
 ```
-📊 projects/website.md:
-   1,234 words | 6m read | 89 lines
-   15 links (5 internal)
-   8/12 tasks completed
+INFO:     note_stats projects/website.md | 1,234 words | 6 sentences | ~6m read | 89 lines | 15 links (5 internal) | 8/12 tasks
 ```
+
+Optional sections (`lists`, `tables`, `links`, `tasks`) only appear when their count is non-zero.
 
 ---
 
@@ -124,11 +130,11 @@ No configuration needed. The plugin works out of the box.
 
 ### Customization (Optional)
 
-To change reading speed calculation, edit `note_stats.py`:
+To change the reading-speed assumption used for `reading_time_minutes`,
+edit the constant near the top of `note_stats.py`:
 
 ```python
-# Line 36
-words_per_minute = 200  # Change to your reading speed
+WORDS_PER_MINUTE = 200  # Change to your average reading speed
 ```
 
 ---
