@@ -1823,6 +1823,26 @@ app.include_router(api_router)
 app.include_router(pages_router)
 
 
+# ============================================================================
+# Startup warmup
+# ============================================================================
+# Pre-build the note index in a daemon thread so the first /api/notes request
+# hits a warm index. Concurrent requests landing mid-warmup are safe: bulk_set
+# is serialized by the index RLock and short-circuits via the fingerprint hash.
+@app.on_event("startup")
+def _warmup_note_index() -> None:
+    import threading
+
+    def _build() -> None:
+        try:
+            ensure_index_built(config['storage']['notes_dir'])
+            print("✅ Note index warmed up")
+        except Exception as exc:
+            print(f"⚠️  Note index warmup failed (will build on first request): {exc}")
+
+    threading.Thread(target=_build, name="note-index-warmup", daemon=True).start()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
