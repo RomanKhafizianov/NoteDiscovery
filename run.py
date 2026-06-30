@@ -40,7 +40,7 @@ def main():
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
 
     port = get_port()
-    print(f"🚀 NoteDiscovery → http://localhost:{port}  (Ctrl+C to stop)")
+    print(f"📝 NoteDiscovery → http://localhost:{port}  (Ctrl+C to stop)")
     print()
 
     subprocess.call([
