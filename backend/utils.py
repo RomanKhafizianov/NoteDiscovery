@@ -167,11 +167,12 @@ def _scan_cache_invalidate() -> None:
         _SCAN_WALK_CACHE.clear()
 
 
-def _ensure_index_built(notes_dir: str) -> None:
+def ensure_index_built(notes_dir: str) -> None:
     """Trigger a fresh scan when the NoteIndex hasn't been populated yet.
-    Idempotent: the scan short-circuits when nothing changed in the vault."""
+    Scans with include_media=True so every index consumer (stats, notes,
+    backlinks, search) shares one fingerprint and never thrashes."""
     if not note_index.get_index().is_built():
-        scan_notes_fast_walk(notes_dir, use_cache=False, include_media=False)
+        scan_notes_fast_walk(notes_dir, use_cache=False, include_media=True)
 
 
 def get_tags_and_links_cached(
@@ -545,7 +546,7 @@ def search_notes(notes_dir: str, query: str) -> List[Dict]:
     from html import escape
     results: List[Dict] = []
 
-    _ensure_index_built(notes_dir)
+    ensure_index_built(notes_dir)
     note_index.ensure_search_index(notes_dir)
     candidates = note_index.get_search_candidates(query)
 
@@ -875,13 +876,13 @@ def parse_tags(content: str) -> List[str]:
 
 def get_all_tags(notes_dir: str) -> Dict[str, int]:
     """All tags in the vault with note counts."""
-    _ensure_index_built(notes_dir)
+    ensure_index_built(notes_dir)
     return note_index.get_all_tags()
 
 
 def get_notes_by_tag(notes_dir: str, tag: str) -> List[Dict]:
     """All notes carrying `tag` (case-insensitive)."""
-    _ensure_index_built(notes_dir)
+    ensure_index_built(notes_dir)
     idx = note_index.get_index()
     records = [idx.get_note_record(p) for p in note_index.get_paths_for_tag(tag.lower())]
     matching = [
@@ -1151,7 +1152,7 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
         Path(target_path).stem.lower(),
     }
 
-    _ensure_index_built(notes_dir)
+    ensure_index_built(notes_dir)
     idx = note_index.get_index()
     candidates = note_index.get_backlink_candidates(target_path)
     records = [(p, idx.get_note_record(p)) for p in candidates]

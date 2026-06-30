@@ -499,6 +499,34 @@ class NoteIndex:
                     break
             return result
 
+    def summary(self) -> Dict[str, Any]:
+        """Aggregate counts + total size + last-modified note. Powers /api/stats
+        without a vault scan — every field is computed from records already in
+        memory."""
+        with self._lock:
+            notes_count = 0
+            media_count = 0
+            total_size = 0
+            last_modified: Optional[str] = None
+            last_mtime = -1.0
+            for rec in self._notes.values():
+                total_size += rec.size
+                if rec.type == "note":
+                    notes_count += 1
+                    if rec.mtime > last_mtime:
+                        last_mtime = rec.mtime
+                        last_modified = rec.modified
+                else:
+                    media_count += 1
+            return {
+                "notes_count": notes_count,
+                "media_count": media_count,
+                "folders_count": len(self._folders),
+                "tags_count": len(self._tags_backward),
+                "total_size_bytes": total_size,
+                "last_modified": last_modified,
+            }
+
     def stats(self) -> Dict[str, Any]:
         """Snapshot of counters + size metrics."""
         with self._lock:
@@ -966,6 +994,10 @@ def try_get_extraction(
     """(tags, raw_links) from the index when mtime matches, else None so the
     caller reads the file. Used by scan_notes_fast_walk."""
     return _index.try_get_extraction(rel_path, mtime)
+
+
+def summary() -> Dict[str, Any]:
+    return _index.summary()
 
 
 def stats() -> Dict[str, Any]:
