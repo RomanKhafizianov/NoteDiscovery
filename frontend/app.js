@@ -1529,26 +1529,26 @@ function noteApp() {
         
         // ==================== END INTERNATIONALIZATION ====================
         
-        // Load all notes
-        async loadNotes() {
+        // Load all notes. Pass {silent: true} from error-recovery paths so the
+        // 800ms loading overlay never appears on background re-syncs.
+        async loadNotes({ silent = false } = {}) {
             this.notesLoading = true;
-            // Show the overlay only if we're still loading after 800ms AND
-            // the tree is currently empty (first load). Refreshes after a
-            // save typically resolve in <100ms and never trip this.
             clearTimeout(this._notesLoadingOverlayTimer);
-            this._notesLoadingOverlayTimer = setTimeout(() => {
-                if (this.notesLoading && this.notes.length === 0 && this.allFolders.length === 0) {
-                    this.notesLoadingShowOverlay = true;
-                }
-            }, 800);
+            if (!silent) {
+                this._notesLoadingOverlayTimer = setTimeout(() => {
+                    if (this.notesLoading && this.notes.length === 0 && this.allFolders.length === 0) {
+                        this.notesLoadingShowOverlay = true;
+                    }
+                }, 800);
+            }
             try {
                 const response = await fetch('/api/notes');
                 const data = await response.json();
                 this.notes = data.notes;
                 this.allFolders = data.folders || [];
-                this.buildNoteLookupMaps(); // Build O(1) lookup maps
+                this.buildNoteLookupMaps();
                 this.buildFolderTree();
-                await this.loadTags(); // Load tags after notes are loaded
+                await this.loadTags();
             } catch (error) {
                 ErrorHandler.handle('load notes', error);
             } finally {
@@ -1759,37 +1759,43 @@ function noteApp() {
                     return;
                 }
                 
-                // Create note from template
-                const response = await fetch('/api/templates/create-note', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        templateName: this.selectedTemplate,
-                        notePath: notePath
-                    })
-                });
+                // Optimistic stub: add empty entry so sidebar updates instantly.
+                // Server rendering may inject content/tags; loadNote() fetches the
+                // real body and tags are refreshed via loadTagsDebounced below.
+                this._optimisticAddNote(notePath, { content: '' });
+                const folderPart = notePath.includes('/') ? notePath.substring(0, notePath.lastIndexOf('/')) : '';
+                if (folderPart) this.expandedFolders.add(folderPart);
+                this._rebuildTreeAfterMutation();
                 
-                if (!response.ok) {
-                    const error = await response.json();
-                    this.toast(error.detail || this.t('templates.create_failed'), { type: 'error' });
-                    return;
+                try {
+                    const response = await fetch('/api/templates/create-note', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            templateName: this.selectedTemplate,
+                            notePath: notePath
+                        })
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || this.t('templates.create_failed'));
+                    }
+                    const data = await response.json();
+                    
+                    this.lastUsedTemplate = this.selectedTemplate;
+                    try { localStorage.setItem('lastUsedTemplate', this.selectedTemplate); } catch (_) {}
+                    
+                    this.showTemplateModal = false;
+                    this.selectedTemplate = '';
+                    this.newTemplateNoteName = '';
+                    
+                    await this.loadNote(data.path);
+                    this.focusEditorForNewNote();
+                    this.loadTagsDebounced();
+                } catch (err) {
+                    this.toast(err.message || this.t('templates.create_failed'), { type: 'error' });
+                    await this.loadNotes({ silent: true });
                 }
-                
-                const data = await response.json();
-                
-                this.lastUsedTemplate = this.selectedTemplate;
-                try { localStorage.setItem('lastUsedTemplate', this.selectedTemplate); } catch (_) {}
-                
-                // Close modal and reset state
-                this.showTemplateModal = false;
-                this.selectedTemplate = '';
-                this.newTemplateNoteName = '';
-                
-                // Reload notes and open the new note
-                await this.loadNotes();
-                await this.loadNote(data.path);
-                this.focusEditorForNewNote();
-                
             } catch (error) {
                 ErrorHandler.handle('create note from template', error);
             }
@@ -2278,6 +2284,108 @@ function noteApp() {
             
             // Assign new tree (Alpine will detect the change)
             this.folderTree = tree;
+        },
+        
+        // =====================================================================
+        // OPTIMISTIC MUTATION HELPERS
+        // Mirror server-side index updates locally so file ops feel instant on
+        // big vaults. Mutations apply the change to this.notes/this.allFolders
+        // immediately, fire the request, and on error fall back to
+        // loadNotes({silent: true}) to resync from disk.
+        // =====================================================================
+        
+        _isoNow() {
+            return new Date().toISOString();
+        },
+        
+        _folderFromPath(path) {
+            const i = path.lastIndexOf('/');
+            return i === -1 ? '' : path.substring(0, i);
+        },
+        
+        _filenameFromPath(path) {
+            return path.split('/').pop();
+        },
+        
+        _inferTypeFromPath(path) {
+            const m = /\.([^./]+)$/.exec(path);
+            const ext = m ? m[1].toLowerCase() : '';
+            if (ext === 'md' || ext === '') return 'note';
+            if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return 'image';
+            if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) return 'audio';
+            if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return 'video';
+            if (ext === 'pdf') return 'document';
+            return 'note';
+        },
+        
+        // Refresh sidebar tree + wikilink lookup maps after any optimistic update.
+        _rebuildTreeAfterMutation() {
+            this.buildNoteLookupMaps();
+            this.buildFolderTree();
+        },
+        
+        // Add a note/media file to the local list. No-op if already present.
+        _optimisticAddNote(path, { content = '', type = null, size = null } = {}) {
+            if (this.notes.some(n => n.path === path)) return;
+            const inferredType = type || this._inferTypeFromPath(path);
+            const filename = this._filenameFromPath(path);
+            const name = inferredType === 'note' ? filename.replace(/\.md$/i, '') : filename;
+            this.notes.push({
+                path,
+                name,
+                folder: this._folderFromPath(path),
+                type: inferredType,
+                size: size != null ? size : (content ? new Blob([content]).size : 0),
+                modified: this._isoNow(),
+                tags: (inferredType === 'note' && content) ? this.parseTagsFromContent(content) : [],
+            });
+        },
+        
+        _optimisticRemoveNote(path) {
+            this.notes = this.notes.filter(n => n.path !== path);
+        },
+        
+        // Used by single-note rename and move (path changes, identity preserved).
+        _optimisticRenameNote(oldPath, newPath) {
+            const note = this.notes.find(n => n.path === oldPath);
+            if (!note) return;
+            note.path = newPath;
+            note.folder = this._folderFromPath(newPath);
+            const filename = this._filenameFromPath(newPath);
+            note.name = note.type === 'note' ? filename.replace(/\.md$/i, '') : filename;
+        },
+        
+        _optimisticAddFolder(folderPath) {
+            if (!folderPath) return;
+            if (!this.allFolders.includes(folderPath)) {
+                this.allFolders.push(folderPath);
+            }
+        },
+        
+        // Cascade: remove the folder, its descendant folders, and every note inside.
+        _optimisticRemoveFolderTree(folderPath) {
+            const prefix = folderPath + '/';
+            this.allFolders = this.allFolders.filter(f => f !== folderPath && !f.startsWith(prefix));
+            this.notes = this.notes.filter(n => !n.path.startsWith(prefix));
+        },
+        
+        // Cascade: rename the folder, its descendant folders, and rewrite paths
+        // of every note inside.
+        _optimisticRenameFolderTree(oldPath, newPath) {
+            if (oldPath === newPath) return;
+            const oldPrefix = oldPath + '/';
+            const newPrefix = newPath + '/';
+            this.allFolders = this.allFolders.map(f => {
+                if (f === oldPath) return newPath;
+                if (f.startsWith(oldPrefix)) return newPrefix + f.substring(oldPrefix.length);
+                return f;
+            });
+            this.notes.forEach(n => {
+                if (n.path.startsWith(oldPrefix)) {
+                    n.path = newPrefix + n.path.substring(oldPrefix.length);
+                    n.folder = this._folderFromPath(n.path);
+                }
+            });
         },
         
         // =====================================================================
@@ -2795,23 +2903,17 @@ function noteApp() {
                 if (cursorPos < 0) cursorPos = textarea.selectionStart || 0;
             }
             
-            let uploaded = false;
             for (const file of mediaFiles) {
                 try {
                     const mediaPath = await this.uploadMedia(file, notePath);
-                    if (mediaPath) {
-                        uploaded = true;
-                        if (this.currentNote) {
-                            await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
-                        }
+                    if (mediaPath && this.currentNote) {
+                        await this.insertMediaMarkdown(mediaPath, file.name, cursorPos);
                     }
                 } catch (error) {
                     ErrorHandler.handle(`upload file ${file.name}`, error);
                 }
             }
-            if (uploaded && !this.currentNote) {
-                await this.loadNotes();
-            }
+            // uploadMedia already injects the file into this.notes optimistically.
         },
         
         // Upload a media file (image, audio, video, PDF)
@@ -2828,49 +2930,38 @@ function noteApp() {
                 formData.append('note_path', notePath || '');
             }
             
-            try {
-                const response = await fetch('/api/upload-media', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Upload failed');
-                }
-                
-                const data = await response.json();
-                return data.path;
-            } catch (error) {
-                throw error;
+            const response = await fetch('/api/upload-media', {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Upload failed');
             }
+            const data = await response.json();
+            // Drop the new file into the local note list so the wikilink
+            // resolver finds it without a full /api/notes refresh.
+            if (data.path) {
+                this._optimisticAddNote(data.path, { size: file.size });
+                this._rebuildTreeAfterMutation();
+            }
+            return data.path;
         },
         
         // Insert media markdown at cursor position using wiki-style syntax
-        // This ensures media links don't break when notes are moved
+        // (media links don't break when notes are moved). The uploaded file is
+        // already in this.notes thanks to uploadMedia()'s optimistic add.
         async insertMediaMarkdown(mediaPath, altText, cursorPos) {
-            // Extract just the filename from the path (e.g., "folder/_attachments/image.png" -> "image.png")
             const filename = mediaPath.split('/').pop();
-            
-            // Use wiki-style embed link: ![[filename.png]] or ![[filename.png|alt text]]
-            // The alt text is optional - only add if different from filename
             const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
             const altWithoutExt = altText.replace(/\.[^/.]+$/, '');
-            
-            // If alt text is meaningful (not just "pasted-image"), include it
             const markdown = (altWithoutExt && altWithoutExt !== filenameWithoutExt && !altWithoutExt.startsWith('pasted-image'))
                 ? `![[${filename}|${altWithoutExt}]]`
                 : `![[${filename}]]`;
             
-            // Reload notes FIRST to update image lookup maps before preview renders
-            await this.loadNotes();
-            
             const textBefore = this.noteContent.substring(0, cursorPos);
             const textAfter = this.noteContent.substring(cursorPos);
-            
             this.noteContent = textBefore + markdown + '\n' + textAfter;
-            
-            // Trigger autosave
             this.autoSave();
         },
         
@@ -3010,23 +3101,18 @@ function noteApp() {
             });
             if (!ok) return;
             
+            this._optimisticRemoveNote(mediaPath);
+            this._rebuildTreeAfterMutation();
+            if (this.currentMedia === mediaPath) this.currentMedia = '';
+            
             try {
                 const response = await fetch(`/api/notes/${encodeURIComponent(mediaPath)}`, {
                     method: 'DELETE'
                 });
-                
-                if (response.ok) {
-                    await this.loadNotes(); // Refresh tree
-                    
-                    // Clear viewer if deleting currently viewed media
-                    if (this.currentMedia === mediaPath) {
-                        this.currentMedia = '';
-                    }
-                } else {
-                    throw new Error('Failed to delete media file');
-                }
+                if (!response.ok) throw new Error('Failed to delete media file');
             } catch (error) {
                 ErrorHandler.handle('delete media', error);
+                await this.loadNotes({ silent: true });
             }
         },
         
@@ -3068,10 +3154,14 @@ function noteApp() {
                     nextToNotes: true,
                     contentFolder: targetFolder,
                 });
-                await this.loadNotes();
+                // Server returns the final upload path (may differ from
+                // 'drawing.png' if it added a timestamp suffix).
+                this._optimisticAddNote(path, { type: 'image', size: blob.size });
+                this._rebuildTreeAfterMutation();
                 this.viewMedia(path, 'drawing');
             } catch (error) {
                 ErrorHandler.handle('create drawing', error);
+                await this.loadNotes({ silent: true });
             }
         },
         
@@ -3962,7 +4052,13 @@ function noteApp() {
                         }
                         throw new Error(detail || res.statusText);
                     }
-                    await this.loadNotes();
+                    // Drawing file already in this.notes — only metadata changed
+                    // (size/mtime). Bump locally instead of a full /api/notes scan.
+                    const rec = this.notes.find(n => n.path === this.currentMedia);
+                    if (rec) {
+                        rec.size = blob.size;
+                        rec.modified = this._isoNow();
+                    }
                     this.lastSaved = true;
                     setTimeout(() => {
                         this.lastSaved = false;
@@ -4129,9 +4225,30 @@ function noteApp() {
                 
                 if (newPath === draggedPath) return;
                 
-                // Capture favorites info before async call
                 const oldPrefix = draggedPath + '/';
                 const newPrefix = newPath + '/';
+                const wasExpanded = this.expandedFolders.has(draggedPath);
+                
+                this._optimisticRenameFolderTree(draggedPath, newPath);
+                this._rebuildTreeAfterMutation();
+                
+                const favoritesInFolder = this.favorites.filter(f => f.startsWith(oldPrefix));
+                if (favoritesInFolder.length > 0) {
+                    const newFavorites = this.favorites.map(f =>
+                        f.startsWith(oldPrefix) ? newPrefix + f.substring(oldPrefix.length) : f
+                    );
+                    this.favorites = newFavorites;
+                    this.favoritesSet = new Set(newFavorites);
+                    this.saveFavorites();
+                }
+                if (wasExpanded) {
+                    this.expandedFolders.delete(draggedPath);
+                    this.expandedFolders.add(newPath);
+                    this.saveExpandedFolders();
+                }
+                if (this.currentNote && this.currentNote.startsWith(oldPrefix)) {
+                    this.currentNote = newPrefix + this.currentNote.substring(oldPrefix.length);
+                }
                 
                 try {
                     const response = await fetch('/api/folders/move', {
@@ -4139,37 +4256,15 @@ function noteApp() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ oldPath: draggedPath, newPath })
                     });
-                    
-                    if (response.ok) {
-                        // Update favorites for notes inside moved folder
-                        const favoritesInFolder = this.favorites.filter(f => f.startsWith(oldPrefix));
-                        if (favoritesInFolder.length > 0) {
-                            const newFavorites = this.favorites.map(f => 
-                                f.startsWith(oldPrefix) ? newPrefix + f.substring(oldPrefix.length) : f
-                            );
-                            this.favorites = newFavorites;
-                            this.favoritesSet = new Set(newFavorites);
-                            this.saveFavorites();
-                        }
-                        
-                        // Keep folder expanded if it was
-                        const wasExpanded = this.expandedFolders.has(draggedPath);
-                        
-                        await this.loadNotes();
-                        await this.loadSharedNotePaths();
-                        
-                        if (wasExpanded) {
-                            this.expandedFolders.delete(draggedPath);
-                            this.expandedFolders.add(newPath);
-                            this.saveExpandedFolders();
-                        }
-                    } else {
+                    if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
-                        this.toast(errorData.detail || this.t('move.failed_folder'), { type: 'error' });
+                        throw new Error(errorData.detail || this.t('move.failed_folder'));
                     }
+                    await this.loadSharedNotePaths();
                 } catch (error) {
                     console.error('Failed to move folder:', error);
-                    this.toast(this.t('move.failed_folder'), { type: 'error' });
+                    this.toast(error.message || this.t('move.failed_folder'), { type: 'error' });
+                    await this.loadNotes({ silent: true });
                 }
                 return;
             }
@@ -4183,47 +4278,38 @@ function noteApp() {
             
             if (newPath === draggedPath) return;
             
-            // Check if note is favorited (only for notes)
             const wasFavorited = isNote && this.favoritesSet.has(draggedPath);
+            const wasCurrentNote = this.currentNote === draggedPath;
+            const wasCurrentMedia = this.currentMedia === draggedPath;
+            
+            this._optimisticRenameNote(draggedPath, newPath);
+            this._rebuildTreeAfterMutation();
+            
+            if (wasFavorited) {
+                this.favorites = this.favorites.map(f => f === draggedPath ? newPath : f);
+                this.favoritesSet = new Set(this.favorites);
+                this.saveFavorites();
+            }
+            if (wasCurrentNote) this.currentNote = newPath;
+            if (wasCurrentMedia) this.currentMedia = newPath;
             
             try {
-                // Use different endpoint for media vs notes
                 const endpoint = isMedia ? '/api/media/move' : '/api/notes/move';
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ oldPath: draggedPath, newPath })
                 });
-                
-                if (response.ok) {
-                    // Update favorites if the moved note was favorited
-                    if (wasFavorited) {
-                        const newFavorites = this.favorites.map(f => f === draggedPath ? newPath : f);
-                        this.favorites = newFavorites;
-                        this.favoritesSet = new Set(newFavorites);
-                        this.saveFavorites();
-                    }
-                    
-                    // Keep current item open if it was the moved one
-                    const wasCurrentNote = this.currentNote === draggedPath;
-                    const wasCurrentMedia = this.currentMedia === draggedPath;
-                    
-                    await this.loadNotes();
-                    if (isNote) {
-                        await this.loadSharedNotePaths();
-                    }
-                    
-                    if (wasCurrentNote) this.currentNote = newPath;
-                    if (wasCurrentMedia) this.currentMedia = newPath;
-                } else {
+                if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
-                    this.toast(errorData.detail || this.t(errorKey), { type: 'error' });
+                    throw new Error(errorData.detail || this.t(errorKey));
                 }
+                if (isNote) await this.loadSharedNotePaths();
             } catch (error) {
                 console.error(`Failed to move ${isMedia ? 'media' : 'note'}:`, error);
-                const errorKey = isMedia ? 'move.failed_media' : 'move.failed_note';
-                this.toast(this.t(errorKey), { type: 'error' });
+                this.toast(error.message || this.t(isMedia ? 'move.failed_media' : 'move.failed_note'), { type: 'error' });
+                await this.loadNotes({ silent: true });
             }
         },
         
@@ -4833,50 +4919,48 @@ function noteApp() {
         },
         
         async _finalizeCreateNote(notePath) {
+            // Optimistic add — sidebar reflects the new note instantly. Server
+            // confirms; on failure we resync silently.
+            this._optimisticAddNote(notePath, { content: '' });
+            const folderPart = notePath.includes('/') ? notePath.substring(0, notePath.lastIndexOf('/')) : '';
+            if (folderPart) this.expandedFolders.add(folderPart);
+            this._rebuildTreeAfterMutation();
+            
             try {
                 const response = await fetch(`/api/notes/${notePath}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: '' })
                 });
-                
-                if (response.ok) {
-                    const folderPart = notePath.includes('/') ? notePath.substring(0, notePath.lastIndexOf('/')) : '';
-                    if (folderPart) this.expandedFolders.add(folderPart);
-                    await this.loadNotes();
-                    await this.loadNote(notePath);
-                    this.focusEditorForNewNote();
-                    return true;
-                }
-                ErrorHandler.handle('create note', new Error('Server returned error'));
-                return false;
+                if (!response.ok) throw new Error('Server returned error');
+                await this.loadNote(notePath);
+                this.focusEditorForNewNote();
+                return true;
             } catch (error) {
                 ErrorHandler.handle('create note', error);
+                await this.loadNotes({ silent: true });
                 return false;
             }
         },
         
         async _finalizeCreateFolder(folderPath, targetFolder) {
+            this._optimisticAddFolder(folderPath);
+            if (targetFolder) this.expandedFolders.add(targetFolder);
+            this.expandedFolders.add(folderPath);
+            this._rebuildTreeAfterMutation();
+            
             try {
                 const response = await fetch('/api/folders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: folderPath })
                 });
-                
-                if (response.ok) {
-                    if (targetFolder) {
-                        this.expandedFolders.add(targetFolder);
-                    }
-                    this.expandedFolders.add(folderPath);
-                    await this.loadNotes();
-                    this.goToHomepageFolder(folderPath);
-                    return true;
-                }
-                ErrorHandler.handle('create folder', new Error('Server returned error'));
-                return false;
+                if (!response.ok) throw new Error('Server returned error');
+                this.goToHomepageFolder(folderPath);
+                return true;
             } catch (error) {
                 ErrorHandler.handle('create folder', error);
+                await this.loadNotes({ silent: true });
                 return false;
             }
         },
@@ -4973,90 +5057,80 @@ function noteApp() {
         },
         
         async _finalizeRenameFolder(folderPath, newPath) {
+            const folderPrefix = folderPath + '/';
+            const newFolderPrefix = newPath + '/';
+            
+            // Optimistic cascade: rewrite folder + every nested folder + every
+            // note path. Sidebar reflects the rename instantly.
+            this._optimisticRenameFolderTree(folderPath, newPath);
+            this._rebuildTreeAfterMutation();
+            
+            if (this.expandedFolders.has(folderPath)) {
+                this.expandedFolders.delete(folderPath);
+                this.expandedFolders.add(newPath);
+            }
+            const newFavorites = this.favorites.map(f =>
+                f.startsWith(folderPrefix) ? newFolderPrefix + f.substring(folderPrefix.length) : f
+            );
+            if (JSON.stringify(newFavorites) !== JSON.stringify(this.favorites)) {
+                this.favorites = newFavorites;
+                this.favoritesSet = new Set(newFavorites);
+                this.saveFavorites();
+            }
+            if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
+                this.currentNote = newFolderPrefix + this.currentNote.substring(folderPrefix.length);
+            }
+            
             try {
                 const response = await fetch('/api/folders/rename', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        oldPath: folderPath,
-                        newPath: newPath
-                    })
+                    body: JSON.stringify({ oldPath: folderPath, newPath: newPath })
                 });
-                
-                if (response.ok) {
-                    if (this.expandedFolders.has(folderPath)) {
-                        this.expandedFolders.delete(folderPath);
-                        this.expandedFolders.add(newPath);
-                    }
-                    
-                    const folderPrefix = folderPath + '/';
-                    const newFolderPrefix = newPath + '/';
-                    const newFavorites = this.favorites.map(f => {
-                        if (f.startsWith(folderPrefix)) {
-                            return f.replace(folderPrefix, newFolderPrefix);
-                        }
-                        return f;
-                    });
-                    if (JSON.stringify(newFavorites) !== JSON.stringify(this.favorites)) {
-                        this.favorites = newFavorites;
-                        this.favoritesSet = new Set(newFavorites);
-                        this.saveFavorites();
-                    }
-                    
-                    if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
-                        this.currentNote = this.currentNote.replace(folderPrefix, newFolderPrefix);
-                    }
-                    
-                    await this.loadNotes();
-                    return true;
-                }
-                ErrorHandler.handle('rename folder', new Error('Server returned error'));
-                return false;
+                if (!response.ok) throw new Error('Server returned error');
+                return true;
             } catch (error) {
                 ErrorHandler.handle('rename folder', error);
+                await this.loadNotes({ silent: true });
                 return false;
             }
         },
         
-        // Delete folder
+        // Delete folder (cascade: every nested folder + note)
         async deleteFolder(folderPath, folderName) {
             const ok = await this.confirmModalAsk({
                 message: this.t('folders.confirm_delete', { name: folderName }),
             });
             if (!ok) return;
             
+            const folderPrefix = folderPath + '/';
+            
+            this._optimisticRemoveFolderTree(folderPath);
+            this._rebuildTreeAfterMutation();
+            
+            this.expandedFolders.delete(folderPath);
+            const newFavorites = this.favorites.filter(f => !f.startsWith(folderPrefix));
+            if (newFavorites.length !== this.favorites.length) {
+                this.favorites = newFavorites;
+                this.favoritesSet = new Set(newFavorites);
+                this.saveFavorites();
+            }
+            if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
+                this.currentNote = '';
+                this.noteContent = '';
+                document.title = this.appName;
+            }
+            
             try {
                 const response = await fetch(`/api/folders/${encodeURIComponent(folderPath)}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
-                
-                if (response.ok) {
-                    // Remove from expanded folders
-                    this.expandedFolders.delete(folderPath);
-                    
-                    // Remove any favorites that were in the deleted folder
-                    const folderPrefix = folderPath + '/';
-                    const newFavorites = this.favorites.filter(f => !f.startsWith(folderPrefix));
-                    if (newFavorites.length !== this.favorites.length) {
-                        this.favorites = newFavorites;
-                        this.favoritesSet = new Set(newFavorites);
-                        this.saveFavorites();
-                    }
-                    
-                    // Clear current note if it was in the deleted folder
-                    if (this.currentNote && this.currentNote.startsWith(folderPrefix)) {
-                        this.currentNote = '';
-                        this.noteContent = '';
-                        document.title = this.appName;
-                    }
-                    
-                    await this.loadNotes();
-                } else {
-                    ErrorHandler.handle('delete folder', new Error('Server returned error'));
-                }
+                if (!response.ok) throw new Error('Server returned error');
+                this.loadTagsDebounced();
             } catch (error) {
                 ErrorHandler.handle('delete folder', error);
+                await this.loadNotes({ silent: true });
             }
         },
         
@@ -5500,33 +5574,29 @@ function noteApp() {
                 return;
             }
             
-            // Create new note with same content
+            // Optimistic rename: rewrite local path now + favorites + current
+            // note pointer + URL. POST new content, then DELETE old.
+            this._optimisticRenameNote(oldPath, newPath);
+            this._rebuildTreeAfterMutation();
+            
+            if (this.favoritesSet.has(oldPath)) {
+                this.favorites = this.favorites.map(f => f === oldPath ? newPath : f);
+                this.favoritesSet = new Set(this.favorites);
+                this.saveFavorites();
+            }
+            this.currentNote = newPath;
+            
             try {
                 const response = await fetch(`/api/notes/${newPath}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: this.noteContent })
                 });
-                
-                if (response.ok) {
-                    // Delete old note
-                    await fetch(`/api/notes/${oldPath}`, { method: 'DELETE' });
-                    
-                    // Update favorites if the renamed note was favorited
-                    if (this.favoritesSet.has(oldPath)) {
-                        const newFavorites = this.favorites.map(f => f === oldPath ? newPath : f);
-                        this.favorites = newFavorites;
-                        this.favoritesSet = new Set(newFavorites);
-                        this.saveFavorites();
-                    }
-                    
-                    this.currentNote = newPath;
-                    await this.loadNotes();
-                } else {
-                    ErrorHandler.handle('rename note', new Error('Server returned error'));
-                }
+                if (!response.ok) throw new Error('Server returned error');
+                await fetch(`/api/notes/${oldPath}`, { method: 'DELETE' });
             } catch (error) {
                 ErrorHandler.handle('rename note', error);
+                await this.loadNotes({ silent: true });
             }
         },
         
@@ -5545,39 +5615,36 @@ function noteApp() {
             });
             if (!ok) return;
             
+            // Optimistic: remove locally + clear current note + drop favorite
+            // before the network round-trip. Sidebar refreshes in <1ms on any
+            // vault size. On error we resync silently from disk.
+            this._optimisticRemoveNote(notePath);
+            this._rebuildTreeAfterMutation();
+            
+            if (this.favoritesSet.has(notePath)) {
+                this.favorites = this.favorites.filter(f => f !== notePath);
+                this.favoritesSet = new Set(this.favorites);
+                this.saveFavorites();
+            }
+            
+            if (this.currentNote === notePath) {
+                this.currentNote = '';
+                this.noteContent = '';
+                this.currentNoteName = '';
+                this._lastRenderedContent = '';
+                this._lastRenderedNote = '';
+                this._cachedRenderedHTML = '';
+                document.title = this.appName;
+                window.history.replaceState({}, '', '/');
+            }
+            
             try {
-                const response = await fetch(`/api/notes/${notePath}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    // Remove from favorites if it was favorited
-                    if (this.favoritesSet.has(notePath)) {
-                        const newFavorites = this.favorites.filter(f => f !== notePath);
-                        this.favorites = newFavorites;
-                        this.favoritesSet = new Set(newFavorites);
-                        this.saveFavorites();
-                    }
-                    
-                    // If the deleted note is currently open, clear it
-                    if (this.currentNote === notePath) {
-                        this.currentNote = '';
-                        this.noteContent = '';
-                        this.currentNoteName = '';
-                        this._lastRenderedContent = ''; // Clear render cache
-                        this._lastRenderedNote = '';
-                        this._cachedRenderedHTML = '';
-                        document.title = this.appName;
-                        // Redirect to root
-                        window.history.replaceState({}, '', '/');
-                    }
-                    
-                    await this.loadNotes();
-                } else {
-                    ErrorHandler.handle('delete note', new Error('Server returned error'));
-                }
+                const response = await fetch(`/api/notes/${notePath}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Server returned error');
+                this.loadTagsDebounced();
             } catch (error) {
                 ErrorHandler.handle('delete note', error);
+                await this.loadNotes({ silent: true });
             }
         },
         
