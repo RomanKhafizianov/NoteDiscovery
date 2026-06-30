@@ -1845,18 +1845,17 @@ app.include_router(pages_router)
 # ============================================================================
 # Pre-build the note index off the request path. Mid-warmup requests are safe
 # (bulk_set is serialized and short-circuits on the fingerprint).
+# Success is logged from inside bulk_set so we get a single line for both
+# the initial build and any subsequent rebuilds triggered by external changes.
 @app.on_event("startup")
 def _warmup_note_index() -> None:
     import threading
-    import time
 
     def _build() -> None:
-        t0 = time.perf_counter()
         try:
             ensure_index_built(config['storage']['notes_dir'])
-            logger.info("Note index ready (%.2fs)", time.perf_counter() - t0)
         except Exception as exc:
-            logger.warning("Note index build failed (will retry on first request): %s", exc)
+            logger.warning("Vault index rebuild failed (will retry on first request): %s", exc)
 
     threading.Thread(target=_build, name="note-index-warmup", daemon=True).start()
 

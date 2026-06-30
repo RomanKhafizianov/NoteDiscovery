@@ -195,9 +195,12 @@ class NoteIndex:
             self._raw_fingerprint = new_fp
             self._built = True
 
+            elapsed = time.perf_counter() - t0
             self._stats["build_count"] += 1
-            self._stats["last_build_ms"] = (time.perf_counter() - t0) * 1000
+            self._stats["last_build_ms"] = elapsed * 1000
             self._stats["last_built_at"] = datetime.now(tz=timezone.utc).isoformat()
+
+        logger.info("Vault index rebuilt in %.2fs (%d notes)", elapsed, len(notes_meta))
 
     def update_note(
         self,
