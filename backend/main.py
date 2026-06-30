@@ -45,6 +45,8 @@ from .utils import (
     paginate,
     get_backlinks,
 )
+from . import note_index
+from .note_index import USE_NOTE_INDEX
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
 from .share import (
@@ -264,6 +266,7 @@ plugin_manager = PluginManager(config['storage']['plugins_dir'])
 
 # Run app startup hooks
 plugin_manager.run_hook('on_app_startup')
+
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "frontend"
@@ -1483,10 +1486,25 @@ async def search(
 
 @api_router.get("/graph", tags=["Graph"])
 async def get_graph():
-    """Get graph data for note visualization with wikilink and markdown link detection"""
+    """Get graph data for note visualization with wikilink and markdown link detection."""
     try:
         import re
         import urllib.parse
+
+        # Fast path: index already holds resolved edges. Ensure a scan has
+        # populated it (first request after startup, or after an invalidate)
+        # then ask the facade for a snapshot.
+        if USE_NOTE_INDEX:
+            if not note_index.get_index().is_built():
+                scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
+            indexed = note_index.try_graph_data()
+            if indexed is not None:
+                nodes_paths, edges_tuples = indexed
+                return {
+                    "nodes": [{"id": p, "label": Path(p).stem} for p in nodes_paths],
+                    "edges": [{"source": s, "target": t, "type": et} for (s, t, et) in edges_tuples],
+                }
+
         notes, _folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
         nodes = []
         edges = []
@@ -1690,6 +1708,19 @@ async def toggle_plugin(request: Request, plugin_name: str, enabled: dict):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to toggle plugin"))
+
+
+# ============================================================================
+# Index observability — internal counters & sizes for debugging
+#
+# Useful for confirming the index is doing what we expect (build_count >0,
+# search_terms not empty, fingerprint_short_circuits incrementing on idle
+# warm scans). Not rate-limited — cheap, no I/O, dict lookups only.
+# ============================================================================
+
+@api_router.get("/index/stats", tags=["System"])
+async def get_index_stats():
+    return note_index.stats()
 
 
 # ============================================================================
