@@ -46,7 +46,6 @@ from .utils import (
     get_backlinks,
 )
 from . import note_index
-from .note_index import USE_NOTE_INDEX
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
 from .share import (
@@ -1486,186 +1485,15 @@ async def search(
 
 @api_router.get("/graph", tags=["Graph"])
 async def get_graph():
-    """Get graph data for note visualization with wikilink and markdown link detection."""
+    """Graph data (nodes + resolved wikilink/markdown edges) for the visualizer."""
     try:
-        import re
-        import urllib.parse
-
-        # Fast path: index already holds resolved edges. Ensure a scan has
-        # populated it (first request after startup, or after an invalidate)
-        # then ask the facade for a snapshot.
-        if USE_NOTE_INDEX:
-            if not note_index.get_index().is_built():
-                scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
-            indexed = note_index.try_graph_data()
-            if indexed is not None:
-                nodes_paths, edges_tuples = indexed
-                return {
-                    "nodes": [{"id": p, "label": Path(p).stem} for p in nodes_paths],
-                    "edges": [{"source": s, "target": t, "type": et} for (s, t, et) in edges_tuples],
-                }
-
-        notes, _folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
-        nodes = []
-        edges = []
-        
-        # Build set of valid note names/paths for matching
-        note_paths = set()
-        note_paths_lower = {}  # Map lowercase path -> actual path for case-insensitive matching
-        note_names = {}  # Map name -> path for quick lookup
-        
-        for note in notes:
-            if note.get('type') == 'note':
-                note_paths.add(note['path'])
-                note_paths.add(note['path'].replace('.md', ''))
-                # Store lowercase path -> actual path mapping for case-insensitive matching
-                note_paths_lower[note['path'].lower()] = note['path']
-                note_paths_lower[note['path'].replace('.md', '').lower()] = note['path']
-                # Store name -> path mapping (without extension)
-                name = note['name'].replace('.md', '')
-                note_names[name.lower()] = note['path']
-                note_names[note['name'].lower()] = note['path']
-        
-        # Build graph structure with link detection
-        for note in notes:
-            if note.get('type') == 'note':
-                nodes.append({
-                    "id": note['path'],
-                    "label": note['name'].replace('.md', '')
-                })
-                
-                # Read note content to find links
-                content = get_note_content(config['storage']['notes_dir'], note['path'])
-                if content:
-                    # Find wikilinks: [[target]] or [[target|display]]
-                    wikilinks = re.findall(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', content)
-                    
-                    # Find standard markdown internal links: [text](path) - any local path (not http/https)
-                    # Match links that don't start with http://, https://, mailto:, #, etc.
-                    markdown_links = re.findall(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', content)
-                    
-                    # Get source note's folder for resolving relative links
-                    # Use forward slashes consistently (note_paths uses forward slashes)
-                    source_folder = str(Path(note['path']).parent).replace('\\', '/')
-                    if source_folder == '.':
-                        source_folder = ''
-                    
-                    # Process wikilinks
-                    for target in wikilinks:
-                        target = target.strip()
-                        target_lower = target.lower()
-                        
-                        # Try to match target to an existing note
-                        target_path = None
-                        
-                        # 1. Try resolving relative to source note's folder first
-                        if source_folder and '/' not in target:
-                            relative_path = f"{source_folder}/{target}"
-                            relative_path_lower = relative_path.lower()
-                            
-                            if relative_path in note_paths:
-                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
-                            elif relative_path + '.md' in note_paths:
-                                target_path = relative_path + '.md'
-                            elif relative_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower]
-                            elif relative_path_lower + '.md' in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower + '.md']
-                        
-                        # 2. Exact path match (absolute or already has folder)
-                        if not target_path:
-                            if target in note_paths:
-                                target_path = target if target.endswith('.md') else target + '.md'
-                            elif target + '.md' in note_paths:
-                                target_path = target + '.md'
-                            # 3. Case-insensitive path match (e.g., [[Folder/Note]] -> folder/note.md)
-                            elif target_lower in note_paths_lower:
-                                target_path = note_paths_lower[target_lower]
-                            elif target_lower + '.md' in note_paths_lower:
-                                target_path = note_paths_lower[target_lower + '.md']
-                            # 4. Just note name (case-insensitive) - global match
-                            elif target_lower in note_names:
-                                target_path = note_names[target_lower]
-                        
-                        if target_path and target_path != note['path']:
-                            edges.append({
-                                "source": note['path'],
-                                "target": target_path,
-                                "type": "wikilink"
-                            })
-                    
-                    # Process markdown links
-                    for _, link_path in markdown_links:
-                        # Skip anchor-only links and external protocols
-                        if not link_path or link_path.startswith('#'):
-                            continue
-                            
-                        # Remove anchor part if present (e.g., "note.md#section" -> "note.md")
-                        link_path = link_path.split('#')[0]
-                        if not link_path:
-                            continue
-                        
-                        # Normalize path: remove ./ prefix, handle URL encoding
-                        link_path = urllib.parse.unquote(link_path)
-                        if link_path.startswith('./'):
-                            link_path = link_path[2:]
-                        
-                        # Add .md extension if not present and doesn't have other extension
-                        link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
-                        
-                        # Try to match target to an existing note
-                        target_path = None
-                        
-                        # 1. First, try resolving relative to source note's folder
-                        if source_folder and not link_path.startswith('/'):
-                            relative_path = f"{source_folder}/{link_path}"
-                            relative_path_with_md = f"{source_folder}/{link_path_with_md}"
-                            relative_path_lower = relative_path.lower()
-                            relative_path_with_md_lower = relative_path_with_md.lower()
-                            
-                            if relative_path in note_paths:
-                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
-                            elif relative_path_with_md in note_paths:
-                                target_path = relative_path_with_md
-                            elif relative_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower]
-                            elif relative_path_with_md_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_with_md_lower]
-                        
-                        # 2. Try exact path match from root (for absolute paths or notes at root)
-                        if not target_path:
-                            link_path_lower = link_path.lower()
-                            link_path_with_md_lower = link_path_with_md.lower()
-                            
-                            if link_path in note_paths:
-                                target_path = link_path if link_path.endswith('.md') else link_path + '.md'
-                            elif link_path_with_md in note_paths:
-                                target_path = link_path_with_md
-                            # Case-insensitive path match
-                            elif link_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[link_path_lower]
-                            elif link_path_with_md_lower in note_paths_lower:
-                                target_path = note_paths_lower[link_path_with_md_lower]
-                        
-                        # No global filename fallback for markdown links - they must resolve as paths
-                        
-                        if target_path and target_path != note['path']:
-                            edges.append({
-                                "source": note['path'],
-                                "target": target_path,
-                                "type": "markdown"
-                            })
-        
-        # Remove duplicate edges
-        seen = set()
-        unique_edges = []
-        for edge in edges:
-            key = (edge['source'], edge['target'])
-            if key not in seen:
-                seen.add(key)
-                unique_edges.append(edge)
-        
-        return {"nodes": nodes, "edges": unique_edges}
+        if not note_index.get_index().is_built():
+            scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
+        nodes_paths, edges_tuples = note_index.get_graph_data()
+        return {
+            "nodes": [{"id": p, "label": Path(p).stem} for p in nodes_paths],
+            "edges": [{"source": s, "target": t, "type": et} for (s, t, et) in edges_tuples],
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to generate graph data"))
 

@@ -1,77 +1,12 @@
 """
-NoteIndex — unified in-memory index of everything that's expensive to recompute
-from disk: links, tags, full-text search, and per-note metadata.
+NoteIndex — in-memory index of vault state: notes, folders, tags, links, search.
 
-  +---------------------------------------------------------------+
-  |  ONE module, ONE singleton, ONE lock, ONE rollback switch.    |
-  |  All call sites in utils.py / main.py are one-line shims.     |
-  +---------------------------------------------------------------+
+Backs /api/notes, /api/tags, /api/backlinks, /api/graph, /api/search. Keeps
+everything thread-safe under one RLock. Process-memory only — rebuilds on the
+first /api/notes request after each process start (~1-3s on a 10K-note vault).
 
-Why this exists
----------------
-Without an index, every backlink lookup, every graph render, and every text
-search re-walks the entire vault and re-reads every file. That's O(N) per
-request and scales linearly with vault size — 4-second note loads on a 10K
-vault, 5-10s graph renders, multi-second searches. With an index, those
-endpoints become O(matches) — milliseconds regardless of vault size.
-
-What's indexed
---------------
-  * Note metadata     (path -> name, folder, mtime, size, type, tags)
-  * Folders           (set of folder paths)
-  * Tags forward      (path -> sorted tags)
-  * Tags backward     (tag  -> set of paths)
-  * Links forward     (source_path -> {target_path: "wikilink"|"markdown"})
-  * Links backward    (target_path -> set of source paths)         strict
-  * Wikilink tokens   (lowercased token -> set of source paths)    loose
-  * Search inverted   (lowercased term  -> set of paths)
-
-What's NOT cached
------------------
-File content. Reading file content for line-level context (backlinks, search
-snippets) is done only for the small set of matched files, never for the
-whole vault.
-
-Threading model
----------------
-Everything mutating goes through one RLock. Reads return snapshot copies, so
-callers can iterate freely after they release the lock. The index is
-designed to be called from FastAPI request handlers concurrently.
-
-Lifetime
---------
-Process-memory only. No persistence to disk — keeping the app lightweight
-matters more than the ~500ms saved on cold restart for a 10K-note vault.
-The index rebuilds on the first `/api/notes` request after every restart
-(typically 1-3 seconds, dominated by reading every file once for tag/link
-extraction). F5 / browser reload doesn't touch this — only Python process
-restart does.
-
-Rollback switch
----------------
-USE_NOTE_INDEX (below) is the single, global on/off. Flip it to False and
-every facade function becomes a no-op or returns None, and every call site
-in utils.py / main.py falls through to the legacy file-scanning behavior.
-
-  ROLLBACK RECIPE (decide the index isn't worth it)
-  -------------------------------------------------
-    Set USE_NOTE_INDEX = False below. That's it. Every try_* facade returns
-    None, every on_* facade becomes a no-op, callers fall through to the
-    legacy file-scanning paths that are preserved as the function bodies.
-
-  COMMIT RECIPE (you're happy, drop the legacy paths)
-  ---------------------------------------------------
-    1. Here: delete USE_NOTE_INDEX and inline `if not USE_NOTE_INDEX` to True
-       in every try_/on_ facade.
-    2. In backend/utils.py:
-         - get_backlinks: drop the `candidates is None` branch — the
-           index always provides them.
-         - search_notes: drop the `candidates is None` fallback.
-         - get_all_tags / get_notes_by_tag: drop the legacy aggregation
-           tail block.
-    3. In backend/main.py:
-         - /api/graph: drop the legacy fallback block at the bottom of
-           the endpoint, keep only `try_graph_data`.
+Updated incrementally on every save/delete/move/rename through the on_*
+facades at the bottom of this file.
 """
 
 from __future__ import annotations
@@ -87,39 +22,19 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 
-# ============================================================================
-# Configuration
-# ============================================================================
-
-# Single global rollback switch. Flip to False to disable the index and every
-# call site in utils.py / main.py falls back to the legacy code paths.
-USE_NOTE_INDEX: bool = True
-
-# Parallelism cutoff for full rescans. Below this many markdown files, threads
-# add more overhead than they save (small vaults stay sequential).
+# Below this many markdown files, parallel tag extraction adds more overhead
+# than it saves.
 _PARALLEL_CUTOFF = 50
 _PARALLEL_WORKERS = min(8, (os.cpu_count() or 4))
 
-# Search tokenization. Lowercase, split on anything that's not a word char.
-# Min length 2 keeps single-letter noise out of the index without losing
-# common short queries like "go", "ai".
+# Search tokenization. Min length 2 keeps single-letter noise out without
+# losing common short queries like "go", "ai".
 _SEARCH_TOKEN_RE = re.compile(r"[A-Za-z0-9_\-]{2,}")
 _SEARCH_MIN_QUERY_LEN = 2
-
-
-# ============================================================================
-# Shared regexes (same as legacy get_backlinks / /api/graph). Kept here so the
-# index and the legacy paths are guaranteed to extract the same tokens.
-# ============================================================================
 
 WIKILINK_RE = re.compile(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]')
 MDLINK_RE = re.compile(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)')
 
-
-# ============================================================================
-# Public extraction helpers — used by the index AND by lifecycle hooks in
-# utils.py (so a single save can update the index without re-reading the file).
-# ============================================================================
 
 def extract_links_from_content(content: str) -> Dict[str, List[str]]:
     """Pull raw wikilink targets and markdown-link paths out of note content."""
@@ -129,68 +44,50 @@ def extract_links_from_content(content: str) -> Dict[str, List[str]]:
 
 
 def extract_search_terms(content: str) -> Set[str]:
-    """Tokenize content for the inverted search index. Lowercased, deduped."""
+    """Tokenize content for the inverted search index."""
     return {m.group(0).lower() for m in _SEARCH_TOKEN_RE.finditer(content)}
 
 
-# ============================================================================
-# Data record for one note's metadata snapshot
-# ============================================================================
-
 @dataclass
 class NoteRecord:
-    """Snapshot of one note's metadata. Kept tiny — no content, no resolved
-    links (those live in the inverted indexes)."""
+    """One note's metadata. No content, no resolved links."""
     path: str                       # vault-relative POSIX
     name: str                       # stem (no extension)
     folder: str                     # vault-relative POSIX, "" for root
     modified: str                   # ISO timestamp
     size: int                       # bytes
     type: str                       # "note" | "image" | "audio" | ...
-    mtime: float                    # raw stat mtime, for staleness checks
-    tags: Tuple[str, ...] = field(default_factory=tuple)  # sorted, deduped
+    mtime: float                    # raw stat mtime
+    tags: Tuple[str, ...] = field(default_factory=tuple)
 
-
-# ============================================================================
-# The index itself
-# ============================================================================
 
 class NoteIndex:
-    """Thread-safe in-memory index of vault state. Every read returns a
-    snapshot copy so callers don't have to hold the lock."""
-
-    # ------------------------------------------------------------------
-    # Construction
-    # ------------------------------------------------------------------
+    """Thread-safe in-memory index of vault state. Reads return copies so
+    callers don't have to hold the lock."""
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
 
-        # Note metadata
-        self._notes: Dict[str, NoteRecord] = {}  # path -> record
+        self._notes: Dict[str, NoteRecord] = {}              # path -> record
         self._folders: Set[str] = set()
 
-        # Tag indexes
         self._tags_forward: Dict[str, Tuple[str, ...]] = {}  # path -> tags
         self._tags_backward: Dict[str, Set[str]] = {}        # tag -> paths
 
-        # Link indexes
-        self._raw_links: Dict[str, Dict[str, List[str]]] = {}    # path -> {"wikilinks":[], "mdlinks":[]}
-        self._links_forward: Dict[str, Dict[str, str]] = {}      # src -> {tgt: type}
-        self._links_backward: Dict[str, Set[str]] = {}           # tgt -> {srcs}
-        self._wikilink_tokens: Dict[str, Set[str]] = {}          # token -> {srcs} (loose)
+        self._raw_links: Dict[str, Dict[str, List[str]]] = {}  # path -> {"wikilinks":[], "mdlinks":[]}
+        self._links_forward: Dict[str, Dict[str, str]] = {}    # src -> {tgt: type}
+        self._links_backward: Dict[str, Set[str]] = {}         # tgt -> {srcs}
+        self._wikilink_tokens: Dict[str, Set[str]] = {}        # lower token -> {srcs} (loose match)
 
-        # Full-text inverted index
-        self._search_terms: Dict[str, Set[str]] = {}             # term -> {paths}
+        self._search_terms: Dict[str, Set[str]] = {}           # term -> {paths}
 
-        # Build state. _built tracks the cheap part (notes/tags/links).
-        # _search_built tracks the expensive search index separately — that
-        # one is built lazily on first search request to keep startup fast.
+        # _search_built tracked separately — the search index is built lazily
+        # on the first /api/search call, after the cheaper notes/tags/links
+        # part is already built.
         self._built = False
         self._search_built = False
         self._raw_fingerprint: Optional[int] = None  # short-circuits no-op rebuilds
 
-        # Observability counters (lock-free reads OK; rough is fine)
         self._stats = {
             "build_count": 0,
             "last_build_ms": 0.0,
@@ -201,17 +98,12 @@ class NoteIndex:
             "last_search_build_ms": 0.0,
         }
 
-    # ------------------------------------------------------------------
-    # Status / lifecycle gates
-    # ------------------------------------------------------------------
-
     def is_built(self) -> bool:
         with self._lock:
             return self._built
 
     def invalidate(self) -> None:
-        """Mark as needing rebuild on next scan. Used as a safety net when
-        an operation's incremental update is too fiddly to track precisely."""
+        """Mark as needing rebuild on next scan."""
         with self._lock:
             self._built = False
             self._raw_fingerprint = None
@@ -236,25 +128,14 @@ class NoteIndex:
             return self._search_built
 
     def ensure_search_index_built(self, notes_dir: str) -> bool:
-        """Build the full-text search index by reading every markdown file.
-
-        Cheap if already built (instant return). Called lazily by search_notes
-        on the first search request so app startup stays fast. Subsequent
-        searches reuse the built index.
-
-        Concurrency: while one thread is building, others can still read the
-        (still-cold) index — they'll just take the legacy path until the
-        build completes. Returns True if the index is built (now or already).
-        """
-        # Cheap pre-check without lock.
+        """Build the search index on demand. Returns True when ready, False
+        only if the main index isn't built yet. File I/O happens OUTSIDE the
+        lock so other reads aren't blocked."""
         if self._search_built:
             return True
 
-        # Slow path: do the read+tokenize OUTSIDE the lock so other reads
-        # aren't blocked. Snapshot the paths we need to read under the lock,
-        # release, do I/O, then re-acquire to install the result.
         with self._lock:
-            if self._search_built:  # raced with another builder
+            if self._search_built:
                 return True
             if not self._built:
                 return False
@@ -265,16 +146,11 @@ class NoteIndex:
         terms_per_path: Dict[str, Set[str]] = {}
         for rel in paths_to_read:
             try:
-                full = base / rel
-                with open(full, "r", encoding="utf-8") as f:
+                with open(base / rel, "r", encoding="utf-8") as f:
                     terms_per_path[rel] = extract_search_terms(f.read())
             except Exception:
                 terms_per_path[rel] = set()
 
-        # Re-acquire and install. If state changed under us (vault was
-        # heavily mutated during the build), still install — the index
-        # will be slightly stale until the next note save, which is the
-        # same liveness guarantee as the per-save update path.
         with self._lock:
             if self._search_built:
                 return True
@@ -287,24 +163,15 @@ class NoteIndex:
             self._stats["last_search_build_ms"] = (time.perf_counter() - t0) * 1000
         return True
 
-    # ------------------------------------------------------------------
-    # Bulk population — called from a full scan_notes_fast_walk
-    # ------------------------------------------------------------------
-
     def bulk_set(
         self,
         notes_meta: List[NoteRecord],
         folders: Iterable[str],
         sources_raw: Dict[str, Dict[str, List[str]]],
     ) -> None:
-        """Replace the entire index atomically. Builds notes/tags/links
-        (cheap on top of an already-completed scan). The search index is
-        NOT touched here — it's built lazily on the first search request
-        (see ensure_search_index_built) so app startup stays fast.
-
-        Fast-paths when the input fingerprints to the same state we already
-        hold (typical warm scan where nothing changed in the vault).
-        """
+        """Replace the entire index from a fresh scan. Short-circuits when
+        the input fingerprints to the same state we already hold (warm
+        scan, nothing changed)."""
         new_fp = _fingerprint(notes_meta, sources_raw)
         with self._lock:
             if self._built and self._raw_fingerprint == new_fp:
@@ -319,8 +186,6 @@ class NoteIndex:
 
             self._rebuild_tags_unlocked()
             self._rebuild_links_unlocked()
-            # Search index: if it was built and still references known notes,
-            # prune stale entries; full rebuild is deferred until a search.
             if self._search_built:
                 self._prune_search_unlocked()
 
@@ -331,19 +196,13 @@ class NoteIndex:
             self._stats["last_build_ms"] = (time.perf_counter() - t0) * 1000
             self._stats["last_built_at"] = datetime.now(tz=timezone.utc).isoformat()
 
-    # ------------------------------------------------------------------
-    # Incremental updates — called from save/delete/rename handlers
-    # ------------------------------------------------------------------
-
     def update_note(
         self,
         record: NoteRecord,
         raw_links: Dict[str, List[str]],
         content: Optional[str] = None,
     ) -> None:
-        """A single note's content changed (or was just created). Patches the
-        index in place: re-extracts its links, updates the tag indexes, and
-        if `content` is provided, refreshes its search-term entries."""
+        """Patch the index in place after a note is created or saved."""
         with self._lock:
             old_record = self._notes.get(record.path)
             old_tags = old_record.tags if old_record else ()
@@ -352,7 +211,6 @@ class NoteIndex:
             if record.folder:
                 self._folders.add(record.folder)
 
-            # Tags: diff old vs new and patch the backward index.
             new_tags = record.tags
             if old_tags != new_tags:
                 for t in set(old_tags) - set(new_tags):
@@ -365,13 +223,11 @@ class NoteIndex:
                     self._tags_backward.setdefault(t, set()).add(record.path)
                 self._tags_forward[record.path] = new_tags
 
-            # Links: re-resolve this one source against the current vault.
             self._raw_links[record.path] = raw_links
             self._resolve_single_source_unlocked(record.path)
 
-            # Search: only patch the search index if it's already been built.
-            # Otherwise we'd be doing work for an index nobody is using yet
-            # (the first /api/search call will build it from disk).
+            # Search index only gets patched if it's already been built —
+            # otherwise the first /api/search will build it from scratch.
             if content is not None and self._search_built:
                 self._update_search_for_note_unlocked(record.path, content)
 
@@ -437,11 +293,9 @@ class NoteIndex:
             self._stats["incremental_updates"] += 1
 
     def rename_note(self, old_path: str, new_path: str) -> None:
-        """A note was renamed/moved. Move all references from old_path to
-        new_path in every index. Because the new path can change the source's
-        own relative-folder resolution AND can change how other notes resolve
-        their wikilinks to it (different parent folder, different stem),
-        the simplest correct path is to migrate raw state then re-resolve."""
+        """Move all references from old_path to new_path. The path change can
+        affect how other notes' wikilinks resolve, so we wipe the resolved
+        link indexes for this note and rely on the next bulk_set to rebuild."""
         if old_path == new_path:
             return
         with self._lock:
@@ -465,7 +319,6 @@ class NoteIndex:
             if new_record.folder:
                 self._folders.add(new_record.folder)
 
-            # Tags forward + backward — swap the key.
             if old_path in self._tags_forward:
                 tags = self._tags_forward.pop(old_path)
                 self._tags_forward[new_path] = tags
@@ -475,24 +328,17 @@ class NoteIndex:
                         bucket.discard(old_path)
                         bucket.add(new_path)
 
-            # Search: swap path in every term bucket. Bounded by terms-per-note.
             for paths in self._search_terms.values():
                 if old_path in paths:
                     paths.discard(old_path)
                     paths.add(new_path)
 
-            # Raw links: migrate.
             if old_path in self._raw_links:
                 self._raw_links[new_path] = self._raw_links.pop(old_path)
 
-            # Strict link indexes: drop both old src and old target everywhere,
-            # then re-resolve. Other sources that linked TO old_path by name
-            # may now resolve to new_path (or not), so we need a re-resolve.
-            #
-            # Implementation: drop forward/backward for old_path, drop old
-            # entries in other sources' forwards that pointed to old_path,
-            # invalidate the index. The next scan rebuilds (which we trigger
-            # implicitly because the caller flips _built = False below).
+            # Other sources that linked to old_path by stem name may now
+            # resolve to new_path (or not), so we wipe both forward & backward
+            # for old_path and let the next bulk_set re-resolve from scratch.
             self._links_forward.pop(old_path, None)
             for bucket in self._links_backward.values():
                 bucket.discard(old_path)
@@ -504,7 +350,6 @@ class NoteIndex:
                     if not fwd:
                         del self._links_forward[src]
 
-            # Loose wikilink index: replace path values.
             empty_keys = []
             for key, sources in self._wikilink_tokens.items():
                 if old_path in sources:
@@ -516,17 +361,12 @@ class NoteIndex:
                 del self._wikilink_tokens[k]
 
             self._raw_fingerprint = None
-            self._built = False  # force re-resolve on next bulk_set/scan
+            self._built = False  # force re-resolve on next bulk_set
             self._stats["incremental_updates"] += 1
 
     def rename_folder_prefix(self, old_prefix: str, new_prefix: str) -> None:
-        """A folder was renamed/moved. Migrate every entry whose path starts
-        with `old_prefix/` to `new_prefix/`. Much cheaper than a full rebuild:
-        for a 1000-note folder rename, this is microseconds of key swaps
-        vs ~400ms of disk re-scan.
-
-        Both prefixes are normalized to forward slashes, no trailing slash.
-        """
+        """Migrate every entry under `old_prefix/` to `new_prefix/`. Much
+        cheaper than a full rebuild — microseconds of key swaps."""
         old_prefix = old_prefix.rstrip("/")
         new_prefix = new_prefix.rstrip("/")
         if old_prefix == new_prefix:
@@ -534,14 +374,9 @@ class NoteIndex:
         with self._lock:
             affected_paths = [p for p in self._notes if p == old_prefix or p.startswith(old_prefix + "/")]
             for old_path in affected_paths:
-                suffix = old_path[len(old_prefix):]  # includes leading "/" or nothing
-                new_path = new_prefix + suffix
-                # Reuse rename_note's heavy lifting — already correct, just
-                # called many times. Acceptable for folder operations.
-                # (Inlining would be a perf gain but multiplies bug surface.)
-                self._rename_note_unlocked(old_path, new_path)
+                suffix = old_path[len(old_prefix):]
+                self._rename_note_unlocked(old_path, new_prefix + suffix)
 
-            # Migrate the folder set too.
             folders_to_rename = [
                 f for f in self._folders if f == old_prefix or f.startswith(old_prefix + "/")
             ]
@@ -554,7 +389,7 @@ class NoteIndex:
             self._built = False
 
     def remove_folder_prefix(self, prefix: str) -> None:
-        """A folder was deleted. Drop everything under it."""
+        """Drop every entry under `prefix/`."""
         prefix = prefix.rstrip("/")
         with self._lock:
             affected = [p for p in self._notes if p == prefix or p.startswith(prefix + "/")]
@@ -597,7 +432,7 @@ class NoteIndex:
             return nodes, edges
 
     def get_all_tags(self) -> Dict[str, int]:
-        """Snapshot: {tag: count}, sorted by tag name."""
+        """Snapshot {tag: count}, sorted by tag name."""
         with self._lock:
             return {tag: len(paths) for tag, paths in sorted(self._tags_backward.items())}
 
@@ -610,23 +445,19 @@ class NoteIndex:
         with self._lock:
             return self._notes.get(path)
 
+    def all_note_records(self) -> List[Tuple[str, NoteRecord]]:
+        """Snapshot list of (path, record) for every indexed markdown note."""
+        with self._lock:
+            return [(p, r) for p, r in self._notes.items() if r.type == "note"]
+
     def try_get_extraction(
         self,
         rel_path: str,
         mtime: float,
     ) -> Optional[Tuple[List[str], Dict[str, List[str]]]]:
-        """Return (tags, raw_links) from the index when fresh.
-
-        The caller passes the file's current mtime; we hand back the cached
-        extraction only when the recorded mtime matches exactly. Lets
-        scan_notes_fast_walk skip the per-file read on a snapshot-warm
-        startup — the bulk of cold-load latency on large vaults.
-
-        Returns None when:
-          - The note isn't in the index (new file)
-          - mtime differs (file changed since snapshot)
-          - We've somehow lost the raw_links entry (defensive)
-        """
+        """Return (tags, raw_links) from the index only if the recorded mtime
+        matches `mtime` exactly. Lets scan_notes_fast_walk skip the per-file
+        read on a warm scan."""
         with self._lock:
             rec = self._notes.get(rel_path)
             if rec is None or rec.mtime != mtime:
@@ -643,34 +474,18 @@ class NoteIndex:
             )
 
     def get_search_candidates(self, query: str) -> Optional[Set[str]]:
-        # Index can only narrow candidates if it's been built.
+        """Superset of paths whose content COULD contain `query`. Caller
+        still runs the substring match per candidate for confirmation +
+        snippet extraction. Returns None when the query is too short or
+        tokenizes to nothing — caller should iterate every note instead."""
         if not self._search_built:
             return None
-        """Return the set of paths that COULD contain `query` as a substring,
-        based on the inverted term index.
-
-        Returns None when the query is too short to use the index (caller
-        should fall through to the legacy full-scan). When the query
-        tokenizes to nothing useful (all stopword-like noise), returns the
-        set of every indexed path so the caller still does a substring
-        check on each (no false negatives).
-
-        IMPORTANT: this is a SUPERSET — the caller must still run the
-        substring match per candidate to confirm and extract context.
-        Token-AND can include docs that have both tokens but not as the
-        adjacent substring the user searched for.
-        """
         if len(query) < _SEARCH_MIN_QUERY_LEN:
             return None
         tokens = [m.group(0).lower() for m in _SEARCH_TOKEN_RE.finditer(query)]
         if not tokens:
-            # Query has no tokenizable parts (pure punctuation, single char,
-            # etc.). Index can't help; fall through.
             return None
         with self._lock:
-            # Intersection of all token buckets. Empty set means no doc
-            # contains ALL of the tokens (and therefore none contain the
-            # query as substring either).
             candidate = self._search_terms.get(tokens[0])
             if candidate is None:
                 return set()
@@ -685,11 +500,9 @@ class NoteIndex:
             return result
 
     def stats(self) -> Dict[str, Any]:
-        """Snapshot of internal counters + size metrics. Cheap to call —
-        no traversal beyond `len()` on the top-level dicts."""
+        """Snapshot of counters + size metrics."""
         with self._lock:
             return {
-                "enabled": USE_NOTE_INDEX,
                 "built": self._built,
                 "search_built": self._search_built,
                 "notes": len(self._notes),
@@ -720,11 +533,8 @@ class NoteIndex:
                 self._tags_backward.setdefault(tag, set()).add(path)
 
     def _rebuild_links_unlocked(self) -> None:
-        """Full link re-resolution. Builds a shared Resolver lookup once
-        (O(N)) and reuses it for every source (O(K) each) — total O(N+K*L)
-        rather than the O(N*K) you'd get by building a fresh Resolver per
-        source.
-        """
+        """Full link re-resolution. Reuses one _Resolver across all sources
+        (O(N+K*L) instead of O(N*K))."""
         self._links_forward.clear()
         self._links_backward.clear()
         self._wikilink_tokens.clear()
@@ -734,9 +544,7 @@ class NoteIndex:
             self._resolve_single_source_unlocked(source_path, resolver=resolver, skip_cleanup=True)
 
     def _prune_search_unlocked(self) -> None:
-        """Drop search-term entries for paths no longer in the index. Cheap
-        compared to a full rebuild — only touches terms whose bucket still
-        references a now-deleted path."""
+        """Drop search-term entries for paths no longer in the index."""
         live_paths = set(self._notes.keys())
         empty_terms = []
         for term, paths in self._search_terms.items():
@@ -750,7 +558,6 @@ class NoteIndex:
 
     def _update_search_for_note_unlocked(self, path: str, content: str) -> None:
         """Replace one note's terms in the inverted index."""
-        # Drop old entries for this path.
         empty_terms = []
         for term, paths in self._search_terms.items():
             if path in paths:
@@ -759,7 +566,6 @@ class NoteIndex:
                     empty_terms.append(term)
         for term in empty_terms:
             del self._search_terms[term]
-        # Add new entries.
         for term in extract_search_terms(content):
             self._search_terms.setdefault(term, set()).add(path)
 
@@ -799,16 +605,13 @@ class NoteIndex:
 
         targets: Dict[str, str] = {}
 
-        # Wikilinks first so they win the "first wins" dedup that legacy
-        # /api/graph also implements.
+        # Wikilinks first (they win the "first wins" dedup that /api/graph uses).
         for target in raw.get("wikilinks", []):
             resolved = resolver.resolve_wikilink(target, source_folder)
             if resolved and resolved != source_path and resolved not in targets:
                 targets[resolved] = "wikilink"
-            # Loose wikilink reverse index — populated regardless of strict
-            # resolution success, because the legacy get_backlinks uses
-            # token-stem matching independent of where the link actually
-            # navigates.
+            # Loose token index — populated even when strict resolution fails,
+            # because backlink matching uses stem comparison independently.
             t_lower = target.strip().lower()
             if t_lower:
                 self._wikilink_tokens.setdefault(t_lower, set()).add(source_path)
@@ -827,8 +630,8 @@ class NoteIndex:
                 self._links_backward.setdefault(t, set()).add(source_path)
 
     def _rename_note_unlocked(self, old_path: str, new_path: str) -> None:
-        """Same as rename_note() but assumes the caller already holds the lock.
-        Used by folder-prefix rename to avoid re-acquiring the lock per file."""
+        """rename_note() body without acquiring the lock — used by
+        rename_folder_prefix to avoid re-locking per file."""
         if old_path == new_path:
             return
         old_record = self._notes.pop(old_path, None)
@@ -936,9 +739,8 @@ class NoteIndex:
 # ============================================================================
 
 class _Resolver:
-    """Build the lookup tables once per resolution batch, then call
-    resolve_* repeatedly. Reused across sources within a single rebuild so
-    we don't pay O(N) to construct it on every source."""
+    """Link-target lookup tables. Build once per resolution batch, then call
+    resolve_* repeatedly across many sources."""
 
     def __init__(self, all_notes: Set[str]) -> None:
         self.note_paths: Set[str] = set(all_notes)
@@ -1029,8 +831,7 @@ def _fingerprint(
     notes_meta: List[NoteRecord],
     sources_raw: Dict[str, Dict[str, List[str]]],
 ) -> int:
-    """Cheap content hash of a scan result. Used to short-circuit bulk_set
-    when nothing has changed in the vault."""
+    """Cheap hash of a scan result. Short-circuits bulk_set when unchanged."""
     notes_fp = hash(frozenset((n.path, n.mtime) for n in notes_meta))
     raw_items = (
         (src, tuple(raw.get("wikilinks", [])), tuple(raw.get("mdlinks", [])))
@@ -1040,11 +841,7 @@ def _fingerprint(
 
 
 # ============================================================================
-# Module-level singleton + facade
-#
-# Every utils.py / main.py call site uses these — never instantiates its own
-# index. The facade functions are no-ops (or return None) when
-# USE_NOTE_INDEX is False, so call sites don't have to repeat the flag check.
+# Module singleton + facade. Callers in utils.py / main.py go through these.
 # ============================================================================
 
 _index = NoteIndex()
@@ -1054,12 +851,10 @@ def get_index() -> NoteIndex:
     return _index
 
 
-# --- Lifecycle facade (one-line calls from utils.py mutators) ----------------
+# --- Lifecycle hooks (one-line calls from utils.py mutators) ----------------
 
 def on_note_saved(notes_dir: str, full_path: Path, content: str) -> None:
-    """A note was created or updated on disk. Patch the index in place."""
-    if not USE_NOTE_INDEX:
-        return
+    """A note was created or updated on disk."""
     try:
         rel_path = full_path.relative_to(Path(notes_dir)).as_posix()
         st = full_path.stat()
@@ -1074,15 +869,12 @@ def on_note_saved(notes_dir: str, full_path: Path, content: str) -> None:
             mtime=st.st_mtime,
             tags=tuple(_parse_tags_for_record(content)),
         )
-        raw_links = extract_links_from_content(content)
-        _index.update_note(record, raw_links, content=content)
+        _index.update_note(record, extract_links_from_content(content), content=content)
     except Exception as e:
         print(f"note_index: on_note_saved failed for {full_path}: {e}")
 
 
 def on_note_deleted(notes_dir: str, full_path: Path) -> None:
-    if not USE_NOTE_INDEX:
-        return
     try:
         rel_path = full_path.relative_to(Path(notes_dir)).as_posix()
         _index.remove_note(rel_path)
@@ -1091,8 +883,6 @@ def on_note_deleted(notes_dir: str, full_path: Path) -> None:
 
 
 def on_note_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) -> None:
-    if not USE_NOTE_INDEX:
-        return
     try:
         base = Path(notes_dir)
         _index.rename_note(
@@ -1104,10 +894,7 @@ def on_note_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) ->
 
 
 def on_folder_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) -> None:
-    """A folder was moved/renamed. Re-keys every entry under it (cheap,
-    no disk reads) rather than invalidating the whole index."""
-    if not USE_NOTE_INDEX:
-        return
+    """Re-key every entry under the folder. No disk reads."""
     try:
         base = Path(notes_dir)
         _index.rename_folder_prefix(
@@ -1116,12 +903,10 @@ def on_folder_renamed(notes_dir: str, old_full_path: Path, new_full_path: Path) 
         )
     except Exception as e:
         print(f"note_index: on_folder_renamed failed: {e}")
-        _index.invalidate()  # fail-safe
+        _index.invalidate()
 
 
 def on_folder_deleted(notes_dir: str, full_path: Path) -> None:
-    if not USE_NOTE_INDEX:
-        return
     try:
         rel_prefix = full_path.relative_to(Path(notes_dir)).as_posix()
         _index.remove_folder_prefix(rel_prefix)
@@ -1135,9 +920,7 @@ def populate_from_scan(
     folders: Iterable[str],
     sources_raw: Dict[str, Dict[str, List[str]]],
 ) -> None:
-    """Bulk-replace the index from a fresh scan. No-op when off."""
-    if not USE_NOTE_INDEX:
-        return
+    """Bulk-replace the index after a full scan_notes_fast_walk."""
     try:
         _index.bulk_set(notes_meta, folders, sources_raw)
     except Exception as e:
@@ -1145,44 +928,34 @@ def populate_from_scan(
 
 
 def ensure_search_index(notes_dir: str) -> bool:
-    """Lazily build the full-text search index on first /api/search request.
-    Cheap after the first call. Returns True if the index is now usable."""
-    if not USE_NOTE_INDEX:
-        return False
+    """Lazy-build the search index on first /api/search. Returns False only
+    if the main index isn't built yet."""
     if not _index.is_built():
         return False
     return _index.ensure_search_index_built(notes_dir)
 
 
-# --- Read facade (returns None when off — callers fall through to legacy) ----
+# --- Read facade -------------------------------------------------------------
 
-def try_backlink_candidates(target_path: str) -> Optional[Set[str]]:
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+def get_backlink_candidates(target_path: str) -> Set[str]:
     return _index.get_backlink_candidate_sources(target_path)
 
 
-def try_graph_data() -> Optional[Tuple[List[str], List[Tuple[str, str, str]]]]:
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+def get_graph_data() -> Tuple[List[str], List[Tuple[str, str, str]]]:
     return _index.get_graph_data()
 
 
-def try_search_candidates(query: str) -> Optional[Set[str]]:
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+def get_search_candidates(query: str) -> Optional[Set[str]]:
+    """Returns None when query is too short / untokenizable — caller iterates
+    every indexed note instead."""
     return _index.get_search_candidates(query)
 
 
-def try_all_tags() -> Optional[Dict[str, int]]:
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+def get_all_tags() -> Dict[str, int]:
     return _index.get_all_tags()
 
 
-def try_notes_by_tag(tag: str) -> Optional[Set[str]]:
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+def get_paths_for_tag(tag: str) -> Set[str]:
     return _index.get_paths_for_tag(tag)
 
 
@@ -1190,30 +963,16 @@ def try_get_extraction(
     rel_path: str,
     mtime: float,
 ) -> Optional[Tuple[List[str], Dict[str, List[str]]]]:
-    """Serve (tags, raw_links) from the index for a single file, when fresh.
-
-    Used by scan_notes_fast_walk to skip the cold per-file read after a
-    snapshot load. Returns None when the index can't help (off, not built,
-    file unknown, mtime mismatch) — caller falls back to reading the file.
-    """
-    if not USE_NOTE_INDEX or not _index.is_built():
-        return None
+    """(tags, raw_links) from the index when mtime matches, else None so the
+    caller reads the file. Used by scan_notes_fast_walk."""
     return _index.try_get_extraction(rel_path, mtime)
 
-
-# --- Observability -----------------------------------------------------------
 
 def stats() -> Dict[str, Any]:
     return _index.stats()
 
 
-# ============================================================================
-# Late import to avoid a circular dependency with utils.parse_tags.
-# We need tag parsing inside on_note_saved but utils.py imports this module.
-# ============================================================================
-
+# Late import — utils imports this module, so we delay the reverse direction.
 def _parse_tags_for_record(content: str) -> List[str]:
-    """Thin shim to utils.parse_tags. Late-bound so this module imports cleanly
-    before utils.py is loaded."""
     from .utils import parse_tags
     return parse_tags(content)

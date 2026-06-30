@@ -591,7 +591,6 @@ The index is rebuilt on the first scan after each process start and updated incr
 **Response:**
 ```json
 {
-  "enabled": true,
   "built": true,
   "search_built": false,
   "notes": 142,
@@ -615,7 +614,6 @@ The index is rebuilt on the first scan after each process start and updated incr
 
 | Field | Description |
 |-------|-------------|
-| `enabled` | Whether the index is active (always `true` in current builds) |
 | `built` | `true` after the first vault scan completes |
 | `search_built` | `true` after the first `/api/search` request (search index is built lazily) |
 | `notes` | Number of note records currently held in the index |

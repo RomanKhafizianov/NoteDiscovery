@@ -2,8 +2,7 @@
 Utility functions for file operations, search, and markdown processing.
 
 Heavy work (backlinks, graph, full-text search, tag aggregation) is delegated
-to the in-memory index in note_index.py — every facade function there is a
-no-op when USE_NOTE_INDEX is False, so call sites here stay flag-free.
+to the in-memory index in note_index.py.
 """
 
 import os
@@ -163,27 +162,25 @@ def _scan_cache_set(key: Tuple[str, bool], value: Tuple[List[Dict], List[str]]) 
 
 
 def _scan_cache_invalidate() -> None:
-    """Drop the TTL scan cache. Called from every mutation handler so callers
-    that hit the cache immediately after a save/delete/move see the new state
-    instead of stale data from the previous walk."""
+    """Drop the TTL scan cache. Called from every mutation handler."""
     with _SCAN_WALK_CACHE_LOCK:
         _SCAN_WALK_CACHE.clear()
+
+
+def _ensure_index_built(notes_dir: str) -> None:
+    """Trigger a fresh scan when the NoteIndex hasn't been populated yet.
+    Idempotent: the scan short-circuits when nothing changed in the vault."""
+    if not note_index.get_index().is_built():
+        scan_notes_fast_walk(notes_dir, use_cache=False, include_media=False)
 
 
 def get_tags_and_links_cached(
     file_path: Path,
     rel_path: Optional[str] = None,
 ) -> Tuple[List[str], Dict[str, List[str]]]:
-    """Single-read fused extraction of tags + raw links, cached by mtime.
-
-    Three-tier lookup, cheapest first:
-      1. In-process per-file caches (warm scans on the live server)
-      2. NoteIndex (warm after snapshot load — avoids file reads on cold start)
-      3. Read the file from disk
-
-    rel_path enables tier 2. scan_notes_fast_walk passes it; ad-hoc callers
-    can omit it and just get tiers 1 + 3.
-    """
+    """Fused tags + raw-links extraction, mtime-cached. Tries in-process
+    per-file caches first, then the NoteIndex (when rel_path is provided),
+    then reads the file."""
     try:
         mtime = file_path.stat().st_mtime
         file_key = str(file_path)
@@ -196,8 +193,6 @@ def get_tags_and_links_cached(
         if tags_ok and links_ok:
             return tag_cached[1], link_cached[1]
 
-        # Try the NoteIndex before reading the file. On a snapshot-warm
-        # startup, this turns a 10K-file cold scan into a no-I/O walk.
         if rel_path is not None:
             indexed = note_index.try_get_extraction(rel_path, mtime)
             if indexed is not None:
@@ -293,11 +288,11 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
                 _scan_cache_set(cache_key, normalized_value)
                 return normalized_value
 
-    # Walk the vault once. Tag/link extraction is deferred out of the walk
-    # (the expensive part is the file I/O) and parallelized below across files.
+    # Walk the vault once. Tag/link extraction is parallelized below across
+    # the markdown files we collected here.
     notes: List[Dict] = []
     folders_set = set()
-    md_to_extract: List[Tuple[int, Path, str]] = []  # (note_index, full_path, rel_path)
+    md_to_extract: List[Tuple[int, Path, str]] = []  # (index, full_path, rel_path)
 
     for root, dirnames, filenames in os.walk(notes_path):
         dirnames[:] = [d for d in dirnames if not d.startswith('.')]
@@ -339,19 +334,10 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
             if is_markdown:
                 md_to_extract.append((len(notes) - 1, full_path, rel_str))
 
-    # Fused tag + raw-link extraction. mtime-keyed cache makes warm scans
-    # mostly free; cold scans win from parallel I/O.
-    #
-    # We don't read full content here — that would double the parsing cost
-    # for every scan, and the search index is the only thing that needs it.
-    # Search is built lazily on the first search request (see
-    # note_index.ensure_search_index_built), which keeps startup fast and
-    # only pays the cost when a user actually searches.
+    # Tag + raw-link extraction in parallel. Search-index terms are built
+    # later, lazily, on the first /api/search call.
     sources_raw: Dict[str, Dict[str, List[str]]] = {}
     if md_to_extract:
-        # Pass rel_path so each call can hit the NoteIndex before falling
-        # back to a file read — critical for fast startup after a snapshot
-        # load on large vaults.
         path_pairs = [(full, rel) for (_, full, rel) in md_to_extract]
         if len(md_to_extract) >= 50:
             workers = min(8, (os.cpu_count() or 4))
@@ -367,8 +353,7 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
             notes[idx]["tags"] = tags
             sources_raw[rel_str] = links
 
-    # Populate the unified index. Cheap when the fingerprint matches (warm
-    # scan, nothing changed) — short-circuits internally. No-op when off.
+    # Push the result into the NoteIndex. Short-circuits on warm scans.
     notes_meta = [
         NoteRecord(
             path=n["path"],
@@ -555,27 +540,28 @@ def delete_note(notes_dir: str, note_path: str) -> bool:
 
 
 def search_notes(notes_dir: str, query: str) -> List[Dict]:
-    """Full-text search through note contents.
-
-    Only searches inside note content (not filenames or paths). The index, when
-    available, narrows down the candidate files via a token-AND match on its
-    inverted index — then the existing per-line snippet extraction runs on the
-    narrow set. Output is byte-identical to a full scan.
-    """
+    """Full-text search through note contents. Narrow the candidate set via
+    the inverted index, then run the snippet extractor on each candidate."""
     from html import escape
     results: List[Dict] = []
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
 
-    # Build the search index lazily on the first search request. Subsequent
-    # searches hit the warm index; the first one pays the cost (read every
-    # file once) and is roughly as slow as the legacy full scan would be.
+    _ensure_index_built(notes_dir)
     note_index.ensure_search_index(notes_dir)
-    candidates = note_index.try_search_candidates(query)
+    candidates = note_index.get_search_candidates(query)
 
-    for note in notes:
+    idx = note_index.get_index()
+    if candidates is None:
+        # Query too short to tokenize — iterate every indexed note instead.
+        candidate_records = idx.all_note_records()
+    else:
+        candidate_records = [(p, idx.get_note_record(p)) for p in candidates]
+        candidate_records = [(p, r) for (p, r) in candidate_records if r is not None and r.type == "note"]
+
+    candidate_records.sort(key=lambda pr: pr[1].mtime, reverse=True)
+    iterable = [{"path": p, "name": r.name} for (p, r) in candidate_records]
+
+    for note in iterable:
         path = note["path"]
-        if candidates is not None and path not in candidates:
-            continue
         md_file = Path(notes_dir) / path
         try:
             with open(md_file, 'r', encoding='utf-8') as f:
@@ -888,64 +874,29 @@ def parse_tags(content: str) -> List[str]:
 
 
 def get_all_tags(notes_dir: str) -> Dict[str, int]:
-    """All tags in the vault with note counts. Index-backed when available."""
-    # Fast path FIRST — when the index is ready it knows every tag count,
-    # so we skip the scan entirely (no disk walk, no JSON of 10K notes).
-    indexed = note_index.try_all_tags()
-    if indexed is not None:
-        return indexed
-
-    # Legacy fallback: scan the vault and aggregate.
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-    tag_counts: Dict[str, int] = {}
-    for note in notes:
-        for tag in note.get("tags", []):
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
-    return dict(sorted(tag_counts.items()))
+    """All tags in the vault with note counts."""
+    _ensure_index_built(notes_dir)
+    return note_index.get_all_tags()
 
 
 def get_notes_by_tag(notes_dir: str, tag: str) -> List[Dict]:
-    """All notes carrying `tag` (case-insensitive). Index-backed when available."""
-    tag_lower = tag.lower()
-
-    # Fast path FIRST: every field we need lives in the NoteRecord. Skip
-    # the vault scan when the index can answer directly.
-    indexed_paths = note_index.try_notes_by_tag(tag_lower)
-    if indexed_paths is not None:
-        idx = note_index.get_index()
-        records = [idx.get_note_record(p) for p in indexed_paths]
-        matching = [
-            {
-                "name": r.name,
-                "path": r.path,
-                "folder": r.folder,
-                "modified": r.modified,
-                "size": r.size,
-                "tags": list(r.tags),
-            }
-            for r in records
-            if r is not None and r.type == "note"
-        ]
-        # Match legacy sort order (scan returns notes sorted by modified desc).
-        matching.sort(key=lambda n: n["modified"], reverse=True)
-        return matching
-
-    # Legacy fallback.
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-    matching: List[Dict] = []
-    for note in notes:
-        if note.get("type") != "note":
-            continue
-        tags = note.get("tags", [])
-        if tag_lower in tags:
-            matching.append({
-                "name": note["name"],
-                "path": note["path"],
-                "folder": note["folder"],
-                "modified": note["modified"],
-                "size": note["size"],
-                "tags": tags,
-            })
+    """All notes carrying `tag` (case-insensitive)."""
+    _ensure_index_built(notes_dir)
+    idx = note_index.get_index()
+    records = [idx.get_note_record(p) for p in note_index.get_paths_for_tag(tag.lower())]
+    matching = [
+        {
+            "name": r.name,
+            "path": r.path,
+            "folder": r.folder,
+            "modified": r.modified,
+            "size": r.size,
+            "tags": list(r.tags),
+        }
+        for r in records
+        if r is not None and r.type == "note"
+    ]
+    matching.sort(key=lambda n: n["modified"], reverse=True)
     return matching
 
 
@@ -1189,13 +1140,8 @@ def _extract_backlink_references(
 
 
 def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
-    """Find all notes that link TO the specified note.
-
-    Index-backed when available: the index hands us a superset of candidate
-    source files (O(1)), we read only those, then the per-line matcher
-    filters down to true matches with line-level context. Output is
-    byte-identical to a full vault scan.
-    """
+    """All notes that link TO `target_note_path`. The index narrows the
+    candidate set; we only read the candidate files for line context."""
     target_path = target_note_path
     target_path_lower = target_path.lower()
     target_path_no_ext_lower = target_path_lower.replace('.md', '')
@@ -1205,22 +1151,15 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
         Path(target_path).stem.lower(),
     }
 
-    # scan_notes_fast_walk is TTL-cached, so calling it here is a dict-lookup
-    # in the warm case. We need it for the canonical ordering of `notes`.
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-
-    candidates = note_index.try_backlink_candidates(target_path)
+    _ensure_index_built(notes_dir)
+    idx = note_index.get_index()
+    candidates = note_index.get_backlink_candidates(target_path)
+    records = [(p, idx.get_note_record(p)) for p in candidates]
+    records = [(p, r) for (p, r) in records if r is not None and r.type == "note" and p != target_path]
+    records.sort(key=lambda pr: pr[1].mtime, reverse=True)
 
     backlinks: List[Dict] = []
-    for note in notes:
-        if note.get('type') != 'note':
-            continue
-        source_path = note['path']
-        if source_path == target_path:
-            continue
-        if candidates is not None and source_path not in candidates:
-            continue
-
+    for source_path, record in records:
         refs = _extract_backlink_references(
             notes_dir,
             source_path,
@@ -1232,9 +1171,8 @@ def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
         if refs:
             backlinks.append({
                 "path": source_path,
-                "name": note['name'].replace('.md', ''),
+                "name": record.name.replace('.md', ''),
                 "references": refs[:3],
             })
-
     return backlinks
 
