@@ -1397,7 +1397,30 @@
     </style>
 </head>
 <body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);" :class="{'zen-mode-active': zenMode}">
-    
+
+    <!-- Vault loading overlay. Centered floating card; the outer div is
+         pointer-events:none so settings/theme/search/icon-rail stay clickable.
+         Shown only when /api/notes is still in flight 800ms after boot AND the
+         tree is currently empty — so small vaults / warm caches never see it. -->
+    <div x-show="notesLoadingShowOverlay"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 flex items-center justify-center"
+         style="z-index: 60; pointer-events: none;">
+        <div class="px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3"
+             style="background-color: var(--bg-secondary); border: 1px solid var(--border-primary); color: var(--text-primary); pointer-events: auto;">
+            <svg class="animate-spin h-5 w-5 flex-shrink-0" style="color: var(--accent-primary);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm" x-text="t('sidebar.loading_notes')"></span>
+        </div>
+    </div>
+
     <!-- Zen Mode Exit Button -->
     <button 
         x-show="zenMode"
@@ -1800,8 +1823,19 @@
                         <!-- Root notes and images (no folder) -->
                         <div x-html="renderRootItems()"></div>
                         
-                        <!-- Empty state -->
-                        <template x-if="notes.length === 0 && allFolders.length === 0">
+                        <!-- Loading state (initial /api/notes still in flight) -->
+                        <template x-if="notesLoading && notes.length === 0 && allFolders.length === 0">
+                            <div class="px-3 py-4 text-sm text-center flex items-center justify-center gap-2" style="color: var(--text-tertiary);">
+                                <svg class="animate-spin h-4 w-4" style="color: var(--accent-primary);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="t('sidebar.loading_notes')"></span>
+                            </div>
+                        </template>
+
+                        <!-- Empty state (load finished, vault genuinely empty) -->
+                        <template x-if="!notesLoading && notes.length === 0 && allFolders.length === 0">
                             <div class="px-3 py-4 text-sm text-center" style="color: var(--text-tertiary);">
                                 <span x-text="t('sidebar.no_notes_yet')"></span><br>
                                 <span x-text="t('sidebar.create_first')"></span>
@@ -2432,8 +2466,8 @@
                         </button>
                     </div>
                     
-                    <!-- Welcome Hero - Show when app is empty -->
-                    <template x-if="isAppEmpty">
+                    <!-- Welcome Hero - Show when app is empty (but not while still loading) -->
+                    <template x-if="!notesLoading && isAppEmpty">
                         <div class="flex flex-col items-center justify-center h-full py-16 text-center">
                         <svg class="mx-auto h-24 w-24 mb-4" style="color: var(--text-tertiary); opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

@@ -262,6 +262,13 @@ function noteApp() {
         alreadyDonated: false,
         autosaveDelayMs: CONFIG.AUTOSAVE_DELAY,  // hydrated from /api/config in loadConfig()
         notes: [],
+
+        // True while /api/notes is in flight. Drives the "Loading your vault…"
+        // placeholder + the delayed overlay (notesLoadingShowOverlay).
+        notesLoading: true,
+        notesLoadingShowOverlay: false,
+        _notesLoadingOverlayTimer: null,
+
         currentNote: '',
         currentNoteName: '',
         noteContent: '',
@@ -1524,6 +1531,16 @@ function noteApp() {
         
         // Load all notes
         async loadNotes() {
+            this.notesLoading = true;
+            // Show the overlay only if we're still loading after 800ms AND
+            // the tree is currently empty (first load). Refreshes after a
+            // save typically resolve in <100ms and never trip this.
+            clearTimeout(this._notesLoadingOverlayTimer);
+            this._notesLoadingOverlayTimer = setTimeout(() => {
+                if (this.notesLoading && this.notes.length === 0 && this.allFolders.length === 0) {
+                    this.notesLoadingShowOverlay = true;
+                }
+            }, 800);
             try {
                 const response = await fetch('/api/notes');
                 const data = await response.json();
@@ -1534,6 +1551,10 @@ function noteApp() {
                 await this.loadTags(); // Load tags after notes are loaded
             } catch (error) {
                 ErrorHandler.handle('load notes', error);
+            } finally {
+                clearTimeout(this._notesLoadingOverlayTimer);
+                this.notesLoading = false;
+                this.notesLoadingShowOverlay = false;
             }
         },
         
