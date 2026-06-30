@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 import yaml
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional
 import aiofiles
@@ -22,8 +23,11 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+logger = logging.getLogger("uvicorn.error")
+
 from .utils import (
     scan_notes_fast_walk,
+    ensure_index_built,
     get_note_content,
     save_note,
     delete_note,
@@ -36,6 +40,7 @@ from .utils import (
     rename_folder,
     delete_folder,
     save_uploaded_image,
+    _scan_cache_invalidate,
     validate_path_security,
     get_all_tags,
     get_notes_by_tag,
@@ -45,6 +50,7 @@ from .utils import (
     paginate,
     get_backlinks,
 )
+from . import note_index
 from .plugins import PluginManager
 from .themes import get_available_themes, get_theme_css
 from .share import (
@@ -77,9 +83,9 @@ with open(version_path, 'r', encoding='utf-8') as f:
 if 'AUTHENTICATION_ENABLED' in os.environ:
     auth_enabled = os.getenv('AUTHENTICATION_ENABLED', 'false').lower() in ('true', '1', 'yes')
     config['authentication']['enabled'] = auth_enabled
-    print(f"🔐 Authentication {'ENABLED' if auth_enabled else 'DISABLED'} (from AUTHENTICATION_ENABLED env var)")
+    logger.info("Authentication %s (from AUTHENTICATION_ENABLED env var)", 'ENABLED' if auth_enabled else 'DISABLED')
 else:
-    print(f"🔐 Authentication {'ENABLED' if config.get('authentication', {}).get('enabled', False) else 'DISABLED'} (from config.yaml)")
+    logger.info("Authentication %s (from config.yaml)", 'ENABLED' if config.get('authentication', {}).get('enabled', False) else 'DISABLED')
 
 # Password configuration priority:
 # 1. AUTHENTICATION_PASSWORD env var (hashed at startup)
@@ -92,9 +98,9 @@ if 'AUTHENTICATION_PASSWORD' in os.environ:
             plain_password.encode('utf-8'), 
             bcrypt.gensalt()
         ).decode('utf-8')
-        print("🔑 Password loaded from AUTHENTICATION_PASSWORD env var")
+        logger.info("Password loaded from AUTHENTICATION_PASSWORD env var")
     else:
-        print("⚠️  WARNING: AUTHENTICATION_PASSWORD env var is empty - ignoring")
+        logger.warning("AUTHENTICATION_PASSWORD env var is empty - ignoring")
 elif config.get('authentication', {}).get('password', '').strip():
     plain_password = config['authentication']['password'].strip()
     config['authentication']['password_hash'] = bcrypt.hashpw(
@@ -102,12 +108,12 @@ elif config.get('authentication', {}).get('password', '').strip():
         bcrypt.gensalt()
     ).decode('utf-8')
     del config['authentication']['password']
-    print("🔑 Password loaded from config.yaml")
+    logger.info("Password loaded from config.yaml")
 
 # Allow secret key to be set via environment variable (for session security)
 if 'AUTHENTICATION_SECRET_KEY' in os.environ:
     config['authentication']['secret_key'] = os.getenv('AUTHENTICATION_SECRET_KEY')
-    print("🔐 Secret key loaded from AUTHENTICATION_SECRET_KEY env var")
+    logger.info("Secret key loaded from AUTHENTICATION_SECRET_KEY env var")
 
 # API key configuration for external integrations (MCP servers, scripts, etc.)
 # Priority: AUTHENTICATION_API_KEY env var > authentication.api_key in config.yaml
@@ -115,11 +121,11 @@ if 'AUTHENTICATION_API_KEY' in os.environ:
     api_key_value = os.getenv('AUTHENTICATION_API_KEY', '').strip()
     if api_key_value:
         config['authentication']['api_key'] = api_key_value
-        print("🔑 API key loaded from AUTHENTICATION_API_KEY env var")
+        logger.info("API key loaded from AUTHENTICATION_API_KEY env var")
     else:
         config['authentication']['api_key'] = ''
 elif config.get('authentication', {}).get('api_key', '').strip():
-    print("🔑 API key loaded from config.yaml")
+    logger.info("API key loaded from config.yaml")
 else:
     config['authentication']['api_key'] = ''
 
@@ -131,15 +137,29 @@ if config.get('authentication', {}).get('enabled', False):
     _is_default_secret = _secret_key in ('', 'change_this_to_a_random_secret_key_in_production')
     
     if not _has_password and not _has_api_key:
-        print("🚨 CRITICAL: Authentication enabled but NO auth methods configured - ALL access will be denied!")
+        logger.critical("Authentication enabled but NO auth methods configured - ALL access will be denied!")
     else:
         if not _has_password:
-            print("⚠️  WARNING: No password configured - web UI login will not work")
+            logger.warning("No password configured - web UI login will not work")
         if not _has_api_key:
-            print("⚠️  WARNING: No API key configured - external integrations will require session cookies")
+            logger.warning("No API key configured - external integrations will require session cookies")
     
     if _is_default_secret:
-        print("🚨 SECURITY WARNING: Using default secret_key - sessions can be forged! Change it in config.yaml")
+        logger.critical("Using default secret_key - sessions can be forged! Change it in config.yaml")
+
+# Storage paths: env vars override config.yaml. Logged either way so the
+# resolved location is visible at startup.
+_notes_source = "config.yaml"
+if 'NOTES_DIR' in os.environ:
+    config['storage']['notes_dir'] = os.getenv('NOTES_DIR')
+    _notes_source = "NOTES_DIR env var"
+logger.info("Notes directory: %s (from %s)", config['storage']['notes_dir'], _notes_source)
+
+_plugins_source = "config.yaml"
+if 'PLUGINS_DIR' in os.environ:
+    config['storage']['plugins_dir'] = os.getenv('PLUGINS_DIR')
+    _plugins_source = "PLUGINS_DIR env var"
+logger.info("Plugins directory: %s (from %s)", config['storage']['plugins_dir'], _plugins_source)
 
 # OpenAPI tag metadata for grouping endpoints in Swagger UI
 tags_metadata = [
@@ -176,7 +196,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print(f"🌐 CORS allowed origins: {allowed_origins}")
+logger.info("CORS allowed origins: %s", allowed_origins)
 
 # ===========================================================
 # =================
@@ -199,7 +219,7 @@ def safe_error_message(error: Exception, user_message: str = "An error occurred"
     error_details = f"{type(error).__name__}: {str(error)}"
     
     # Always log the full error server-side
-    print(f"⚠️  [ERROR] {error_details}")
+    logger.error(error_details)
     
     # In debug mode, return detailed error to help with development
     if config.get('server', {}).get('debug', False):
@@ -245,7 +265,7 @@ if DEMO_MODE:
     limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    print("🎭 DEMO MODE enabled - Rate limiting active")
+    logger.info("DEMO MODE enabled - Rate limiting active")
 else:
     # Production/self-hosted mode - no restrictions
     # Create a dummy limiter that doesn't actually limit
@@ -264,6 +284,7 @@ plugin_manager = PluginManager(config['storage']['plugins_dir'])
 
 # Run app startup hooks
 plugin_manager.run_hook('on_app_startup')
+
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "frontend"
@@ -413,7 +434,7 @@ def verify_password(password: str) -> bool:
     try:
         return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
     except Exception as e:
-        print(f"Password verification error: {e}")
+        logger.error("Password verification error: %s", e)
         return False
 
 
@@ -841,7 +862,8 @@ async def move_media_endpoint(request: Request, data: dict):
         # Move the file
         import shutil
         shutil.move(str(old_full_path), str(new_full_path))
-        
+        _scan_cache_invalidate()
+
         return {"success": True, "message": "Media moved successfully", "newPath": new_path}
         
     except HTTPException:
@@ -1483,171 +1505,15 @@ async def search(
 
 @api_router.get("/graph", tags=["Graph"])
 async def get_graph():
-    """Get graph data for note visualization with wikilink and markdown link detection"""
+    """Graph data (nodes + resolved wikilink/markdown edges) for the visualizer."""
     try:
-        import re
-        import urllib.parse
-        notes, _folders = scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
-        nodes = []
-        edges = []
-        
-        # Build set of valid note names/paths for matching
-        note_paths = set()
-        note_paths_lower = {}  # Map lowercase path -> actual path for case-insensitive matching
-        note_names = {}  # Map name -> path for quick lookup
-        
-        for note in notes:
-            if note.get('type') == 'note':
-                note_paths.add(note['path'])
-                note_paths.add(note['path'].replace('.md', ''))
-                # Store lowercase path -> actual path mapping for case-insensitive matching
-                note_paths_lower[note['path'].lower()] = note['path']
-                note_paths_lower[note['path'].replace('.md', '').lower()] = note['path']
-                # Store name -> path mapping (without extension)
-                name = note['name'].replace('.md', '')
-                note_names[name.lower()] = note['path']
-                note_names[note['name'].lower()] = note['path']
-        
-        # Build graph structure with link detection
-        for note in notes:
-            if note.get('type') == 'note':
-                nodes.append({
-                    "id": note['path'],
-                    "label": note['name'].replace('.md', '')
-                })
-                
-                # Read note content to find links
-                content = get_note_content(config['storage']['notes_dir'], note['path'])
-                if content:
-                    # Find wikilinks: [[target]] or [[target|display]]
-                    wikilinks = re.findall(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', content)
-                    
-                    # Find standard markdown internal links: [text](path) - any local path (not http/https)
-                    # Match links that don't start with http://, https://, mailto:, #, etc.
-                    markdown_links = re.findall(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', content)
-                    
-                    # Get source note's folder for resolving relative links
-                    # Use forward slashes consistently (note_paths uses forward slashes)
-                    source_folder = str(Path(note['path']).parent).replace('\\', '/')
-                    if source_folder == '.':
-                        source_folder = ''
-                    
-                    # Process wikilinks
-                    for target in wikilinks:
-                        target = target.strip()
-                        target_lower = target.lower()
-                        
-                        # Try to match target to an existing note
-                        target_path = None
-                        
-                        # 1. Try resolving relative to source note's folder first
-                        if source_folder and '/' not in target:
-                            relative_path = f"{source_folder}/{target}"
-                            relative_path_lower = relative_path.lower()
-                            
-                            if relative_path in note_paths:
-                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
-                            elif relative_path + '.md' in note_paths:
-                                target_path = relative_path + '.md'
-                            elif relative_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower]
-                            elif relative_path_lower + '.md' in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower + '.md']
-                        
-                        # 2. Exact path match (absolute or already has folder)
-                        if not target_path:
-                            if target in note_paths:
-                                target_path = target if target.endswith('.md') else target + '.md'
-                            elif target + '.md' in note_paths:
-                                target_path = target + '.md'
-                            # 3. Case-insensitive path match (e.g., [[Folder/Note]] -> folder/note.md)
-                            elif target_lower in note_paths_lower:
-                                target_path = note_paths_lower[target_lower]
-                            elif target_lower + '.md' in note_paths_lower:
-                                target_path = note_paths_lower[target_lower + '.md']
-                            # 4. Just note name (case-insensitive) - global match
-                            elif target_lower in note_names:
-                                target_path = note_names[target_lower]
-                        
-                        if target_path and target_path != note['path']:
-                            edges.append({
-                                "source": note['path'],
-                                "target": target_path,
-                                "type": "wikilink"
-                            })
-                    
-                    # Process markdown links
-                    for _, link_path in markdown_links:
-                        # Skip anchor-only links and external protocols
-                        if not link_path or link_path.startswith('#'):
-                            continue
-                            
-                        # Remove anchor part if present (e.g., "note.md#section" -> "note.md")
-                        link_path = link_path.split('#')[0]
-                        if not link_path:
-                            continue
-                        
-                        # Normalize path: remove ./ prefix, handle URL encoding
-                        link_path = urllib.parse.unquote(link_path)
-                        if link_path.startswith('./'):
-                            link_path = link_path[2:]
-                        
-                        # Add .md extension if not present and doesn't have other extension
-                        link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
-                        
-                        # Try to match target to an existing note
-                        target_path = None
-                        
-                        # 1. First, try resolving relative to source note's folder
-                        if source_folder and not link_path.startswith('/'):
-                            relative_path = f"{source_folder}/{link_path}"
-                            relative_path_with_md = f"{source_folder}/{link_path_with_md}"
-                            relative_path_lower = relative_path.lower()
-                            relative_path_with_md_lower = relative_path_with_md.lower()
-                            
-                            if relative_path in note_paths:
-                                target_path = relative_path if relative_path.endswith('.md') else relative_path + '.md'
-                            elif relative_path_with_md in note_paths:
-                                target_path = relative_path_with_md
-                            elif relative_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_lower]
-                            elif relative_path_with_md_lower in note_paths_lower:
-                                target_path = note_paths_lower[relative_path_with_md_lower]
-                        
-                        # 2. Try exact path match from root (for absolute paths or notes at root)
-                        if not target_path:
-                            link_path_lower = link_path.lower()
-                            link_path_with_md_lower = link_path_with_md.lower()
-                            
-                            if link_path in note_paths:
-                                target_path = link_path if link_path.endswith('.md') else link_path + '.md'
-                            elif link_path_with_md in note_paths:
-                                target_path = link_path_with_md
-                            # Case-insensitive path match
-                            elif link_path_lower in note_paths_lower:
-                                target_path = note_paths_lower[link_path_lower]
-                            elif link_path_with_md_lower in note_paths_lower:
-                                target_path = note_paths_lower[link_path_with_md_lower]
-                        
-                        # No global filename fallback for markdown links - they must resolve as paths
-                        
-                        if target_path and target_path != note['path']:
-                            edges.append({
-                                "source": note['path'],
-                                "target": target_path,
-                                "type": "markdown"
-                            })
-        
-        # Remove duplicate edges
-        seen = set()
-        unique_edges = []
-        for edge in edges:
-            key = (edge['source'], edge['target'])
-            if key not in seen:
-                seen.add(key)
-                unique_edges.append(edge)
-        
-        return {"nodes": nodes, "edges": unique_edges}
+        if not note_index.get_index().is_built():
+            scan_notes_fast_walk(config['storage']['notes_dir'], include_media=False)
+        nodes_paths, edges_tuples = note_index.get_graph_data()
+        return {
+            "nodes": [{"id": p, "label": Path(p).stem} for p in nodes_paths],
+            "edges": [{"source": s, "target": t, "type": et} for (s, t, et) in edges_tuples],
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to generate graph data"))
 
@@ -1693,61 +1559,52 @@ async def toggle_plugin(request: Request, plugin_name: str, enabled: dict):
 
 
 # ============================================================================
+# Index observability — internal counters & sizes for debugging
+#
+# Useful for confirming the index is doing what we expect (build_count >0,
+# search_terms not empty, fingerprint_short_circuits incrementing on idle
+# warm scans). Not rate-limited — cheap, no I/O, dict lookups only.
+# ============================================================================
+
+@api_router.get("/index/stats", tags=["System"])
+async def get_index_stats():
+    return note_index.stats()
+
+
+# ============================================================================
 # Stats Endpoint (for dashboards)
 # ============================================================================
 
 @api_router.get("/stats", tags=["Stats"])
 @limiter.limit("30/minute")
 async def get_stats(request: Request):
-    """
-    Get application statistics at a glance.
+    """At-a-glance counts for dashboard widgets (Homepage etc.).
 
-    Designed for dashboard widgets (e.g., Homepage) - lightweight and cached.
-    Returns counts of notes, folders, tags, templates, media, and other metadata.
-    """
+    All vault aggregates are read from the in-memory index — no file walk on
+    the request path. Templates / plugins / version are looked up directly."""
     try:
         notes_dir = config['storage']['notes_dir']
-        
-        # Get notes and folders (cached)
-        notes, folders = scan_notes_fast_walk(notes_dir, include_media=True)
-        
-        # Separate notes from media
-        note_items = [n for n in notes if n.get('type') == 'note']
-        media_items = [n for n in notes if n.get('type') != 'note']
-        
-        # Count unique tags
-        all_tags = set()
-        for note in note_items:
-            all_tags.update(note.get('tags', []))
-        
-        # Get templates count
-        templates = get_templates(notes_dir)
-        
-        # Calculate total size
-        total_size = sum(n.get('size', 0) for n in notes)
-        
-        # Get last modified (notes are already sorted by modified desc)
-        last_modified = note_items[0].get('modified') if note_items else None
-        
-        # Count enabled plugins
+        ensure_index_built(notes_dir)
+        s = note_index.summary()
+
+        templates_count = len(get_templates(notes_dir))
         enabled_plugins = sum(1 for p in plugin_manager.plugins.values() if p.enabled)
-        
-        # Read version
+
         version = "unknown"
         version_file = Path(__file__).parent.parent / "VERSION"
         if version_file.exists():
             version = version_file.read_text().strip()
-        
+
         return {
-            "notes_count": len(note_items),
-            "folders_count": len(folders),
-            "tags_count": len(all_tags),
-            "templates_count": len(templates),
-            "media_count": len(media_items),
-            "total_size_bytes": total_size,
-            "last_modified": last_modified,
+            "notes_count": s["notes_count"],
+            "folders_count": s["folders_count"],
+            "tags_count": s["tags_count"],
+            "templates_count": templates_count,
+            "media_count": s["media_count"],
+            "total_size_bytes": s["total_size_bytes"],
+            "last_modified": s["last_modified"],
             "plugins_enabled": enabled_plugins,
-            "version": version
+            "version": version,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to get stats"))
@@ -1983,6 +1840,26 @@ async def catch_all(full_path: str, request: Request):
 # Authentication is applied via router dependencies
 app.include_router(api_router)
 app.include_router(pages_router)
+
+
+# ============================================================================
+# Startup warmup
+# ============================================================================
+# Pre-build the note index off the request path. Mid-warmup requests are safe
+# (bulk_set is serialized and short-circuits on the fingerprint).
+# Success is logged from inside bulk_set so we get a single line for both
+# the initial build and any subsequent rebuilds triggered by external changes.
+@app.on_event("startup")
+def _warmup_note_index() -> None:
+    import threading
+
+    def _build() -> None:
+        try:
+            ensure_index_built(config['storage']['notes_dir'])
+        except Exception as exc:
+            logger.warning("Vault index rebuild failed (will retry on first request): %s", exc)
+
+    threading.Thread(target=_build, name="note-index-warmup", daemon=True).start()
 
 
 if __name__ == "__main__":

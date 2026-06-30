@@ -580,6 +580,57 @@ Returns application statistics at a glance. Designed for dashboard widgets (e.g.
           label: Version
 ```
 
+### Get Index Stats
+```http
+GET /api/index/stats
+```
+Returns internal counters and sizes for the in-memory note index. Useful for confirming the index is built and observing its growth — handy when debugging slow endpoints or verifying that incremental updates are firing on every save/delete.
+
+The index is rebuilt on the first scan after each process start and updated incrementally on every save/delete/move. It lives in process memory only — no disk persistence.
+
+**Response:**
+```json
+{
+  "built": true,
+  "search_built": false,
+  "notes": 142,
+  "folders": 12,
+  "tags": 37,
+  "links_forward_entries": 89,
+  "links_backward_entries": 76,
+  "wikilink_tokens": 134,
+  "search_terms": 0,
+  "counters": {
+    "build_count": 1,
+    "last_build_ms": 12.4,
+    "last_built_at": "2026-03-17T14:32:00+00:00",
+    "incremental_updates": 8,
+    "fingerprint_short_circuits": 3,
+    "search_build_count": 0,
+    "last_search_build_ms": 0.0
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `built` | `true` after the first vault scan completes |
+| `search_built` | `true` after the first `/api/search` request (search index is built lazily) |
+| `notes` | Number of note records currently held in the index |
+| `folders` | Number of folder paths |
+| `tags` | Number of unique tags |
+| `links_forward_entries` | Number of notes that link out to at least one other note |
+| `links_backward_entries` | Number of notes that have at least one incoming backlink |
+| `wikilink_tokens` | Number of unique wikilink tokens (used for loose backlink matching by stem name) |
+| `search_terms` | Number of unique terms in the full-text inverted search index (0 until first search) |
+| `counters.build_count` | Total number of full index rebuilds since process start |
+| `counters.last_build_ms` | Wall-clock time of the most recent full rebuild |
+| `counters.last_built_at` | ISO timestamp of the most recent full rebuild |
+| `counters.incremental_updates` | Number of single-note updates applied (save/delete/rename) |
+| `counters.fingerprint_short_circuits` | Times a re-scan was skipped because the vault hash matched the previous scan |
+| `counters.search_build_count` | Total number of search-index rebuilds |
+| `counters.last_search_build_ms` | Wall-clock time of the most recent search-index rebuild |
+
 ### Health Check
 ```http
 GET /health

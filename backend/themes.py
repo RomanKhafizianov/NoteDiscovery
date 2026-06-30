@@ -2,9 +2,12 @@
 Theme management for NoteDiscovery
 """
 
+import logging
 from pathlib import Path
 from typing import List, Dict
 import re
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def parse_theme_metadata(theme_path: Path) -> Dict[str, str]:
@@ -28,7 +31,7 @@ def parse_theme_metadata(theme_path: Path) -> Dict[str, str]:
                         metadata["type"] = match.group(1)
                         break
     except Exception as e:
-        print(f"Error parsing theme metadata from {theme_path}: {e}")
+        logger.error("Error parsing theme metadata from %s: %s", theme_path, e)
     
     return metadata
 

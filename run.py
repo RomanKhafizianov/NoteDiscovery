@@ -16,58 +16,33 @@ except ImportError:
     colorama = None
 
 def get_port():
-    """Get port from: 1) ENV variable, 2) config.yaml, 3) default 8000"""
-    # Priority 1: Environment variable
+    """Get port from: 1) PORT env var, 2) config.yaml, 3) default 8000."""
     if os.getenv("PORT"):
         return os.getenv("PORT")
-    
-    # Priority 2: config.yaml
     config_path = Path("config.yaml")
     if config_path.exists():
         try:
             import yaml
             with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-                if config and 'server' in config and 'port' in config['server']:
-                    return str(config['server']['port'])
+                cfg = yaml.safe_load(f) or {}
+                return str(cfg.get('server', {}).get('port', 8000))
         except Exception:
-            pass  # Fall through to default
-    
-    # Priority 3: Default
+            pass
     return "8000"
 
+
 def main():
-    print("🚀 Starting NoteDiscovery...\n")
-    
-    # Check if requirements are installed
     try:
-        import fastapi
-        import uvicorn
+        import fastapi  # noqa: F401
+        import uvicorn  # noqa: F401
     except ImportError:
-        print("📦 Installing dependencies...")
+        print("Installing dependencies...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-    
-    # Create data directories
-    Path("data").mkdir(parents=True, exist_ok=True)
-    Path("plugins").mkdir(parents=True, exist_ok=True)
-    
-    # Get port from config or environment
+
     port = get_port()
-    
-    print("✓ Dependencies installed")
-    print("✓ Directories created")
-    print("\n" + "="*50)
-    print("🎉 NoteDiscovery is running!")
-    print("="*50)
-    print(f"\n📝 Open your browser to: http://localhost:{port}")
-    print("\n💡 Tips:")
-    print("   - Press Ctrl+C to stop the server")
-    print("   - Your notes are in ./data/")
-    print("   - Plugins go in ./plugins/")
-    print(f"   - Change port with: PORT={port} python run.py")
-    print("\n" + "="*50 + "\n")
-    
-    # Run the application
+    print(f"📝 NoteDiscovery → http://localhost:{port}  (Ctrl+C to stop)")
+    print()
+
     subprocess.call([
         sys.executable, "-m", "uvicorn",
         "backend.main:app",

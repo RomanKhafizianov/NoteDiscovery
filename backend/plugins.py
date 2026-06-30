@@ -5,9 +5,12 @@ Plugins can hook into events like note save, delete, etc.
 
 import os
 import json
+import logging
 import importlib.util
 from pathlib import Path
 from typing import List, Dict, Callable
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class Plugin:
@@ -113,7 +116,7 @@ class PluginManager:
                         plugin = module.Plugin()
                         self.plugins[plugin_file.stem] = plugin
             except Exception as e:
-                print(f"Failed to load plugin {plugin_file.stem}: {e}")
+                logger.error("Failed to load plugin %s: %s", plugin_file.stem, e)
     
     def _create_example_plugin(self):
         """Create an example plugin to show developers how to build plugins"""
@@ -167,7 +170,7 @@ class Plugin:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"Failed to load plugin config: {e}")
+                logger.error("Failed to load plugin config: %s", e)
         return {}
     
     def _save_config(self):
@@ -180,7 +183,7 @@ class Plugin:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2)
         except Exception as e:
-            print(f"Failed to save plugin config: {e}")
+            logger.error("Failed to save plugin config: %s", e)
     
     def _apply_saved_state(self):
         """Apply saved plugin states after loading plugins"""
@@ -188,7 +191,7 @@ class Plugin:
         for plugin_id, enabled in saved_config.items():
             if plugin_id in self.plugins:
                 self.plugins[plugin_id].enabled = enabled
-                print(f"Plugin '{plugin_id}': {'enabled' if enabled else 'disabled'} (from config)")
+                logger.info("Plugin '%s': %s (from config)", plugin_id, 'enabled' if enabled else 'disabled')
     
     def enable_plugin(self, plugin_id: str):
         """Enable a plugin and persist the state"""
@@ -238,7 +241,7 @@ class Plugin:
                         method(**kwargs)
                         
                 except Exception as e:
-                    print(f"Plugin {plugin.name} error in {hook_name}: {e}")
+                    logger.error("Plugin %s error in %s: %s", plugin.name, hook_name, e)
         
         return result if 'content' in kwargs else None
     
@@ -266,7 +269,7 @@ class Plugin:
                     if 'initial_content' in kwargs and result is not None:
                         kwargs['initial_content'] = result
                 except Exception as e:
-                    print(f"Plugin {plugin.name} error in {hook_name}: {e}")
+                    logger.error("Plugin %s error in %s: %s", plugin.name, hook_name, e)
         
         # Return the final modified value
         return kwargs.get('initial_content', '')

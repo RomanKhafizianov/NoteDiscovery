@@ -1,17 +1,28 @@
 """
-Utility functions for file operations, search, and markdown processing
+Utility functions for file operations, search, and markdown processing.
+
+Heavy work (backlinks, graph, full-text search, tag aggregation) is delegated
+to the in-memory index in note_index.py.
 """
 
+import logging
 import os
 import re
 import shutil
 import threading
 import time
+import traceback
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, TypeVar, Callable
 from datetime import datetime, timezone
+
+from . import note_index
+from .note_index import NoteRecord, extract_links_from_content
+
+logger = logging.getLogger("uvicorn.error")
 
 
 # ============================================================================
@@ -111,14 +122,23 @@ def paginate(
     )
 
 
-# In-memory cache for parsed tags
-# Format: {file_path: (mtime, tags)}
-_tag_cache: Dict[str, Tuple[float, List[str]]] = {}
-
-# Notes tree scan cache (TTL).
+# ============================================================================
+# In-memory caches
 #
-# This avoids repeated full-directory walks when multiple endpoints (or the UI)
-# request indexes in quick succession.
+# Two layers:
+#   _tag_cache / _links_cache : per-file, mtime-keyed. Avoid re-parsing the
+#     same file on warm scans. Used by get_tags_and_links_cached.
+#   _SCAN_WALK_CACHE          : per-scan TTL cache. Avoids repeated full-
+#     directory walks when several endpoints fire in quick succession.
+#
+# All three are invalidated on every mutation (save/delete/move). The
+# note_index in note_index.py is the system of record for derived data
+# (links, backlinks, tags-by-name, search) — these caches just exist to
+# avoid double-reading files we already parsed.
+# ============================================================================
+
+_tag_cache: Dict[str, Tuple[float, List[str]]] = {}
+_links_cache: Dict[str, Tuple[float, Dict[str, List[str]]]] = {}
 
 _SCAN_WALK_CACHE_LOCK = threading.Lock()
 _SCAN_WALK_CACHE_TTL_SECONDS = 1.0
@@ -142,6 +162,63 @@ def _scan_cache_get(key: Tuple[str, bool]) -> Optional[Tuple[List[Dict], List[st
 def _scan_cache_set(key: Tuple[str, bool], value: Tuple[List[Dict], List[str]]) -> None:
     with _SCAN_WALK_CACHE_LOCK:
         _SCAN_WALK_CACHE[key] = (time.monotonic(), value)
+
+
+def _scan_cache_invalidate() -> None:
+    """Drop the TTL scan cache. Called from every mutation handler."""
+    with _SCAN_WALK_CACHE_LOCK:
+        _SCAN_WALK_CACHE.clear()
+
+
+def ensure_index_built(notes_dir: str) -> None:
+    """Trigger a fresh scan when the NoteIndex hasn't been populated yet.
+    Scans with include_media=True so every index consumer (stats, notes,
+    backlinks, search) shares one fingerprint and never thrashes."""
+    if not note_index.get_index().is_built():
+        scan_notes_fast_walk(notes_dir, use_cache=False, include_media=True)
+
+
+def get_tags_and_links_cached(
+    file_path: Path,
+    rel_path: Optional[str] = None,
+) -> Tuple[List[str], Dict[str, List[str]]]:
+    """Fused tags + raw-links extraction, mtime-cached. Tries in-process
+    per-file caches first, then the NoteIndex (when rel_path is provided),
+    then reads the file."""
+    try:
+        mtime = file_path.stat().st_mtime
+        file_key = str(file_path)
+
+        tag_cached = _tag_cache.get(file_key)
+        link_cached = _links_cache.get(file_key)
+        tags_ok = tag_cached is not None and tag_cached[0] == mtime
+        links_ok = link_cached is not None and link_cached[0] == mtime
+
+        if tags_ok and links_ok:
+            return tag_cached[1], link_cached[1]
+
+        if rel_path is not None:
+            indexed = note_index.try_get_extraction(rel_path, mtime)
+            if indexed is not None:
+                idx_tags, idx_links = indexed
+                _tag_cache[file_key] = (mtime, idx_tags)
+                _links_cache[file_key] = (mtime, idx_links)
+                return idx_tags, idx_links
+
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        tags = tag_cached[1] if tags_ok else parse_tags(content)
+        links = link_cached[1] if links_ok else extract_links_from_content(content)
+
+        if not tags_ok:
+            _tag_cache[file_key] = (mtime, tags)
+        if not links_ok:
+            _links_cache[file_key] = (mtime, links)
+
+        return tags, links
+    except Exception:
+        return [], {"wikilinks": [], "mdlinks": []}
 
 
 def validate_path_security(notes_dir: str, path: Path) -> bool:
@@ -175,15 +252,12 @@ def ensure_directories(config: dict):
 
 
 def create_folder(notes_dir: str, folder_path: str) -> bool:
-    """Create a new folder in the notes directory"""
+    """Create a new folder in the notes directory."""
     full_path = Path(notes_dir) / folder_path
-    
-    # Security check
     if not validate_path_security(notes_dir, full_path):
         return False
-    
     full_path.mkdir(parents=True, exist_ok=True)
-    
+    _scan_cache_invalidate()
     return True
 
 
@@ -218,11 +292,13 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
                 _scan_cache_set(cache_key, normalized_value)
                 return normalized_value
 
+    # Walk the vault once. Tag/link extraction is parallelized below across
+    # the markdown files we collected here.
     notes: List[Dict] = []
     folders_set = set()
+    md_to_extract: List[Tuple[int, Path, str]] = []  # (index, full_path, rel_path)
 
     for root, dirnames, filenames in os.walk(notes_path):
-        # Skip descending into dot-dirs
         dirnames[:] = [d for d in dirnames if not d.startswith('.')]
 
         root_path = Path(root)
@@ -244,22 +320,61 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
             media_type = get_media_type(filename) if include_media else None
             is_markdown = full_path.suffix.lower() == '.md'
             should_include = is_markdown or (include_media and media_type is not None)
-
             if not should_include:
                 continue
 
             folder = relative_path.parent.as_posix()
-            # Get tags for this note (cached)
-            tags = get_tags_cached(full_path) if is_markdown else []
+            rel_str = relative_path.as_posix()
             notes.append({
                 "name": full_path.stem,
-                "path": relative_path.as_posix(),
+                "path": rel_str,
                 "folder": "" if folder == "." else folder,
                 "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
                 "size": st.st_size,
                 "type": media_type if media_type else "note",
-                "tags": tags,
+                "tags": [],
+                "_mtime": st.st_mtime,  # internal — popped before returning
             })
+            if is_markdown:
+                md_to_extract.append((len(notes) - 1, full_path, rel_str))
+
+    # Tag + raw-link extraction in parallel. Search-index terms are built
+    # later, lazily, on the first /api/search call.
+    sources_raw: Dict[str, Dict[str, List[str]]] = {}
+    if md_to_extract:
+        path_pairs = [(full, rel) for (_, full, rel) in md_to_extract]
+        if len(md_to_extract) >= 50:
+            workers = min(8, (os.cpu_count() or 4))
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                extraction = list(ex.map(
+                    lambda pair: get_tags_and_links_cached(pair[0], pair[1]),
+                    path_pairs,
+                ))
+        else:
+            extraction = [get_tags_and_links_cached(full, rel) for (full, rel) in path_pairs]
+
+        for (idx, _full, rel_str), (tags, links) in zip(md_to_extract, extraction):
+            notes[idx]["tags"] = tags
+            sources_raw[rel_str] = links
+
+    # Push the result into the NoteIndex. Short-circuits on warm scans.
+    notes_meta = [
+        NoteRecord(
+            path=n["path"],
+            name=n["name"],
+            folder=n["folder"],
+            modified=n["modified"],
+            size=n["size"],
+            type=n["type"],
+            mtime=n["_mtime"],
+            tags=tuple(n["tags"]),
+        )
+        for n in notes
+    ]
+    note_index.populate_from_scan(notes_meta, folders_set, sources_raw)
+
+    for n in notes:
+        n.pop("_mtime", None)
 
     value = (sorted(notes, key=lambda x: x.get('modified', ''), reverse=True), sorted(folders_set))
     if use_cache:
@@ -267,130 +382,104 @@ def scan_notes_fast_walk(notes_dir: str, use_cache: bool = True, include_media: 
     return value
 
 def move_note(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
-    """Move a note to a different location
-    
-    Returns:
-        Tuple of (success: bool, error_message: str)
-    """
+    """Move a note. Returns (success, error_message)."""
     old_full_path = Path(notes_dir) / old_path
     new_full_path = Path(notes_dir) / new_path
-    
-    # Security checks
+
     if not validate_path_security(notes_dir, old_full_path):
         return False, "Invalid source path"
     if not validate_path_security(notes_dir, new_full_path):
         return False, "Invalid destination path"
-    
     if not old_full_path.exists():
         return False, f"Source note does not exist: {old_path}"
-    
-    # Check if target already exists (prevent overwriting)
     if new_full_path.exists():
         return False, f"A note already exists at: {new_path}"
-    
-    # Invalidate cache for old path
-    old_key = str(old_full_path)
-    if old_key in _tag_cache:
-        del _tag_cache[old_key]
-    
+
+    _drop_path_caches(old_full_path)
+
     try:
-        # Create parent directory if needed
         new_full_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Move the file
         old_full_path.rename(new_full_path)
     except Exception as e:
         return False, f"Failed to move file: {str(e)}"
-    
-    # Note: We don't automatically delete empty folders to preserve user's folder structure
-    
+
+    note_index.on_note_renamed(notes_dir, old_full_path, new_full_path)
+    _scan_cache_invalidate()
     return True, ""
 
 
 def move_folder(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
-    """Move a folder to a different location
-    
-    Returns:
-        Tuple of (success: bool, error_message: str)
-    """
-    import shutil
-    
+    """Move a folder. Returns (success, error_message)."""
     old_full_path = Path(notes_dir) / old_path
     new_full_path = Path(notes_dir) / new_path
-    
-    # Security checks
+
     if not validate_path_security(notes_dir, old_full_path):
         return False, "Invalid source path"
     if not validate_path_security(notes_dir, new_full_path):
         return False, "Invalid destination path"
-    
     if not old_full_path.exists() or not old_full_path.is_dir():
         return False, f"Source folder does not exist: {old_path}"
-    
-    # Check if target already exists
     if new_full_path.exists():
         return False, f"A folder already exists at: {new_path}"
-    
-    # Invalidate cache for all notes in this folder
-    global _tag_cache
-    old_path_str = str(old_full_path)
-    keys_to_delete = [key for key in _tag_cache.keys() if key.startswith(old_path_str)]
-    for key in keys_to_delete:
-        del _tag_cache[key]
-    
+
+    _drop_prefix_caches(old_full_path)
+
     try:
-        # Create parent directory if needed
         new_full_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Move the folder
         shutil.move(str(old_full_path), str(new_full_path))
     except Exception as e:
         return False, f"Failed to move folder: {str(e)}"
-    
-    # Note: We don't automatically delete empty folders to preserve user's folder structure
-    
+
+    note_index.on_folder_renamed(notes_dir, old_full_path, new_full_path)
+    _scan_cache_invalidate()
     return True, ""
 
 
 def rename_folder(notes_dir: str, old_path: str, new_path: str) -> tuple[bool, str]:
-    """Rename a folder (same as move but for clarity)"""
+    """Rename a folder (same as move, named for clarity)."""
     return move_folder(notes_dir, old_path, new_path)
 
 
 def delete_folder(notes_dir: str, folder_path: str) -> bool:
-    """Delete a folder and all its contents"""
+    """Delete a folder and all its contents."""
     try:
         full_path = Path(notes_dir) / folder_path
-        
-        # Security check: ensure the path is within notes_dir
+
         if not validate_path_security(notes_dir, full_path):
-            print(f"Security: Path is outside notes directory: {full_path}")
+            logger.warning("Security: Path is outside notes directory: %s", full_path)
             return False
-        
         if not full_path.exists():
-            print(f"Folder does not exist: {full_path}")
+            logger.warning("Folder does not exist: %s", full_path)
             return False
-            
         if not full_path.is_dir():
-            print(f"Path is not a directory: {full_path}")
+            logger.warning("Path is not a directory: %s", full_path)
             return False
-        
-        # Invalidate cache for all notes in this folder
-        global _tag_cache
-        folder_path_str = str(full_path)
-        keys_to_delete = [key for key in _tag_cache.keys() if key.startswith(folder_path_str)]
-        for key in keys_to_delete:
-            del _tag_cache[key]
-        
-        # Delete the folder and all its contents
+
+        _drop_prefix_caches(full_path)
         shutil.rmtree(full_path)
-        print(f"Successfully deleted folder: {full_path}")
+        note_index.on_folder_deleted(notes_dir, full_path)
+        _scan_cache_invalidate()
         return True
     except Exception as e:
-        print(f"Error deleting folder '{folder_path}': {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Error deleting folder '%s': %s", folder_path, e)
+        logger.error(traceback.format_exc())
         return False
+
+
+def _drop_path_caches(full_path: Path) -> None:
+    """Evict the per-file mtime caches for a single note."""
+    key = str(full_path)
+    _tag_cache.pop(key, None)
+    _links_cache.pop(key, None)
+
+
+def _drop_prefix_caches(folder_full_path: Path) -> None:
+    """Evict per-file mtime caches for every entry under a folder."""
+    prefix = str(folder_full_path)
+    for k in [k for k in _tag_cache if k.startswith(prefix)]:
+        _tag_cache.pop(k, None)
+    for k in [k for k in _links_cache if k.startswith(prefix)]:
+        _links_cache.pop(k, None)
 
 
 
@@ -411,114 +500,116 @@ def get_note_content(notes_dir: str, note_path: str) -> Optional[str]:
 
 
 def save_note(notes_dir: str, note_path: str, content: str) -> bool:
-    """Save or update a note"""
+    """Save or update a note."""
     full_path = Path(notes_dir) / note_path
-    
-    # Ensure .md extension
     if not note_path.endswith('.md'):
         full_path = full_path.with_suffix('.md')
-    
-    # Security check
+
     if not validate_path_security(notes_dir, full_path):
         return False
-    
-    # Create parent directories if needed
+
     full_path.parent.mkdir(parents=True, exist_ok=True)
-    
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(content)
-    
+
+    # Refresh the per-file mtime caches with what we just wrote, so the next
+    # scan doesn't re-parse this file. extract_links + parse_tags + save are
+    # tiny relative to the file write.
+    try:
+        mtime = full_path.stat().st_mtime
+        file_key = str(full_path)
+        _tag_cache[file_key] = (mtime, parse_tags(content))
+        _links_cache[file_key] = (mtime, extract_links_from_content(content))
+    except Exception:
+        pass  # caches are best-effort
+
+    note_index.on_note_saved(notes_dir, full_path, content)
+    _scan_cache_invalidate()
     return True
 
 
 def delete_note(notes_dir: str, note_path: str) -> bool:
-    """Delete a note"""
+    """Delete a note."""
     full_path = Path(notes_dir) / note_path
-    
     if not full_path.exists():
         return False
-    
-    # Security check
     if not validate_path_security(notes_dir, full_path):
         return False
-    
-    # Invalidate cache for this note
-    file_key = str(full_path)
-    if file_key in _tag_cache:
-        del _tag_cache[file_key]
-    
+
+    _drop_path_caches(full_path)
     full_path.unlink()
-    
-    # Note: We don't automatically delete empty folders to preserve user's folder structure
-    
+    note_index.on_note_deleted(notes_dir, full_path)
+    _scan_cache_invalidate()
     return True
 
 
 def search_notes(notes_dir: str, query: str) -> List[Dict]:
-    """
-    Full-text search through note contents only.
-    Does NOT search in file names, folder names, or paths - only note content.
-    Uses character-based context extraction with highlighted matches.
-    """
+    """Full-text search through note contents. Narrow the candidate set via
+    the inverted index, then run the snippet extractor on each candidate."""
     from html import escape
-    results = []
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
+    results: List[Dict] = []
 
-    for note in notes:
-        md_file = Path(notes_dir) / note["path"]
+    ensure_index_built(notes_dir)
+    note_index.ensure_search_index(notes_dir)
+    candidates = note_index.get_search_candidates(query)
+
+    idx = note_index.get_index()
+    if candidates is None:
+        # Query too short to tokenize — iterate every indexed note instead.
+        candidate_records = idx.all_note_records()
+    else:
+        candidate_records = [(p, idx.get_note_record(p)) for p in candidates]
+        candidate_records = [(p, r) for (p, r) in candidate_records if r is not None and r.type == "note"]
+
+    candidate_records.sort(key=lambda pr: pr[1].mtime, reverse=True)
+    iterable = [{"path": p, "name": r.name} for (p, r) in candidate_records]
+
+    for note in iterable:
+        path = note["path"]
+        md_file = Path(notes_dir) / path
         try:
             with open(md_file, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
-            # Find all matches using regex (case-insensitive)
+
             matches = list(re.finditer(re.escape(query), content, re.IGNORECASE))
-            
-            if matches:
-                matched_lines = []
-                
-                for match in matches[:3]:  # Limit to 3 matches per file
-                    start_index = match.start()
-                    end_index = match.end()
-                    matched_text = match.group()  # Preserve original case
-                    
-                    # Create slice window: ±15 characters around match
-                    context_start = max(0, start_index - 15)
-                    context_end = min(len(content), end_index + 15)
-                    
-                    # Extract and clean parts (newlines → spaces)
-                    before = escape(content[context_start:start_index].replace('\n', ' '))
-                    after = escape(content[end_index:context_end].replace('\n', ' '))
-                    matched_clean = escape(matched_text.replace('\n', ' '))
-                    
-                    # Build snippet with <mark> highlight (styled via CSS)
-                    snippet = f'{before}<mark class="search-highlight">{matched_clean}</mark>{after}'
-                    
-                    # Add ellipsis if truncated at start
-                    if context_start > 0:
-                        snippet = '...' + snippet
-                    
-                    # Add ellipsis if truncated at end
-                    if context_end < len(content):
-                        snippet = snippet + '...'
-                    
-                    # Calculate line number by counting newlines up to match start
-                    line_number = content.count('\n', 0, start_index) + 1
-                    
-                    matched_lines.append({
-                        "line_number": line_number,
-                        "context": snippet
-                    })
-                
-                relative_path = Path(note["path"])
-                results.append({
-                    "name": md_file.stem,
-                    "path": str(relative_path.as_posix()),
-                    "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
-                    "matches": matched_lines
+            if not matches:
+                continue
+
+            matched_lines = []
+            for match in matches[:3]:
+                start_index = match.start()
+                end_index = match.end()
+                matched_text = match.group()
+
+                context_start = max(0, start_index - 15)
+                context_end = min(len(content), end_index + 15)
+
+                before = escape(content[context_start:start_index].replace('\n', ' '))
+                after = escape(content[end_index:context_end].replace('\n', ' '))
+                matched_clean = escape(matched_text.replace('\n', ' '))
+
+                snippet = f'{before}<mark class="search-highlight">{matched_clean}</mark>{after}'
+                if context_start > 0:
+                    snippet = '...' + snippet
+                if context_end < len(content):
+                    snippet = snippet + '...'
+
+                line_number = content.count('\n', 0, start_index) + 1
+                matched_lines.append({
+                    "line_number": line_number,
+                    "context": snippet,
                 })
+
+            relative_path = Path(path)
+            results.append({
+                "name": md_file.stem,
+                "path": str(relative_path.as_posix()),
+                "folder": str(relative_path.parent.as_posix()) if str(relative_path.parent) != "." else "",
+                "matches": matched_lines,
+            })
         except Exception:
             continue
-    
+
     return results
 
 
@@ -644,9 +735,10 @@ def save_uploaded_image(
         try:
             with open(full_path, "wb") as f:
                 f.write(file_data)
+            _scan_cache_invalidate()
             return str(full_path.relative_to(base).as_posix())
         except OSError as e:
-            print(f"Error saving image: {e}")
+            logger.error("Error saving image: %s", e)
             return None
 
     sanitized_name = sanitize_filename(filename)
@@ -658,14 +750,15 @@ def save_uploaded_image(
     attachments_dir.mkdir(parents=True, exist_ok=True)
     full_path = attachments_dir / final_filename
     if not validate_path_security(notes_dir, full_path):
-        print(f"Security: Attempted to save image outside notes directory: {full_path}")
+        logger.warning("Security: Attempted to save image outside notes directory: %s", full_path)
         return None
     try:
         with open(full_path, "wb") as f:
             f.write(file_data)
+        _scan_cache_invalidate()
         return str(full_path.relative_to(base).as_posix())
     except OSError as e:
-        print(f"Error saving image: {e}")
+        logger.error("Error saving image: %s", e)
         return None
 
 
@@ -781,110 +874,35 @@ def parse_tags(content: str) -> List[str]:
         return sorted(list(set(tags)))
         
     except Exception as e:
-        # If parsing fails, return empty list
-        print(f"Error parsing tags: {e}")
+        logger.error("Error parsing tags: %s", e)
         return []
-
-
-def get_tags_cached(file_path: Path) -> List[str]:
-    """
-    Get tags for a file with caching based on modification time.
-    
-    Args:
-        file_path: Path to the markdown file
-        
-    Returns:
-        List of tags from the file (cached if mtime unchanged)
-    """
-    global _tag_cache
-    
-    try:
-        # Get current modification time
-        mtime = file_path.stat().st_mtime
-        file_key = str(file_path)
-        
-        # Check cache
-        if file_key in _tag_cache:
-            cached_mtime, cached_tags = _tag_cache[file_key]
-            if cached_mtime == mtime:
-                # Cache hit! Return cached tags
-                return cached_tags
-        
-        # Cache miss or stale - parse tags
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            tags = parse_tags(content)
-        
-        # Update cache
-        _tag_cache[file_key] = (mtime, tags)
-        return tags
-        
-    except Exception:
-        # If anything fails, return empty list
-        return []
-
-
-def clear_tag_cache():
-    """Clear the tag cache (useful for testing or manual cache invalidation)"""
-    global _tag_cache
-    _tag_cache.clear()
 
 
 def get_all_tags(notes_dir: str) -> Dict[str, int]:
-    """
-    Get all tags used across all notes with their count (cached).
-    
-    Args:
-        notes_dir: Directory containing notes
-        
-    Returns:
-        Dictionary mapping tag names to note counts
-    """
-    tag_counts = {}
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-
-    for note in notes:
-        md_file = Path(notes_dir) / note["path"]
-        # Get tags using cache
-        tags = get_tags_cached(md_file)
-        
-        for tag in tags:
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
-    
-    return dict(sorted(tag_counts.items()))
+    """All tags in the vault with note counts."""
+    ensure_index_built(notes_dir)
+    return note_index.get_all_tags()
 
 
 def get_notes_by_tag(notes_dir: str, tag: str) -> List[Dict]:
-    """
-    Get all notes that have a specific tag (cached).
-    
-    Args:
-        notes_dir: Directory containing notes
-        tag: Tag to filter by (case-insensitive)
-        
-    Returns:
-        List of note dictionaries matching the tag
-    """
-    matching_notes = []
-    tag_lower = tag.lower()
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-
-    for note in notes:
-        md_file = Path(notes_dir) / note["path"]
-        # Get tags using cache
-        tags = get_tags_cached(md_file)
-        
-        if tag_lower in tags:
-            matching_notes.append({
-                "name": note["name"],
-                "path": note["path"],
-                "folder": note["folder"],
-                "modified": note["modified"],
-                "size": note["size"],
-                "tags": tags
-            })
-    
-    return matching_notes
+    """All notes carrying `tag` (case-insensitive)."""
+    ensure_index_built(notes_dir)
+    idx = note_index.get_index()
+    records = [idx.get_note_record(p) for p in note_index.get_paths_for_tag(tag.lower())]
+    matching = [
+        {
+            "name": r.name,
+            "path": r.path,
+            "folder": r.folder,
+            "modified": r.modified,
+            "size": r.size,
+            "tags": list(r.tags),
+        }
+        for r in records
+        if r is not None and r.type == "note"
+    ]
+    matching.sort(key=lambda n: n["modified"], reverse=True)
+    return matching
 
 
 # ============================================================================
@@ -909,15 +927,14 @@ def get_templates(notes_dir: str) -> List[Dict]:
     
     # Security check: ensure _templates folder is within notes directory
     if not validate_path_security(notes_dir, templates_path):
-        print(f"Security: Templates directory is outside notes directory: {templates_path}")
+        logger.warning("Security: Templates directory is outside notes directory: %s", templates_path)
         return templates
     
     try:
         for template_file in templates_path.glob("*.md"):
             try:
-                # Security check: ensure each template is within notes directory
                 if not validate_path_security(notes_dir, template_file):
-                    print(f"Security: Skipping template outside notes directory: {template_file}")
+                    logger.warning("Security: Skipping template outside notes directory: %s", template_file)
                     continue
                 
                 stat = template_file.stat()
@@ -927,10 +944,10 @@ def get_templates(notes_dir: str) -> List[Dict]:
                     "modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
                 })
             except Exception as e:
-                print(f"Error reading template {template_file}: {e}")
+                logger.error("Error reading template %s: %s", template_file, e)
                 continue
     except Exception as e:
-        print(f"Error accessing templates directory: {e}")
+        logger.error("Error accessing templates directory: %s", e)
     
     return sorted(templates, key=lambda x: x['name'])
 
@@ -953,14 +970,14 @@ def get_template_content(notes_dir: str, template_name: str) -> Optional[str]:
     
     # Security check: ensure template is within notes directory
     if not validate_path_security(notes_dir, template_path):
-        print(f"Security: Template path is outside notes directory: {template_path}")
+        logger.warning("Security: Template path is outside notes directory: %s", template_path)
         return None
     
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
-        print(f"Error reading template {template_name}: {e}")
+        logger.error("Error reading template %s: %s", template_name, e)
         return None
 
 
@@ -1041,140 +1058,125 @@ def apply_template_placeholders(content: str, note_path: str) -> str:
     return result
 
 
+def _extract_backlink_references(
+    notes_dir: str,
+    source_path: str,
+    target_path: str,
+    target_path_lower: str,
+    target_path_no_ext_lower: str,
+    wikilink_refs: set,
+) -> List[Dict]:
+    """Read one source file and pull line-level references that point to target.
+
+    Same regex + resolution rules as the legacy get_backlinks loop body; just
+    factored out so both the index-driven and the legacy code paths use the
+    exact same context-extraction logic.
+    """
+    source_folder = str(Path(source_path).parent).replace('\\', '/')
+    if source_folder == '.':
+        source_folder = ''
+
+    full_path = Path(notes_dir) / source_path
+    try:
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        return []
+
+    lines = content.split('\n')
+    found_links: List[Dict] = []
+
+    for line_num, line in enumerate(lines, 1):
+        for match in re.finditer(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', line):
+            link_target = match.group(1).strip().lower()
+            link_target_no_ext = link_target.replace('.md', '')
+            if link_target in wikilink_refs or link_target_no_ext in wikilink_refs:
+                start = max(0, match.start() - 30)
+                end = min(len(line), match.end() + 30)
+                context = line[start:end]
+                if start > 0:
+                    context = '...' + context
+                if end < len(line):
+                    context = context + '...'
+                found_links.append({
+                    "line_number": line_num,
+                    "context": context,
+                    "type": "wikilink",
+                })
+
+        for match in re.finditer(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', line):
+            link_path = match.group(2).split('#')[0]
+            if not link_path:
+                continue
+            link_path = urllib.parse.unquote(link_path)
+            if link_path.startswith('./'):
+                link_path = link_path[2:]
+            link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
+
+            resolved_path = None
+            if source_folder and not link_path.startswith('/'):
+                relative_path = f"{source_folder}/{link_path_with_md}"
+                if relative_path.lower() == target_path_lower:
+                    resolved_path = target_path
+                elif f"{source_folder}/{link_path}".lower() == target_path_no_ext_lower:
+                    resolved_path = target_path
+            if not resolved_path:
+                if link_path_with_md.lower() == target_path_lower:
+                    resolved_path = target_path
+                elif link_path.lower() == target_path_no_ext_lower:
+                    resolved_path = target_path
+
+            if resolved_path:
+                start = max(0, match.start() - 30)
+                end = min(len(line), match.end() + 30)
+                context = line[start:end]
+                if start > 0:
+                    context = '...' + context
+                if end < len(line):
+                    context = context + '...'
+                found_links.append({
+                    "line_number": line_num,
+                    "context": context,
+                    "type": "markdown",
+                })
+
+    return found_links
+
+
 def get_backlinks(notes_dir: str, target_note_path: str) -> List[Dict]:
-    """
-    Find all notes that link TO the specified note (reverse links / backlinks).
-
-    Args:
-        notes_dir: Base directory containing notes
-        target_note_path: Path of the note to find backlinks for
-
-    Returns:
-        List of backlink objects with path, context, and line_number
-    """
-    backlinks = []
-    notes, _folders = scan_notes_fast_walk(notes_dir, include_media=False)
-    
-    # Normalize target path for matching
+    """All notes that link TO `target_note_path`. The index narrows the
+    candidate set; we only read the candidate files for line context."""
     target_path = target_note_path
     target_path_lower = target_path.lower()
-    target_path_no_ext = target_path.replace('.md', '')
-    target_path_no_ext_lower = target_path_no_ext.lower()
-    target_name = Path(target_path).stem.lower()
-    
-    # For wikilinks: global name matching (find note anywhere by name)
+    target_path_no_ext_lower = target_path_lower.replace('.md', '')
     wikilink_refs = {
         target_path_lower,
         target_path_no_ext_lower,
-        target_name,
+        Path(target_path).stem.lower(),
     }
-    
-    for note in notes:
-        if note.get('type') != 'note':
-            continue
-        
-        source_path = note['path']
-        
-        # Skip self-references
-        if source_path == target_path:
-            continue
-        
-        # Get source folder for resolving relative markdown links
-        source_folder = str(Path(source_path).parent).replace('\\', '/')
-        if source_folder == '.':
-            source_folder = ''
-        
-        # Read note content
-        full_path = Path(notes_dir) / source_path
-        try:
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-        except Exception:
-            continue
-        
-        lines = content.split('\n')
-        found_links = []
-        
-        for line_num, line in enumerate(lines, 1):
-            # Find wikilinks: [[target]] or [[target|display]]
-            # Wikilinks use GLOBAL matching (find note anywhere by name)
-            wikilink_matches = re.finditer(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', line)
-            for match in wikilink_matches:
-                link_target = match.group(1).strip().lower()
-                link_target_no_ext = link_target.replace('.md', '')
-                
-                # Check if this wikilink points to our target (global match)
-                if link_target in wikilink_refs or link_target_no_ext in wikilink_refs:
-                    start = max(0, match.start() - 30)
-                    end = min(len(line), match.end() + 30)
-                    context = line[start:end]
-                    if start > 0:
-                        context = '...' + context
-                    if end < len(line):
-                        context = context + '...'
-                    
-                    found_links.append({
-                        "line_number": line_num,
-                        "context": context,
-                        "type": "wikilink"
-                    })
-            
-            # Find markdown links: [text](path)
-            # Markdown links must RESOLVE as paths (relative to source or absolute)
-            markdown_matches = re.finditer(r'\[([^\]]+)\]\((?!https?://|mailto:|#|data:)([^\)]+)\)', line)
-            for match in markdown_matches:
-                link_path = match.group(2).split('#')[0]  # Remove anchor
-                if not link_path:
-                    continue
-                
-                link_path = urllib.parse.unquote(link_path)
-                if link_path.startswith('./'):
-                    link_path = link_path[2:]
-                
-                # Add .md if not present
-                link_path_with_md = link_path if link_path.endswith('.md') else link_path + '.md'
-                
-                # Resolve the link path to get the actual target
-                resolved_path = None
-                
-                # 1. Try resolving relative to source folder
-                if source_folder and not link_path.startswith('/'):
-                    relative_path = f"{source_folder}/{link_path_with_md}"
-                    if relative_path.lower() == target_path_lower:
-                        resolved_path = target_path
-                    elif f"{source_folder}/{link_path}".lower() == target_path_no_ext_lower:
-                        resolved_path = target_path
-                
-                # 2. Try as absolute path from root
-                if not resolved_path:
-                    if link_path_with_md.lower() == target_path_lower:
-                        resolved_path = target_path
-                    elif link_path.lower() == target_path_no_ext_lower:
-                        resolved_path = target_path
-                
-                # Only add if the resolved path matches the target
-                if resolved_path:
-                    start = max(0, match.start() - 30)
-                    end = min(len(line), match.end() + 30)
-                    context = line[start:end]
-                    if start > 0:
-                        context = '...' + context
-                    if end < len(line):
-                        context = context + '...'
-                    
-                    found_links.append({
-                        "line_number": line_num,
-                        "context": context,
-                        "type": "markdown"
-                    })
-        
-        # If we found links in this note, add it to backlinks
-        if found_links:
+
+    ensure_index_built(notes_dir)
+    idx = note_index.get_index()
+    candidates = note_index.get_backlink_candidates(target_path)
+    records = [(p, idx.get_note_record(p)) for p in candidates]
+    records = [(p, r) for (p, r) in records if r is not None and r.type == "note" and p != target_path]
+    records.sort(key=lambda pr: pr[1].mtime, reverse=True)
+
+    backlinks: List[Dict] = []
+    for source_path, record in records:
+        refs = _extract_backlink_references(
+            notes_dir,
+            source_path,
+            target_path,
+            target_path_lower,
+            target_path_no_ext_lower,
+            wikilink_refs,
+        )
+        if refs:
             backlinks.append({
                 "path": source_path,
-                "name": note['name'].replace('.md', ''),
-                "references": found_links[:3]  # Limit to 3 references per note
+                "name": record.name.replace('.md', ''),
+                "references": refs[:3],
             })
-    
     return backlinks
 
