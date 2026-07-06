@@ -284,19 +284,26 @@ def convert_wikilinks_to_html(markdown_content: str) -> str:
     """
     Convert wikilinks [[note]] or [[note|display text]] to HTML links.
     In standalone export mode, these are non-functional decorative links.
+    Wikilinks inside fenced or inline code are left literal, mirroring the
+    in-app preview pipeline.
     """
-    # Pattern for wikilinks: [[target]] or [[target|display text]]
-    # But NOT image wikilinks (those start with !)
     wikilink_pattern = r'(?<!!)\[\[([^\]|]+)(?:\|([^\]]+))?\]\]'
-    
+
     def replace_wikilink(match):
         target = match.group(1).strip()
         display = match.group(2).strip() if match.group(2) else target
-        
-        # Create a decorative link (href="#" since it's standalone)
         return f'<a href="#" class="wikilink" title="{target}" style="color: var(--accent-primary, #0366d6); text-decoration: none; border-bottom: 1px dashed currentColor;">{display}</a>'
-    
-    return re.sub(wikilink_pattern, replace_wikilink, markdown_content)
+
+    code_blocks: list = []
+
+    def stash(match):
+        code_blocks.append(match.group(0))
+        return f"\x00CODEBLOCK{len(code_blocks) - 1}\x00"
+
+    protected = re.sub(r'```[\s\S]*?```', stash, markdown_content)
+    protected = re.sub(r'`[^`]+`', stash, protected)
+    converted = re.sub(wikilink_pattern, replace_wikilink, protected)
+    return re.sub(r'\x00CODEBLOCK(\d+)\x00', lambda m: code_blocks[int(m.group(1))], converted)
 
 
 def generate_export_html(
@@ -600,6 +607,10 @@ def generate_export_html(
         .markdown-preview input[type="checkbox"] {{
             margin-right: 0.5em;
         }}
+        .markdown-preview li:has(> input[type="checkbox"]) {{
+            list-style: none;
+            margin-left: -1.25em;
+        }}
         
         /* Enhanced Shell/Bash Syntax Highlighting */
         .markdown-preview pre code.language-shell .hljs-meta,
@@ -839,6 +850,16 @@ def generate_export_html(
             }}
             processed = outLines.join('\\n')
                 .replace(/\\x00CODEBLOCK(\\d+)\\x00/g, function(_, idx) {{ return codeBlocks[parseInt(idx)]; }});
+            // Escape same-line block-starters after a task marker so they
+            // render as literal text. Matches Obsidian. Issue #247.
+            processed = processed.replace(
+                /^(\\s*[-*+]\\s+\\[[xX ]\\]\\s+)(\\d+)\\.(\\s)/gm,
+                '$1$2\\\\.$3'
+            );
+            processed = processed.replace(
+                /^(\\s*[-*+]\\s+\\[[xX ]\\]\\s+)([#>*+\\-])(\\s)/gm,
+                '$1\\\\$2$3'
+            );
         }}
 
         // Render markdown with XSS sanitization

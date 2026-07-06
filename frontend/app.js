@@ -5963,6 +5963,15 @@ function noteApp() {
                 contentToRender = outLines.join('\n');
             }
 
+            contentToRender = contentToRender.replace(
+                /^(\s*[-*+]\s+\[[xX ]\]\s+)(\d+)\.(\s)/gm,
+                '$1$2\\.$3'
+            );
+            contentToRender = contentToRender.replace(
+                /^(\s*[-*+]\s+\[[xX ]\]\s+)([#>*+\-])(\s)/gm,
+                '$1\\$2$3'
+            );
+
             // Step 3: Restore code blocks
             contentToRender = contentToRender.replace(/\x00CODEBLOCK(\d+)\x00/g, (match, index) => {
                 return codeBlocks[parseInt(index)];
