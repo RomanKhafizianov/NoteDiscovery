@@ -33,8 +33,13 @@ Then open:
 Quick sanity-check that Ollama is up:
 
 ```bash
+# List installed models
 curl http://localhost:11434/api/tags                                     # bash/zsh
 Invoke-RestMethod http://localhost:11434/api/tags                        # PowerShell
+
+# Actually poke the model
+curl http://localhost:11434/api/generate -d '{"model":"qwen2.5:1.5b","prompt":"Finish the joke in one short sentence: Why do programmers prefer dark mode? Because...","stream":false}'                    # bash/zsh
+Invoke-RestMethod http://localhost:11434/api/generate -Method Post -Body '{"model":"qwen2.5:1.5b","prompt":"Finish the joke in one short sentence: Why do programmers prefer dark mode? Because...","stream":false}'   # PowerShell
 ```
 
 ## Connect Cursor
