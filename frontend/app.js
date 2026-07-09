@@ -5834,7 +5834,81 @@ function noteApp() {
             // Must be done before marked.parse() to avoid conflicts with markdown syntax
             // BUT we need to protect code blocks first to avoid converting [[text]] inside code
             const self = this; // Reference for closure
-            
+
+            // Step 0: GFM/GLFM callouts. Runs BEFORE code-block extraction so
+            // fences nested in a callout blockquote lose their `> ` prefix on
+            // the closer — otherwise CommonMark won't see a valid fence closer
+            // once restored inside <div class="callout-body"> and the block
+            // runs unclosed. Fence-aware so `> [!TIPO]` literal inside a
+            // top-level code block is not misread as a callout.
+            {
+                const CALLOUT_RE = /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$/i;
+                const CALLOUT_ICONS = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑' };
+                const CALLOUT_TITLES = { note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' };
+                // Fence opener at 0-3 spaces indent (CommonMark). Captured
+                // group holds the fence chars so the closer must match char + length.
+                const FENCE_OPEN_RE = /^\s{0,3}(`{3,}|~{3,})/;
+                const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                const srcLines = contentToRender.split('\n');
+                const outLines = [];
+                let li = 0;
+                let fenceChar = null; // '`' or '~' when inside a top-level fence
+                let fenceLen = 0;
+                while (li < srcLines.length) {
+                    const line = srcLines[li];
+
+                    // Inside a top-level fence: pass through opaquely.
+                    if (fenceChar) {
+                        outLines.push(line);
+                        const closeRe = new RegExp('^\\s{0,3}' + (fenceChar === '`' ? '`' : '~') + '{' + fenceLen + ',}\\s*$');
+                        if (closeRe.test(line)) { fenceChar = null; fenceLen = 0; }
+                        li++;
+                        continue;
+                    }
+
+                    const fenceOpen = line.match(FENCE_OPEN_RE);
+                    if (fenceOpen) {
+                        fenceChar = fenceOpen[1][0];
+                        fenceLen = fenceOpen[1].length;
+                        outLines.push(line);
+                        li++;
+                        continue;
+                    }
+
+                    const m = line.match(CALLOUT_RE);
+                    if (!m) {
+                        outLines.push(line);
+                        li++;
+                        continue;
+                    }
+                    const type = m[1].toLowerCase();
+                    const title = escapeAttr((m[2] || '').trim() || CALLOUT_TITLES[type]);
+                    const icon = CALLOUT_ICONS[type];
+                    const bodyLines = [];
+                    li++;
+                    // Fence lines inside the callout also start with `>`, so
+                    // they get absorbed and stripped, leaving a clean fence.
+                    while (li < srcLines.length && srcLines[li].startsWith('>')) {
+                        bodyLines.push(srcLines[li].replace(/^>\s?/, ''));
+                        li++;
+                    }
+                    outLines.push(
+                        '',
+                        `<div class="callout callout-${type}">`,
+                        `<div class="callout-title"><span class="callout-icon" aria-hidden="true">${icon}</span><span class="callout-title-text">${title}</span></div>`,
+                        `<div class="callout-body">`,
+                        '',
+                        bodyLines.join('\n'),
+                        '',
+                        `</div>`,
+                        `</div>`,
+                        ''
+                    );
+                }
+                contentToRender = outLines.join('\n');
+            }
+
             // Step 1: Temporarily replace code blocks and inline code with placeholders
             const codeBlocks = [];
             // Protect fenced code blocks (```...```)
@@ -5920,48 +5994,7 @@ function noteApp() {
                 }
             );
             
-            // Step 2c: GitHub-style callouts. Runs inside the code-protection
-            // window. Unknown types fall through to plain blockquotes.
-            {
-                const CALLOUT_RE = /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$/i;
-                const CALLOUT_ICONS = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑' };
-                const CALLOUT_TITLES = { note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' };
-                const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                const srcLines = contentToRender.split('\n');
-                const outLines = [];
-                let li = 0;
-                while (li < srcLines.length) {
-                    const m = srcLines[li].match(CALLOUT_RE);
-                    if (!m) {
-                        outLines.push(srcLines[li]);
-                        li++;
-                        continue;
-                    }
-                    const type = m[1].toLowerCase();
-                    const title = escapeAttr((m[2] || '').trim() || CALLOUT_TITLES[type]);
-                    const icon = CALLOUT_ICONS[type];
-                    const bodyLines = [];
-                    li++;
-                    while (li < srcLines.length && srcLines[li].startsWith('>')) {
-                        bodyLines.push(srcLines[li].replace(/^>\s?/, ''));
-                        li++;
-                    }
-                    outLines.push(
-                        '',
-                        `<div class="callout callout-${type}">`,
-                        `<div class="callout-title"><span class="callout-icon" aria-hidden="true">${icon}</span><span class="callout-title-text">${title}</span></div>`,
-                        `<div class="callout-body">`,
-                        '',
-                        bodyLines.join('\n'),
-                        '',
-                        `</div>`,
-                        `</div>`,
-                        ''
-                    );
-                }
-                contentToRender = outLines.join('\n');
-            }
+            // (Callouts handled in Step 0, before code-block extraction.)
 
             contentToRender = contentToRender.replace(
                 /^(\s*[-*+]\s+\[[xX ]\]\s+)(\d+)\.(\s)/gm,
