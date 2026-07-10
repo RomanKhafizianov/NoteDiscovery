@@ -809,23 +809,44 @@ def generate_export_html(
         // Raw markdown content
         const markdown = `{escaped_content}`;
 
-        // GitHub-style callouts — mirrors the in-app preview preprocessor.
+        // GFM/GLFM callouts. Runs BEFORE code-block extraction so fences
+        // nested in a callout blockquote lose their `> ` prefix on the closer
+        // — otherwise the restored block sits inside <div class="callout-body">
+        // without a valid CommonMark fence closer and runs unclosed.
+        // Fence-aware so literal `> [!TIPO]` inside a top-level code block
+        // is not misread. Mirrors the in-app preview preprocessor.
         let processed;
         {{
             const CALLOUT_RE = /^>\\s*\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]\\s*(.*)$/i;
             const CALLOUT_ICONS = {{ note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑' }};
             const CALLOUT_TITLES = {{ note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' }};
+            const FENCE_OPEN_RE = /^\\s{{0,3}}(`{{3,}}|~{{3,}})/;
             const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const codeBlocks = [];
-            processed = markdown
-                .replace(/```[\\s\\S]*?```/g, function(m) {{ codeBlocks.push(m); return '\\x00CODEBLOCK' + (codeBlocks.length - 1) + '\\x00'; }})
-                .replace(/`[^`]+`/g, function(m) {{ codeBlocks.push(m); return '\\x00CODEBLOCK' + (codeBlocks.length - 1) + '\\x00'; }});
-            const srcLines = processed.split('\\n');
+
+            const srcLines = markdown.split('\\n');
             const outLines = [];
             let li = 0;
+            let fenceChar = null;
+            let fenceLen = 0;
             while (li < srcLines.length) {{
-                const m = srcLines[li].match(CALLOUT_RE);
-                if (!m) {{ outLines.push(srcLines[li]); li++; continue; }}
+                const line = srcLines[li];
+                if (fenceChar) {{
+                    outLines.push(line);
+                    const closeRe = new RegExp('^\\\\s{{0,3}}' + (fenceChar === '`' ? '`' : '~') + '{{' + fenceLen + ',}}\\\\s*$');
+                    if (closeRe.test(line)) {{ fenceChar = null; fenceLen = 0; }}
+                    li++;
+                    continue;
+                }}
+                const fenceOpen = line.match(FENCE_OPEN_RE);
+                if (fenceOpen) {{
+                    fenceChar = fenceOpen[1][0];
+                    fenceLen = fenceOpen[1].length;
+                    outLines.push(line);
+                    li++;
+                    continue;
+                }}
+                const m = line.match(CALLOUT_RE);
+                if (!m) {{ outLines.push(line); li++; continue; }}
                 const type = m[1].toLowerCase();
                 const title = escapeAttr((m[2] || '').trim() || CALLOUT_TITLES[type]);
                 const icon = CALLOUT_ICONS[type];
@@ -848,8 +869,8 @@ def generate_export_html(
                     ''
                 );
             }}
-            processed = outLines.join('\\n')
-                .replace(/\\x00CODEBLOCK(\\d+)\\x00/g, function(_, idx) {{ return codeBlocks[parseInt(idx)]; }});
+            processed = outLines.join('\\n');
+
             // Escape same-line block-starters after a task marker so they
             // render as literal text. Matches Obsidian. Issue #247.
             processed = processed.replace(
