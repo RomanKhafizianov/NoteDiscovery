@@ -5839,7 +5839,7 @@ function noteApp() {
             // fences nested in a callout blockquote lose their `> ` prefix on
             // the closer — otherwise CommonMark won't see a valid fence closer
             // once restored inside <div class="callout-body"> and the block
-            // runs unclosed. Fence-aware so `> [!TIPO]` literal inside a
+            // runs unclosed. Fence-aware so `> [!TIP]` literal inside a
             // top-level code block is not misread as a callout.
             {
                 const CALLOUT_RE = /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$/i;

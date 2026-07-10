@@ -813,7 +813,7 @@ def generate_export_html(
         // nested in a callout blockquote lose their `> ` prefix on the closer
         // — otherwise the restored block sits inside <div class="callout-body">
         // without a valid CommonMark fence closer and runs unclosed.
-        // Fence-aware so literal `> [!TIPO]` inside a top-level code block
+        // Fence-aware so literal `> [!TIP]` inside a top-level code block
         // is not misread. Mirrors the in-app preview preprocessor.
         let processed;
         {{
