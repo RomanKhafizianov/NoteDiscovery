@@ -37,11 +37,11 @@ WORKDIR /app
 
 # Install Python packages
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt && \
-    # Clean up unnecessary files to reduce image size
-    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
-    find /install -type f -name "*.pyc" -delete && \
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# Clean up unnecessary files to reduce image size (failures here are non-fatal)
+RUN find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -type f -name "*.pyc" -delete 2>/dev/null || true && \
     find /install -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
     find /install -type d -name "*.dist-info" -exec rm -rf {}/RECORD {} + 2>/dev/null || true
 
