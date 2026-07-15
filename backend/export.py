@@ -20,6 +20,57 @@ from backend.utils import MEDIA_EXTENSIONS, get_media_type, scan_notes_fast_walk
 logger = logging.getLogger("uvicorn.error")
 
 
+# Regex used by parse_image_size_spec — see docstring below.
+_SIZE_RE = re.compile(r'^(\d+)(?:[xX](\d+))?$')
+
+
+def parse_image_size_spec(text: str, allow_solo: bool = False) -> Tuple[str, Optional[int], Optional[int]]:
+    """
+    Parse an Obsidian-style inline image size annotation.
+
+    Returns (clean_alt, width, height). width/height are None when unspecified.
+    A dimension of 0 is treated as "unset" (Obsidian convention: |0x200 means height only).
+
+    Rules:
+      "caption"              -> ("caption",     None, None)
+      "caption|100"          -> ("caption",     100,  None)
+      "caption|100x200"      -> ("caption",     100,  200)
+      "100"     (solo)       -> ("",            100,  None)   # only when allow_solo=True
+      "100x200" (solo)       -> ("",            100,  200)    # only when allow_solo=True
+
+    allow_solo=True is for wikilinks where `![[img|100]]` unambiguously means
+    "size 100" because there's no ambiguity with alt text. For standard markdown
+    `![100](x)` the default (allow_solo=False) leaves "100" as alt text.
+    """
+    if not text:
+        return "", None, None
+    trimmed = text.strip()
+    if allow_solo:
+        solo = _SIZE_RE.match(trimmed)
+        if solo:
+            w = int(solo.group(1))
+            h = int(solo.group(2)) if solo.group(2) is not None else None
+            return (
+                "",
+                w if w > 0 else None,
+                h if (h is not None and h > 0) else None,
+            )
+    idx = trimmed.rfind('|')
+    if idx == -1:
+        return trimmed, None, None
+    size = trimmed[idx + 1:].strip()
+    m = _SIZE_RE.match(size)
+    if not m:
+        return trimmed, None, None
+    w = int(m.group(1))
+    h = int(m.group(2)) if m.group(2) is not None else None
+    return (
+        trimmed[:idx].strip(),
+        w if w > 0 else None,
+        h if (h is not None and h > 0) else None,
+    )
+
+
 def get_media_as_base64(media_path: Path) -> Optional[Tuple[str, str]]:
     """
     Read a media file and return it as a base64 data URL.
@@ -168,16 +219,24 @@ def process_media_for_export(markdown_content: str, note_folder: Path, notes_dir
     """
     
     # First, handle wikilink media: ![[file.png]] or ![[file.mp3|alt text]]
+    # Also supports Obsidian-style inline sizing:
+    #   ![[img.jpg|100]]           -> width 100
+    #   ![[img.jpg|100x200]]       -> width 100, height 200
+    #   ![[img.jpg|caption|100]]   -> alt "caption", width 100
     wikilink_pattern = r'!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]'
     
     def replace_wikilink_media(match):
         media_name = match.group(1).strip()
-        alt_text = match.group(2).strip() if match.group(2) else media_name.split('/')[-1].rsplit('.', 1)[0]
+        raw_alt = match.group(2).strip() if match.group(2) else ''
+        # Wikilink alt-group: solo `|<digits>` is a size, no ambiguity.
+        clean_alt, width, height = parse_image_size_spec(raw_alt, allow_solo=True)
+        alt_text = clean_alt if clean_alt else media_name.split('/')[-1].rsplit('.', 1)[0]
         
         # Check media type first
         media_type = get_media_type(media_name)
         
-        # For non-image media (audio, video, PDF), show placeholder without embedding
+        # For non-image media (audio, video, PDF), show placeholder without embedding.
+        # Size specs are silently dropped — they only make sense for images.
         if media_type in ('audio', 'video', 'document'):
             return generate_media_placeholder(media_type, alt_text)
         
@@ -187,6 +246,27 @@ def process_media_for_export(markdown_content: str, note_folder: Path, notes_dir
         if resolved_path:
             base64_url = get_image_as_base64(resolved_path)
             if base64_url:
+                # If a size was specified, emit raw <img> HTML directly so the
+                # dimensions survive the markdown round-trip. Marked.js passes
+                # raw HTML through and DOMPurify allows width/height on <img>.
+                # Without size, keep emitting standard markdown for consistency.
+                if width or height:
+                    safe_alt = alt_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+                    # Emit width/height as BOTH attributes and inline style; the
+                    # style beats stylesheet rules that otherwise force
+                    # `height: auto` (e.g. Tailwind Preflight in the app; harmless
+                    # in the standalone export).
+                    size_attrs = ''
+                    style_pieces = []
+                    if width:
+                        size_attrs += f' width="{width}"'
+                        style_pieces.append(f'width:{width}px')
+                    if height:
+                        size_attrs += f' height="{height}"'
+                        style_pieces.append(f'height:{height}px')
+                    if style_pieces:
+                        size_attrs += f' style="{";".join(style_pieces)}"'
+                    return f'<img src="{base64_url}" alt="{safe_alt}" title="{safe_alt}"{size_attrs}>'
                 return f'![{alt_text}]({base64_url})'
         
         # Image not found
@@ -888,6 +968,34 @@ def generate_export_html(
         const rawHtml = marked.parse(processed);
         const safeHtml = DOMPurify.sanitize(rawHtml);
         document.getElementById('content').innerHTML = safeHtml;
+
+        // Apply Obsidian-style inline image sizing to images whose alt text
+        // carries a `|<w>` or `|<w>x<h>` suffix. Wikilink images with a size
+        // were already emitted with width/height attributes server-side; this
+        // walker handles the standard-markdown case `![alt|100](x)`. Mirrors
+        // parseImageSizeSpec() in frontend/app.js (allowSolo=false here, since
+        // standard markdown `![100](x)` should stay as alt="100").
+        document.querySelectorAll('.markdown-preview img').forEach(img => {{
+            const rawAlt = img.getAttribute('alt') || '';
+            const idx = rawAlt.lastIndexOf('|');
+            if (idx === -1) return;
+            const size = rawAlt.slice(idx + 1).trim();
+            const m = size.match(/^(\\d+)(?:[xX](\\d+))?$/);
+            if (!m) return;
+            const w = parseInt(m[1], 10);
+            const h = m[2] !== undefined ? parseInt(m[2], 10) : null;
+            if (w > 0 && !img.hasAttribute('width')) {{
+                img.setAttribute('width', String(w));
+                img.style.width = w + 'px';
+            }}
+            if (h !== null && h > 0 && !img.hasAttribute('height')) {{
+                img.setAttribute('height', String(h));
+                img.style.height = h + 'px';
+            }}
+            const cleanAlt = rawAlt.slice(0, idx).trim();
+            img.setAttribute('alt', cleanAlt);
+            if (img.getAttribute('title') === rawAlt) img.setAttribute('title', cleanAlt);
+        }});
         
         // Typeset math after content is inserted
         if (typeof MathJax !== 'undefined' && MathJax.typeset) {{
