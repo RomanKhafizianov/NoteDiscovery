@@ -881,6 +881,50 @@ function noteApp() {
                         this.previousMatch();
                     }
                     
+                    // Ctrl/Cmd + Alt/Option + Z to toggle Zen mode.
+                    // Global (fires regardless of focus) so users can enter/exit Zen without
+                    // first clicking into the editor. Requires an open note; noop otherwise.
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'z') {
+                        if (this.currentNote) {
+                            e.preventDefault();
+                            this.toggleZenMode();
+                        }
+                    }
+                    
+                    // View-mode shortcuts (global — fire regardless of focus):
+                    //   Ctrl/Cmd + Alt/Option + 1  → Edit
+                    //   Ctrl/Cmd + Alt/Option + 2  → Split  (falls back to Edit on mobile)
+                    //   Ctrl/Cmd + Alt/Option + 3  → Preview
+                    //   Ctrl/Cmd + Alt/Option + V  → Cycle Edit → Split → Preview → Edit
+                    // Skipped when no note is open, in Zen mode (edit-only), or while the graph
+                    // overlay is showing. Uses e.code for digits so the physical top-row keys
+                    // fire on AZERTY/QWERTZ layouts (where 1/2/3 need Shift) and to bypass
+                    // Mac's Option+digit dead-key composer (Option+1 = ¡, etc.).
+                    if ((e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey
+                        && this.currentNote && !this.zenMode && !this.showGraph) {
+                        const isMobile = window.innerWidth <= 768;
+                        let targetMode = null;
+                        if (e.code === 'Digit1') {
+                            targetMode = 'edit';
+                        } else if (e.code === 'Digit2') {
+                            targetMode = isMobile ? 'edit' : 'split';
+                        } else if (e.code === 'Digit3') {
+                            targetMode = 'preview';
+                        } else if (e.key.toLowerCase() === 'v') {
+                            if (isMobile) {
+                                targetMode = this.viewMode === 'edit' ? 'preview' : 'edit';
+                            } else {
+                                const order = ['edit', 'split', 'preview'];
+                                const currentIdx = order.indexOf(this.viewMode);
+                                targetMode = order[(currentIdx + 1) % order.length];
+                            }
+                        }
+                        if (targetMode !== null) {
+                            e.preventDefault();
+                            this.viewMode = targetMode;
+                        }
+                    }
+                    
                     // Only apply markdown shortcuts when editor is focused and a note is open
                     const isEditorFocused = document.activeElement?.id === 'note-editor';
                     if (isEditorFocused && this.currentNote) {
@@ -906,12 +950,6 @@ function noteApp() {
                         if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 't') {
                             e.preventDefault();
                             this.insertTable();
-                        }
-                        
-                        // Ctrl/Cmd + Alt/Option + Z for Zen mode
-                        if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'z') {
-                            e.preventDefault();
-                            this.toggleZenMode();
                         }
                     }
                     
@@ -5835,6 +5873,49 @@ function noteApp() {
             // BUT we need to protect code blocks first to avoid converting [[text]] inside code
             const self = this; // Reference for closure
 
+            // Parses an Obsidian-style inline image size spec from an alt-like string.
+            // Returns { alt, width, height } — width/height are null when not specified.
+            //
+            //   parseImageSizeSpec("caption")            -> {alt:"caption",  w:null, h:null}
+            //   parseImageSizeSpec("caption|100")        -> {alt:"caption",  w:100,  h:null}
+            //   parseImageSizeSpec("caption|100x200")    -> {alt:"caption",  w:100,  h:200}
+            //   parseImageSizeSpec("100", {allowSolo})   -> {alt:"",         w:100,  h:null}   (wikilink only)
+            //   parseImageSizeSpec("100x200",{allowSolo})-> {alt:"",         w:100,  h:200}    (wikilink only)
+            //
+            // A dimension of 0 is treated as "unset" (Obsidian convention: |0x200 = height only).
+            // allowSolo=true accepts a bare `<digits>` string as a size; used for wikilinks
+            // where `![[img|100]]` unambiguously means "size 100" (no alt to confuse). For
+            // standard markdown `![100](x)` we default allowSolo=false so "100" stays as alt.
+            const parseImageSizeSpec = (text, opts = {}) => {
+                const allowSolo = opts.allowSolo === true;
+                if (!text) return { alt: '', width: null, height: null };
+                const trimmed = text.trim();
+                if (allowSolo) {
+                    const solo = trimmed.match(/^(\d+)(?:[xX](\d+))?$/);
+                    if (solo) {
+                        const w = parseInt(solo[1], 10);
+                        const h = solo[2] !== undefined ? parseInt(solo[2], 10) : null;
+                        return {
+                            alt: '',
+                            width: w > 0 ? w : null,
+                            height: (h !== null && h > 0) ? h : null,
+                        };
+                    }
+                }
+                const idx = trimmed.lastIndexOf('|');
+                if (idx === -1) return { alt: trimmed, width: null, height: null };
+                const size = trimmed.slice(idx + 1).trim();
+                const m = size.match(/^(\d+)(?:[xX](\d+))?$/);
+                if (!m) return { alt: trimmed, width: null, height: null };
+                const w = parseInt(m[1], 10);
+                const h = m[2] !== undefined ? parseInt(m[2], 10) : null;
+                return {
+                    alt: trimmed.slice(0, idx).trim(),
+                    width: w > 0 ? w : null,
+                    height: (h !== null && h > 0) ? h : null,
+                };
+            };
+
             // Step 0: GFM/GLFM callouts. Runs BEFORE code-block extraction so
             // fences nested in a callout blockquote lose their `> ` prefix on
             // the closer — otherwise CommonMark won't see a valid fence closer
@@ -5924,11 +6005,32 @@ function noteApp() {
             
             // Step 2: Convert media wikilinks FIRST: ![[file.png]] or ![[file.png|alt text]]
             // Must be before note wikilinks to prevent [[file.png]] from being matched first
+            //
+            // Also supports Obsidian-style inline sizing:
+            //   ![[img.jpg|100]]            -> width 100
+            //   ![[img.jpg|100x200]]        -> width 100, height 200
+            //   ![[img.jpg|caption|100]]    -> alt "caption", width 100
+            // The `allowSolo:true` mode treats a bare `|<digits>` group as a size
+            // (Obsidian's wikilink convention). Standard markdown images require a
+            // pipe inside the alt text and are handled by the DOM walker below.
             contentToRender = contentToRender.replace(
                 /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
                 (match, mediaName, altText) => {
                     const filename = mediaName.trim();
-                    const alt = altText ? altText.trim() : filename.replace(/\.[^/.]+$/, '');
+                    const rawAlt = altText ? altText.trim() : '';
+                    const spec = parseImageSizeSpec(rawAlt, { allowSolo: true });
+                    // If no explicit alt, fall back to the filename stem.
+                    const alt = spec.alt || filename.replace(/\.[^/.]+$/, '');
+                    // Emit width/height as BOTH HTML attributes (semantics, a11y)
+                    // AND inline style. Tailwind's Preflight `img { height: auto }`
+                    // wins over stylesheet rules that use attribute selectors, so
+                    // inline style is the reliable way to pin the size.
+                    const stylePieces = [];
+                    if (spec.width) stylePieces.push(`width:${spec.width}px`);
+                    if (spec.height) stylePieces.push(`height:${spec.height}px`);
+                    const sizeAttrs = (spec.width ? ` width="${spec.width}"` : '') +
+                                      (spec.height ? ` height="${spec.height}"` : '') +
+                                      (stylePieces.length ? ` style="${stylePieces.join(';')}"` : '');
                     
                     // Resolve media path using O(1) lookup
                     const mediaPath = self.resolveMediaWikilink(filename);
@@ -5947,7 +6049,9 @@ function noteApp() {
                         const mediaSrc = `/api/media/${encodedPath}`;
                         const mediaType = self.getMediaType(filename);
                         
-                        // Return appropriate HTML based on media type
+                        // Return appropriate HTML based on media type.
+                        // Size attributes only apply to images; non-image media
+                        // ignores the size (still strips it from the caption).
                         switch (mediaType) {
                             case 'audio':
                                 return `<div class="media-embed media-audio"><audio controls preload="none" src="${mediaSrc}" title="${safeAlt}"></audio><span class="media-caption">${safeAlt}</span></div>`;
@@ -5959,7 +6063,7 @@ function noteApp() {
                                 // upgrades it to a media-pdf wrapper + iframe. Issue #239.
                                 return `<span class="md-pdf-embed" data-src="${mediaSrc}" data-alt="${safeAlt}"></span>`;
                             default: // image
-                                return `<img src="${mediaSrc}" alt="${safeAlt}" title="${safeAlt}">`;
+                                return `<img src="${mediaSrc}" alt="${safeAlt}" title="${safeAlt}"${sizeAttrs}>`;
                         }
                     }
                     
@@ -6080,6 +6184,25 @@ function noteApp() {
             // Also convert non-image media (audio, video, PDF) to appropriate elements
             const images = tempDiv.querySelectorAll('img');
             images.forEach(img => {
+                // Extract Obsidian-style size spec from standard-markdown alt.
+                // Wikilink images already had their size applied above and their
+                // alt cleaned, so calling this again is a no-op for them.
+                // See wikilink handler comment above about why we set inline style
+                // in addition to the width/height attributes.
+                const rawAlt = img.getAttribute('alt') || '';
+                const spec = parseImageSizeSpec(rawAlt);
+                if (spec.width && !img.hasAttribute('width')) {
+                    img.setAttribute('width', String(spec.width));
+                    img.style.width = spec.width + 'px';
+                }
+                if (spec.height && !img.hasAttribute('height')) {
+                    img.setAttribute('height', String(spec.height));
+                    img.style.height = spec.height + 'px';
+                }
+                if (spec.alt !== rawAlt) {
+                    img.setAttribute('alt', spec.alt);
+                }
+
                 let src = img.getAttribute('src');
                 if (src) {
                     const isExternal = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//');

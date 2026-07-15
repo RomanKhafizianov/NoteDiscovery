@@ -27,6 +27,7 @@
 - **In-app viewing** - View all media types directly in the sidebar
 - **Inline preview** - Audio/video players and PDF viewer embedded in notes
 - **Relative media paths** - For `![alt](path)`, paths resolve from the note’s folder
+- **Inline image sizing** - Obsidian-compatible syntax to size images: `![alt|300](path)` or `![[image.png|300x200]]` (width, or `WIDTHxHEIGHT`; `0` means "auto" for that dimension). Works in preview, print, export, and shared views.
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
@@ -363,6 +364,12 @@ date: {{date}}
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |
 | `Shift+F3` | `Shift+F3` | Previous search match |
+| `Ctrl+Alt+1` | `Cmd+Option+1` | View mode: **Edit** |
+| `Ctrl+Alt+2` | `Cmd+Option+2` | View mode: **Split** (falls back to Edit on mobile) |
+| `Ctrl+Alt+3` | `Cmd+Option+3` | View mode: **Preview** |
+| `Ctrl+Alt+V` | `Cmd+Option+V` | Cycle view mode (Edit → Split → Preview) |
+
+> **View mode shortcuts** work anywhere in the app — you don't need to click into the editor first. They're disabled while Zen Mode is active (Zen is edit-only) and while the graph overlay is open.
 
 > **Note for Mac users:** Some Option-based shortcuts (`Cmd+Option+N/F/T`) may conflict with browser shortcuts in Chrome/Brave. Safari has better compatibility. If shortcuts don't work, try using `Ctrl` instead of `Cmd`, or use the UI buttons.
 
