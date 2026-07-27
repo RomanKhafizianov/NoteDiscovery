@@ -27,6 +27,7 @@ search:
 ui:
   # Theme used when a browser has not saved a theme preference yet.
   # Use a theme ID from the themes directory (the CSS filename without .css).
+  # Override via the DEFAULT_THEME env var. Invalid values fall back to 'light'.
   default_theme: "light"
 
   # Autosave debounce in milliseconds (applies to note typing and drawing autosave).

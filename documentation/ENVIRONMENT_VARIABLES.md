@@ -96,6 +96,9 @@ environment:
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `AUTOSAVE_DELAY_MS` | integer | `1000` | Autosave debounce in milliseconds (applies to note typing and drawing autosave). Server-clamped to 250–60000ms. |
+| `DEFAULT_THEME` | string | `light` | Theme served to new browsers that have not saved a preference yet. Use a theme ID from `themes/` (the CSS filename without `.css`). Invalid values are logged and fall back to `light`. |
+
+> **Priority:** A user's previously-selected theme is stored in `localStorage` and always takes precedence over `DEFAULT_THEME`. This setting only affects fresh sessions.
 
 #### Example: Slower autosave for very large notes
 
@@ -108,13 +111,22 @@ environment:
   - AUTOSAVE_DELAY_MS=5000
 ```
 
+#### Example: Default new browsers to the Dracula theme
+
+```bash
+# Docker
+docker run -e DEFAULT_THEME=dracula ...
+
+# Docker Compose
+environment:
+  - DEFAULT_THEME=dracula
+```
+
 Equivalent in `config.yaml`:
 
 ```yaml
 ui:
   autosave_delay_ms: 5000
-  # Used only when the browser has no saved theme preference.
-  # Set this to a CSS filename from themes/ without the .css suffix.
   default_theme: "dracula"
 ```
 
