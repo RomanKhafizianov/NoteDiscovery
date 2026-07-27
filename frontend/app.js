@@ -4,6 +4,7 @@
 const CONFIG = {
     AUTOSAVE_DELAY: 1000,              // ms - Fallback only; runtime value lives on this.autosaveDelayMs (hydrated from /api/config). Used by autoSave() and _drawingScheduleAutosave().
     DEFAULT_THEME: 'light',            // Fallback only; runtime value lives on this.defaultTheme (hydrated from /api/config). Used by initTheme() when localStorage has no saved preference.
+    UPLOAD_MAX_NOTE_MB: 10,            // MB - Fallback only; runtime value lives on this.uploadMaxNoteMb (hydrated from /api/config). Used by importMarkdownFile() to cap drag-drop .md imports.
     /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
     DRAWING_BACKGROUND: '#ffffff',
     /**
@@ -265,6 +266,7 @@ function noteApp() {
         alreadyDonated: false,
         autosaveDelayMs: CONFIG.AUTOSAVE_DELAY,  // hydrated from /api/config in loadConfig()
         defaultTheme: CONFIG.DEFAULT_THEME,      // hydrated from /api/config in loadConfig()
+        uploadMaxNoteMb: CONFIG.UPLOAD_MAX_NOTE_MB, // hydrated from /api/config in loadConfig()
         notes: [],
 
         // True while /api/notes is in flight. Drives the "Loading your vault…"
@@ -1015,6 +1017,9 @@ function noteApp() {
                 }
                 if (typeof config.defaultTheme === 'string' && config.defaultTheme) {
                     this.defaultTheme = config.defaultTheme;
+                }
+                if (Number.isFinite(config.uploadMaxNoteMb) && config.uploadMaxNoteMb > 0) {
+                    this.uploadMaxNoteMb = config.uploadMaxNoteMb;
                 }
             } catch (error) {
                 console.error('Failed to load config:', error);
@@ -2984,14 +2989,16 @@ function noteApp() {
          * currently open note, then insert a standard `[Name](path)` link at
          * cursorPos (same link shape as sidebar note drops). On filename
          * collision, appends a yyyymmddHHmmss suffix (matches drawing PNGs).
-         * A defensive 10 MB size cap avoids accidental huge-file drops; normal
-         * markdown notes are orders of magnitude smaller.
+         * Size cap comes from UPLOAD_MAX_NOTE_MB (env-configurable via
+         * /api/config); guards against accidental huge-file drops that would
+         * OOM the browser during file.text().
          */
         async importMarkdownFile(file, cursorPos) {
             if (!this.currentNote) return;
             
-            const MAX_MD_BYTES = 10 * 1024 * 1024;
-            if (file.size > MAX_MD_BYTES) {
+            const maxBytes = this.uploadMaxNoteMb * 1024 * 1024;
+            if (file.size > maxBytes) {
+                console.warn(`Rejected markdown drop: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is ${this.uploadMaxNoteMb}MB (UPLOAD_MAX_NOTE_MB).`);
                 this.toast(this.t('media.upload_failed'), { type: 'warning' });
                 return;
             }

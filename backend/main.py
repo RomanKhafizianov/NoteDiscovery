@@ -249,6 +249,7 @@ UPLOAD_MAX_IMAGE_MB = int(os.getenv('UPLOAD_MAX_IMAGE_MB', '10'))
 UPLOAD_MAX_AUDIO_MB = int(os.getenv('UPLOAD_MAX_AUDIO_MB', '50'))
 UPLOAD_MAX_VIDEO_MB = int(os.getenv('UPLOAD_MAX_VIDEO_MB', '100'))
 UPLOAD_MAX_PDF_MB = int(os.getenv('UPLOAD_MAX_PDF_MB', '20'))
+UPLOAD_MAX_NOTE_MB = int(os.getenv('UPLOAD_MAX_NOTE_MB', '10'))
 
 # Autosave debounce in milliseconds (applies to note typing AND drawing PNG autosave).
 try:
@@ -549,6 +550,7 @@ async def get_config():
         "alreadyDonated": ALREADY_DONATED,  # Hide support buttons if true
         "autosaveDelayMs": AUTOSAVE_DELAY_MS,  # Debounce for note/drawing autosave
         "defaultTheme": DEFAULT_THEME,  # Used when the browser has no saved preference
+        "uploadMaxNoteMb": UPLOAD_MAX_NOTE_MB,  # Client-side size cap for .md drops
         "authentication": {
             "enabled": config.get('authentication', {}).get('enabled', False)
         }

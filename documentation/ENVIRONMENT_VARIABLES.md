@@ -79,6 +79,7 @@ AUTHENTICATION_PASSWORD=mysecretpassword
 | `UPLOAD_MAX_AUDIO_MB` | integer | `50` | Maximum audio upload size in MB |
 | `UPLOAD_MAX_VIDEO_MB` | integer | `100` | Maximum video upload size in MB |
 | `UPLOAD_MAX_PDF_MB` | integer | `20` | Maximum PDF upload size in MB |
+| `UPLOAD_MAX_NOTE_MB` | integer | `10` | Maximum size of `.md` files imported via drag & drop |
 
 #### Example: Allowing larger video uploads
 
