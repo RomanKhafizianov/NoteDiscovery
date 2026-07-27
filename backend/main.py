@@ -260,15 +260,32 @@ except (TypeError, ValueError):
     _autosave_raw = 1000
 AUTOSAVE_DELAY_MS = max(250, min(60000, _autosave_raw))
 
+# Themes directory (single source of truth reused by /api/themes, exports, share view,
+# and the default-theme validation below).
+THEMES_DIR = Path(__file__).parent.parent / "themes"
+
 # Default UI theme for browsers that do not have a saved preference yet.
-DEFAULT_THEME = str(config.get('ui', {}).get('default_theme', 'light')).strip() or 'light'
-_themes_dir = Path(__file__).parent.parent / "themes"
-if not get_theme_css(str(_themes_dir), DEFAULT_THEME):
+# Priority: DEFAULT_THEME env var > ui.default_theme in config.yaml > 'light'.
+# Invalid values are logged with their source and coerced back to 'light' so a
+# bad config can never lock users out of the UI. Empty-string env var is treated
+# as unset (matches Docker convention and how NOTES_DIR/PLUGINS_DIR behave above).
+_theme_source = "config.yaml"
+if os.environ.get('DEFAULT_THEME'):
+    _theme_raw = os.environ['DEFAULT_THEME']
+    _theme_source = "DEFAULT_THEME env var"
+else:
+    _theme_raw = config.get('ui', {}).get('default_theme') or 'light'
+DEFAULT_THEME = str(_theme_raw).strip() or 'light'
+if not get_theme_css(str(THEMES_DIR), DEFAULT_THEME):
     logger.warning(
-        "Configured ui.default_theme %r was not found; falling back to 'light'",
+        "Configured default theme %r (from %s) was not found in %s; falling back to 'light'",
         DEFAULT_THEME,
+        _theme_source,
+        THEMES_DIR,
     )
     DEFAULT_THEME = 'light'
+else:
+    logger.info("Default theme: %s (from %s)", DEFAULT_THEME, _theme_source)
 
 if DEMO_MODE:
     # Enable rate limiting for demo deployments
@@ -541,16 +558,14 @@ async def get_config():
 @api_router.get("/themes", tags=["Themes"])
 async def list_themes():
     """Get all available themes"""
-    themes_dir = Path(__file__).parent.parent / "themes"
-    themes = get_available_themes(str(themes_dir))
+    themes = get_available_themes(str(THEMES_DIR))
     return {"themes": themes}
 
 
 @app.get("/api/themes/{theme_id}", tags=["Themes"]) # Don't use the router here, as we want this route unsecured
 async def get_theme(theme_id: str):
     """Get CSS for a specific theme"""
-    themes_dir = Path(__file__).parent.parent / "themes"
-    css = get_theme_css(str(themes_dir), theme_id)
+    css = get_theme_css(str(THEMES_DIR), theme_id)
     
     if not css:
         raise HTTPException(status_code=404, detail="Theme not found")
@@ -1409,11 +1424,10 @@ async def export_note_to_html(request: Request, note_path: str, theme: Optional[
         content_with_links = convert_wikilinks_to_html(content_with_images)
         
         # Get theme CSS
-        themes_dir = Path(__file__).parent.parent / "themes"
         theme_name = theme or 'light'
-        theme_css = get_theme_css(str(themes_dir), theme_name)
+        theme_css = get_theme_css(str(THEMES_DIR), theme_name)
         if not theme_css:
-            theme_css = get_theme_css(str(themes_dir), "light")
+            theme_css = get_theme_css(str(THEMES_DIR), "light")
             theme_name = "light"
         
         # Strip data-theme selector
@@ -1781,10 +1795,9 @@ async def view_shared_note(request: Request, token: str):
         content_with_links = convert_wikilinks_to_html(content_with_images)
         
         # Use the theme that was set when sharing
-        themes_dir = Path(__file__).parent.parent / "themes"
-        theme_css = get_theme_css(str(themes_dir), theme)
+        theme_css = get_theme_css(str(THEMES_DIR), theme)
         if not theme_css:
-            theme_css = get_theme_css(str(themes_dir), "light")
+            theme_css = get_theme_css(str(THEMES_DIR), "light")
             theme = "light"
         
         # Strip data-theme selector

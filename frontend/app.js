@@ -3,6 +3,7 @@
 // Configuration constants
 const CONFIG = {
     AUTOSAVE_DELAY: 1000,              // ms - Fallback only; runtime value lives on this.autosaveDelayMs (hydrated from /api/config). Used by autoSave() and _drawingScheduleAutosave().
+    DEFAULT_THEME: 'light',            // Fallback only; runtime value lives on this.defaultTheme (hydrated from /api/config). Used by initTheme() when localStorage has no saved preference.
     /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
     DRAWING_BACKGROUND: '#ffffff',
     /**
@@ -261,7 +262,7 @@ function noteApp() {
         demoMode: false,
         alreadyDonated: false,
         autosaveDelayMs: CONFIG.AUTOSAVE_DELAY,  // hydrated from /api/config in loadConfig()
-        defaultTheme: 'light',
+        defaultTheme: CONFIG.DEFAULT_THEME,      // hydrated from /api/config in loadConfig()
         notes: [],
 
         // True while /api/notes is in flight. Drives the "Loading your vault…"
