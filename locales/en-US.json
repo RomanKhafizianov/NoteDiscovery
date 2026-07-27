@@ -232,8 +232,7 @@
   "media": {
     "confirm_delete": "Delete \"{{name}}\"?",
     "upload_failed": "Failed to upload file",
-    "no_valid_files": "No valid files found. Supported: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "No valid files found. Supported: {{formats}}"
   },
   "move": {
     "failed_note": "Failed to move note.",
