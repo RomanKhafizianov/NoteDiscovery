@@ -8,10 +8,8 @@ const CONFIG = {
     /** Must match drawingRedraw() fill and eraser stroke color (opaque “whiteboard”). */
     DRAWING_BACKGROUND: '#ffffff',
     /**
-     * Drawing document size (intrinsic resolution). The display canvas may render
-     * smaller on small screens, but pointer events, ops and the saved PNG always
-     * live in this fixed coordinate space. A future "new drawing" dialog can
-     * override the dimensions per drawing without any architectural change.
+     * Drawing document size (intrinsic resolution). Pointer events, ops and the saved
+     * PNG all live in this fixed space; the display canvas may render smaller.
      */
     DRAWING_DEFAULT_DOC_W: 1200,
     DRAWING_DEFAULT_DOC_H: 800,
@@ -647,10 +645,8 @@ function noteApp() {
         drawingLineWidth: 4,
         drawingOps: [],
         /**
-         * Intrinsic drawing dimensions (in document px). Initial values come from CONFIG so
-         * there is a single source of truth for the default; per-drawing values get overwritten
-         * by createNewDrawing() (using its opts) or initDrawingViewer() (using the PNG's natural
-         * size). To change the default, edit CONFIG.DRAWING_DEFAULT_DOC_W / _H only.
+         * Intrinsic drawing dimensions (document px). Overwritten per-drawing by
+         * createNewDrawing() or initDrawingViewer(); edit CONFIG to change the default.
          */
         drawingDocW: CONFIG.DRAWING_DEFAULT_DOC_W,
         drawingDocH: CONFIG.DRAWING_DEFAULT_DOC_H,
@@ -2796,9 +2792,7 @@ function noteApp() {
         
         // Handle dragover on editor to show cursor position
         onEditorDragOver(event) {
-            // Two drag sources land here: internal sidebar items (draggedItem set)
-            // and OS files (dataTransfer.types includes 'Files'). Both should
-            // show the drop affordance and position the caret at the mouse.
+            // Two sources land here: sidebar items (draggedItem set) and OS files.
             const isFileDrag = event.dataTransfer?.types?.includes('Files');
             if (!this.draggedItem && !isFileDrag) return;
             
@@ -2955,9 +2949,8 @@ function noteApp() {
                 'application/pdf'
             ];
             const mediaFiles = files.filter(file => allowedTypes.includes(file.type.toLowerCase()));
-            // Detect markdown by extension — MIME reporting for .md is inconsistent
-            // across browsers/OSes (text/markdown, text/plain, or empty), so name
-            // is the only reliable signal.
+            // By extension: MIME for .md varies across browsers (text/markdown,
+            // text/plain, or empty), so the name is the only reliable signal.
             const markdownFiles = files.filter(file => /\.md$/i.test(file.name || ''));
             
             if (mediaFiles.length === 0 && markdownFiles.length === 0) {
@@ -2986,10 +2979,7 @@ function noteApp() {
             }
             // uploadMedia already injects the file into this.notes optimistically.
             
-            // Markdown drops only make sense when a note is open — the imported
-            // file is placed alongside the current note and a link is inserted
-            // at the drop point. Without a currentNote, silently skip (drops
-            // outside the editor already fall back to the browser default).
+            // Needs an open note: the target folder is derived from it.
             if (markdownFiles.length > 0 && this.currentNote) {
                 for (const file of markdownFiles) {
                     try {
@@ -3002,13 +2992,10 @@ function noteApp() {
         },
         
         /**
-         * Import a dropped .md file as a new note in the same folder as the
-         * currently open note, then insert a standard `[Name](path)` link at
-         * cursorPos (same link shape as sidebar note drops). On filename
-         * collision, appends a yyyymmddHHmmss suffix (matches drawing PNGs).
-         * Size cap comes from UPLOAD_MAX_NOTE_MB (env-configurable via
-         * /api/config); guards against accidental huge-file drops that would
-         * OOM the browser during file.text().
+         * Import a dropped .md file as a new note in the current note's folder, then insert
+         * a `[Name](path)` link at cursorPos (same shape as sidebar note drops). Filename
+         * collisions get a yyyymmddHHmmss suffix. Size cap comes from UPLOAD_MAX_NOTE_MB —
+         * file.text() would otherwise OOM the browser on a huge drop.
          */
         async importMarkdownFile(file, cursorPos) {
             if (!this.currentNote) return;
@@ -3269,16 +3256,9 @@ function noteApp() {
         },
         
         /**
-         * Create a blank drawing PNG and open it for editing.
-         * Attachment folder matches "New note" / "New folder" from the same + menu (root vs folder row vs homepage folder).
-         */
-        /**
-         * Create a brand-new drawing PNG and open it in the editor.
-         * @param {{docW?: number, docH?: number}} [opts]
-         *   Optional intrinsic dimensions in document pixels. Phase-2: a "New drawing"
-         *   dialog (presets, A4, custom) only needs to pass these values here — no other
-         *   plumbing is required because every downstream function reads doc size from
-         *   either the loaded PNG or the in-memory drawingDocW/drawingDocH fields.
+         * Create a blank drawing PNG and open it for editing. Target folder matches
+         * "New note" / "New folder" from the same + menu.
+         * @param {{docW?: number, docH?: number}} [opts] Intrinsic size in document px.
          */
         async createNewDrawing(opts = {}) {
             const targetFolder = this.inferredNewItemTargetFolder();
@@ -3456,11 +3436,10 @@ function noteApp() {
         },
 
         /**
-         * Render the current drawing state (background + base image + all committed ops) to a
-         * fresh off-screen canvas at the given document size. Used by drawingSave() to produce
-         * a device-independent PNG, and by drawingFill() to sample the visible state at full
-         * doc resolution before flood-filling. Returns the canvas, or null if a 2D context
-         * can't be obtained.
+         * Render current drawing state (background + base image + committed ops) to a fresh
+         * off-screen canvas at the given doc size. Used by drawingSave() for a
+         * device-independent PNG and by drawingFill() to sample at full resolution.
+         * Returns the canvas, or null if no 2D context is available.
          */
         _drawingRenderToOffscreen(docW, docH) {
             const off = document.createElement('canvas');
@@ -3525,10 +3504,9 @@ function noteApp() {
         },
         
         /**
-         * Size the visible canvas as a letterbox of (drawingDocW × drawingDocH) inside the
-         * available wrap, preserving aspect ratio. The display canvas may be smaller than
-         * the wrap on narrow viewports — that is intentional. The document space stays
-         * fixed; only the on-screen viewport scales.
+         * Letterbox (drawingDocW × drawingDocH) inside the available wrap, preserving aspect
+         * ratio. Document space stays fixed; only the on-screen viewport scales, so a canvas
+         * smaller than the wrap on narrow viewports is intentional.
          */
         _drawingLayoutCanvas() {
             const wrap = this.$refs.drawingCanvasWrap;
@@ -3684,19 +3662,11 @@ function noteApp() {
         },
 
         /**
-         * Iterative scanline flood fill on an ImageData buffer. Marks every pixel that is
-         * connected to (sx, sy) and matches the seed color exactly (4-way connectivity).
-         * Returns { mask, minX, minY, maxX, maxY } describing the filled region's bounding
-         * box, or null if the seed pixel is already the same color as the fill (so the caller
-         * can skip pushing a no-op onto the undo stack). Stack-based — never recurses, so a
-         * full-canvas fill at 1600×1000 stays well under any browser stack limit.
-         *
-         * Known optimization opportunities (revisit only if fills feel slow in practice):
-         *   1) Add a `tolerance` parameter to soften antialiasing halos around strokes.
-         *   2) Push only the start of each new connected run above/below the current span
-         *      instead of every cell — the textbook scanline optimization, ~3–5× faster.
-         *   3) Replace the Array<[x,y]> stack with a flat Int32Array + top pointer to remove
-         *      per-push allocations and cut GC pressure on large fills.
+         * Iterative scanline flood fill on an ImageData buffer. Marks pixels connected to
+         * (sx, sy) matching the seed color exactly (4-way). Returns the filled region's
+         * bounding box, or null if the seed already equals the fill color so the caller can
+         * skip a no-op undo entry. Stack-based, never recurses. If fills ever feel slow:
+         * add tolerance, push run-starts only, and use a flat Int32Array stack.
          */
         _drawingFlood(imgData, sx, sy, fillRGB) {
             const { data, width: W, height: H } = imgData;
@@ -3773,12 +3743,10 @@ function noteApp() {
         },
 
         /**
-         * Paint-bucket flood fill at the click point. Renders the current state to a fresh
-         * off-screen canvas at document resolution, runs an iterative scanline flood fill from
-         * the clicked pixel, then stores only the cropped delta as a 'fill' op so the existing
-         * undo/redo machinery (which just shuffles ops between drawingOps and drawingRedoStack)
-         * works unchanged. The cropped ImageBitmap keeps memory proportional to the filled
-         * area, not the canvas area.
+         * Paint-bucket flood fill at the click point. Renders current state to an off-screen
+         * canvas at doc resolution, flood-fills from the clicked pixel, and stores only the
+         * cropped delta as a 'fill' op so existing undo/redo works unchanged. Cropping keeps
+         * memory proportional to filled area, not canvas area.
          */
         async drawingFill(e) {
             if (this.currentMediaType !== 'drawing' || !this.currentMedia) return;
@@ -4029,11 +3997,10 @@ function noteApp() {
         },
         
         /**
-         * Text tool — single-line, commit-once. Clicking the canvas spawns a floating <input>
-         * at the click position; pressing Enter or losing focus rasterizes the text into a
-         * 'text' op (rendered in DOC space via ctx.fillText so it auto-scales with the canvas).
-         * Esc cancels without writing. Each commit pushes one op so undo/redo handles it just
-         * like any other shape — no separate "edit text" mode, no DOM cleanup gymnastics.
+         * Text tool — single-line, commit-once. Clicking spawns a floating input at the click
+         * point; Enter or blur rasterizes it into a 'text' op (drawn in DOC space via
+         * ctx.fillText so it scales with the canvas). Esc cancels. One op per commit, so
+         * undo/redo needs no special handling.
          */
         drawingTextStart(e) {
             const canvas = this._drawingCanvasEl;
@@ -4069,10 +4036,9 @@ function noteApp() {
         },
         
         /**
-         * Normalize text-tool input: ctx.fillText doesn't honor line breaks (renders them
-         * as literal LF glyphs / tofu), and Firefox treats contenteditable="plaintext-only"
-         * as plain "true" so multi-line paste sneaks newlines into textContent. Also clamp
-         * length defensively so a giant paste can't bloat the op / autosave payload.
+         * Normalize text-tool input: ctx.fillText renders line breaks as tofu, and Firefox
+         * treats contenteditable="plaintext-only" as "true" so pasted newlines sneak into
+         * textContent. Length is clamped so a giant paste can't bloat the op.
          */
         _drawingTextSanitize(s) {
             if (typeof s !== 'string' || s.length === 0) return '';
@@ -4081,11 +4047,9 @@ function noteApp() {
         },
         
         /**
-         * Live-preview handler for the text tool. The contenteditable div is invisible
-         * (color: transparent), so the only thing the user actually SEES of their typing
-         * is whatever drawingRedraw paints from drawingDraft. Pushing the in-progress
-         * text into drawingDraft means the live preview goes through the very same
-         * ctx.fillText call path as the final commit — guaranteeing zero pixel drift.
+         * Live preview for the text tool. The contenteditable div is transparent, so what the
+         * user sees is drawingRedraw painting from drawingDraft — routing in-progress text
+         * through the same ctx.fillText path as the commit guarantees zero pixel drift.
          */
         drawingTextOnInput(e) {
             if (!this.drawingTextActive) return;
@@ -6618,17 +6582,11 @@ function noteApp() {
         },
         
         /**
-         * Scan raw editor source for block-level landmarks whose position in the
-         * source can be identified deterministically without going through
-         * marked.js (which sees a heavily pre-processed string with mangled line
-         * counts). Line numbers are 0-indexed so they align directly with the
-         * scroll handler's currentLine = editor.scrollTop / lineHeight (which
-         * is 0 when the visual first line sits at viewport top).
-         *
-         * Landmarks: fenced code openers, headings, images on their own line
-         * (both `![](...)` and `![[...]]`), first row of a table, horizontal
-         * rules, and block-display math (`\[`). Frontmatter is skipped.
-         * Content inside a fence is ignored (literal text, not renderable).
+         * Scan raw editor source for block-level landmarks whose source position can be
+         * determined without marked.js (which sees a pre-processed string with mangled
+         * line counts). Lines are 0-indexed to match the scroll handler. Landmarks: fence
+         * openers, headings, standalone images, table first row, hrules, block math.
+         * Frontmatter and fence contents are skipped.
          */
         _scanSourceLandmarks(source) {
             if (typeof source !== 'string' || !source) return [];
@@ -6764,10 +6722,9 @@ function noteApp() {
         },
 
         /**
-         * Walk the top-level block children of the rendered preview root and
-         * attach `data-source-line` to elements whose DOM tag matches the next
-         * landmark of the same kind. Uses per-kind FIFO queues so a mismatch in
-         * one kind never derails another kind's alignment.
+         * Attach `data-source-line` to top-level preview blocks whose tag matches the next
+         * landmark of the same kind. Per-kind FIFO queues keep a mismatch in one kind from
+         * derailing another kind's alignment.
          */
         _annotateSourceAnchors(root, landmarks) {
             if (!root || !landmarks || landmarks.length === 0) return;
@@ -6847,16 +6804,11 @@ function noteApp() {
         },
 
         /**
-         * Measure the pixel Y position of specific source lines as they would
-         * be rendered inside the textarea. Uses the well-known "mirror div"
-         * technique (from the textarea-caret-position library): create a
-         * hidden div styled identically to the textarea, populate with the
-         * source, and read boundingClientRect on marker spans placed at the
-         * target lines. The div wraps text pixel-identically to the textarea
-         * as long as we copy every property that affects line wrapping.
-         *
-         * Returns { line -> pixelY } for the requested lines only. Missing
-         * lines get no entry (caller must handle absence).
+         * Measure pixel Y positions of source lines as rendered in the textarea, using the
+         * "mirror div" technique: a hidden div styled identically to the textarea, with
+         * marker spans at the target lines. Wrapping matches pixel-for-pixel only as long
+         * as every wrap-affecting property is copied. Returns { line -> pixelY } for the
+         * requested lines; missing lines get no entry.
          */
         _measureEditorLinePositions(source, editor, targetLines) {
             if (!editor || typeof source !== 'string' || !targetLines || targetLines.length === 0) {
@@ -6949,14 +6901,10 @@ function noteApp() {
         },
 
         /**
-         * Return sorted anchor list: [{ line, previewTop, editorY }, ...].
-         *  - previewTop : landmark element's pixel offset in the preview scroll
-         *                 container (measured live each call — cheap, and top
-         *                 values shift on resize/MathJax/image-load).
-         *  - editorY    : landmark line's pixel offset in the editor (measured
-         *                 via mirror div, cached by content + width + font
-         *                 metrics). This is what makes sync robust to
-         *                 non-uniform prose wrapping.
+         * Return sorted anchors: [{ line, previewTop, editorY }, ...]. previewTop is
+         * measured live each call since top values shift on resize/MathJax/image-load;
+         * editorY comes from the mirror div (cached by content + width + font metrics)
+         * and is what makes sync robust to non-uniform prose wrapping.
          */
         _getScrollAnchors() {
             const container = this._domCache.previewContainer;
@@ -7019,25 +6967,10 @@ function noteApp() {
         },
 
         /**
-         * Build the anchor list bracketed by virtual doc-start and doc-end
-         * anchors. Each entry is { editorPct, previewTop } where:
-         *   - editorPct  : editor.scrollTop / (editor.scrollHeight - editor.clientHeight)
-         *                  at which this landmark sits at the editor viewport
-         *                  top, derived from its measured editorY (mirror-div
-         *                  measurement — see _measureEditorLinePositions).
-         *   - previewTop : the landmark's pixel offset in the preview scroll
-         *                  container.
-         *
-         * Both axes are pixel-derived, so wrap non-uniformity in the editor
-         * (long prose lines that wrap to many visual lines, short code lines
-         * that don't wrap) is handled correctly. If a landmark's editorY is
-         * missing (mirror measurement failed, or editor is display:none in
-         * preview-only mode), we fall back to sourceLine/(totalLines-1) — a
-         * uniform-wrap approximation that's imperfect but consistent.
-         *
-         * With ZERO landmarks the two-anchor list is [{0, 0}, {1, maxPreviewTop}]
-         * and interpolation collapses to `preview.scrollTop = editorPct *
-         * maxPreviewTop` — mathematically identical to legacy percentage sync.
+         * Build the anchor list bracketed by virtual doc-start/doc-end entries, each
+         * { editorPct, previewTop }. Both axes are pixel-derived so non-uniform editor
+         * wrapping stays correct; landmarks missing a measured editorY fall back to
+         * sourceLine/(totalLines-1). With no landmarks it collapses to percentage sync.
          */
         _buildAnchorRange(anchors, editor, previewContainer, totalSourceLines) {
             const maxPreviewTop = Math.max(0, previewContainer.scrollHeight - previewContainer.clientHeight);
@@ -7745,22 +7678,12 @@ function noteApp() {
         },
         
         /**
-         * Restore the saved scroll position for the current note in both panes.
-         * Called from loadNote() (after new content has been laid out) and from
-         * the viewMode watcher (browsers reset scrollTop to 0 when an
-         * overflow:auto element transitions from display:none back to
-         * display:block via x-show, so newly-visible panes need re-positioning).
-         *
-         * Two storage shapes are accepted so the USE_ANCHOR_SYNC dev toggle is
-         * safe to flip mid-session and so both scroll paths (anchor + legacy)
-         * write compatible values:
-         *   - number                 : legacy percentage (0..1)
-         *   - { editorPct: 0..1 }    : anchor path — same percentage semantics
-         *                              on the editor side, but preview target
-         *                              is computed via landmark interpolation
-         *
-         * Idempotent: safe to call multiple times. The isScrolling flag prevents
-         * the scroll-sync handlers from echoing these programmatic writes.
+         * Restore the saved scroll position for the current note in both panes. Also
+         * called from the viewMode watcher because browsers reset scrollTop when an
+         * overflow:auto element goes from display:none back to visible. Accepts either
+         * a legacy number (percentage) or { editorPct } from the anchor path, so the
+         * USE_ANCHOR_SYNC toggle is safe to flip mid-session. Idempotent; isScrolling
+         * keeps the sync handlers from echoing these programmatic writes.
          */
         _restoreNoteScroll() {
             if (!this.currentNote || this.currentMedia) return;
