@@ -4159,13 +4159,34 @@ function noteApp() {
                 n.path === notePath + '.md'
             );
             
+            if (!targetNote && this.currentNote) {
+                // Resolve href relative to the current note's folder (standard
+                // markdown behavior). Fixes `[X](sibling.md)` inside a subfolder
+                // note — the vault-root exact match above misses it. Issue #262.
+                const resolved = this.resolveMarkdownMediaPathForNote(this.currentNote, notePath);
+                if (resolved && resolved !== notePath) {
+                    const resolvedLower = resolved.toLowerCase();
+                    targetNote = this.notes.find(n =>
+                        n.path === resolved ||
+                        n.path === resolved + '.md' ||
+                        n.path.toLowerCase() === resolvedLower ||
+                        n.path.toLowerCase() === resolvedLower + '.md'
+                    );
+                }
+            }
+            
             if (!targetNote) {
-                // Try to find by name (in case link uses just the note name without path)
+                // Try to find by name (in case link uses just the note name without path).
+                // n.name stores the stem (no .md), so also compare against notePath
+                // with any .md suffix stripped — otherwise `[X](FILE.md)` never
+                // matches the "FILE" name. Issue #262.
+                const notePathStem = notePath.replace(/\.md$/i, '');
+                const notePathStemLower = notePathStem.toLowerCase();
                 targetNote = this.notes.find(n => 
                     n.name === notePath || 
-                    n.name === notePath + '.md' ||
+                    n.name === notePathStem ||
                     n.name.toLowerCase() === notePath.toLowerCase() ||
-                    n.name.toLowerCase() === (notePath + '.md').toLowerCase()
+                    n.name.toLowerCase() === notePathStemLower
                 );
             }
             
