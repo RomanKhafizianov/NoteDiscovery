@@ -231,8 +231,7 @@
   "media": {
     "confirm_delete": "Eliminare \"{{name}}\"?",
     "upload_failed": "Caricamento file fallito",
-    "no_valid_files": "Nessun file valido trovato. Supportati: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "Nessun file valido trovato. Supportati: {{formats}}"
   },
   "move": {
     "failed_note": "Impossibile spostare la nota.",

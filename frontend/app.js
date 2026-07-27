@@ -173,6 +173,8 @@ const FilenameValidator = {
 /** Max leading spaces Shift+Tab removes per line when matching one “tab indent” vs \t inserts. */
 const EDITOR_TAB_OUTDENT_MAX_SPACES = 4;
 
+const MEDIA_FORMATS_DISPLAY = 'JPG, PNG, GIF, WebP, MP3, MP4, PDF, MD';
+
 function editorIndentRemoveLen(lineSegment) {
     if (!lineSegment || lineSegment.length === 0) return 0;
     if (lineSegment.charCodeAt(0) === 9 /* \t */) return 1;
@@ -2931,9 +2933,13 @@ function noteApp() {
                 'application/pdf'
             ];
             const mediaFiles = files.filter(file => allowedTypes.includes(file.type.toLowerCase()));
+            // Detect markdown by extension — MIME reporting for .md is inconsistent
+            // across browsers/OSes (text/markdown, text/plain, or empty), so name
+            // is the only reliable signal.
+            const markdownFiles = files.filter(file => /\.md$/i.test(file.name || ''));
             
-            if (mediaFiles.length === 0) {
-                this.toast(this.t('media.no_valid_files'), { type: 'warning' });
+            if (mediaFiles.length === 0 && markdownFiles.length === 0) {
+                this.toast(this.t('media.no_valid_files', { formats: MEDIA_FORMATS_DISPLAY }), { type: 'warning' });
                 return;
             }
             
@@ -2957,6 +2963,85 @@ function noteApp() {
                 }
             }
             // uploadMedia already injects the file into this.notes optimistically.
+            
+            // Markdown drops only make sense when a note is open — the imported
+            // file is placed alongside the current note and a link is inserted
+            // at the drop point. Without a currentNote, silently skip (drops
+            // outside the editor already fall back to the browser default).
+            if (markdownFiles.length > 0 && this.currentNote) {
+                for (const file of markdownFiles) {
+                    try {
+                        await this.importMarkdownFile(file, cursorPos);
+                    } catch (error) {
+                        ErrorHandler.handle(`import markdown ${file.name}`, error);
+                    }
+                }
+            }
+        },
+        
+        /**
+         * Import a dropped .md file as a new note in the same folder as the
+         * currently open note, then insert a standard `[Name](path)` link at
+         * cursorPos (same link shape as sidebar note drops). On filename
+         * collision, appends a yyyymmddHHmmss suffix (matches drawing PNGs).
+         * A defensive 10 MB size cap avoids accidental huge-file drops; normal
+         * markdown notes are orders of magnitude smaller.
+         */
+        async importMarkdownFile(file, cursorPos) {
+            if (!this.currentNote) return;
+            
+            const MAX_MD_BYTES = 10 * 1024 * 1024;
+            if (file.size > MAX_MD_BYTES) {
+                this.toast(this.t('media.upload_failed'), { type: 'warning' });
+                return;
+            }
+            
+            const rawStem = (file.name || '').replace(/\.md$/i, '').trim();
+            const validation = FilenameValidator.validateFilename(rawStem);
+            if (!validation.valid) {
+                this.toast(this.getValidationErrorMessage(validation, 'note'), { type: 'warning' });
+                return;
+            }
+            const stem = validation.sanitized;
+            
+            const currentFolder = this.currentNote.includes('/')
+                ? this.currentNote.substring(0, this.currentNote.lastIndexOf('/'))
+                : '';
+            
+            const joinPath = (folder, filename) => folder ? `${folder}/${filename}` : filename;
+            let targetPath = joinPath(currentFolder, `${stem}.md`);
+            if (this.notes.some(n => n.path === targetPath)) {
+                const ts = this._autoTitleTimestamp();
+                targetPath = joinPath(currentFolder, `${stem}-${ts}.md`);
+            }
+            
+            const content = await file.text();
+            
+            this._optimisticAddNote(targetPath, { content });
+            if (currentFolder) this.expandedFolders.add(currentFolder);
+            this._rebuildTreeAfterMutation();
+            
+            try {
+                const response = await fetch(`/api/notes/${targetPath}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                if (!response.ok) throw new Error('Server returned error');
+            } catch (error) {
+                this._optimisticRemoveNote(targetPath);
+                this._rebuildTreeAfterMutation();
+                throw error;
+            }
+            
+            const noteName = targetPath.split('/').pop().replace(/\.md$/i, '');
+            const encodedPath = targetPath.split('/').map(seg => encodeURIComponent(seg)).join('/');
+            const link = `[${noteName}](${encodedPath})`;
+            
+            const textBefore = this.noteContent.substring(0, cursorPos);
+            const textAfter = this.noteContent.substring(cursorPos);
+            this.noteContent = textBefore + link + '\n' + textAfter;
+            this.autoSave();
         },
         
         // Upload a media file (image, audio, video, PDF)

@@ -232,8 +232,7 @@
   "media": {
     "confirm_delete": "Supprimer \"{{name}}\" ?",
     "upload_failed": "Échec du téléchargement du fichier",
-    "no_valid_files": "Aucun fichier valide trouvé. Supporté : JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "Aucun fichier valide trouvé. Supporté : {{formats}}"
   },
   "move": {
     "failed_note": "Échec du déplacement de la note.",

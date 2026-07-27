@@ -18,7 +18,7 @@
 
 ### Media Support
 - **Drawing editor** — In-app **`drawing-*.png`** sketches next to your notes ([overview](#drawing-editor)); full guide: **[DRAWING.md](DRAWING.md)**
-- **Drag & drop upload** - Drop files from your file system directly into the editor
+- **Drag & drop upload** - Drop files from your file system into the editor: images/audio/video/PDF go to `_attachments`; `.md` files land next to the current note and get an inline link at the drop point
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
 - **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
 - **Audio** - MP3, WAV, OGG, M4A (default max 50MB, configurable)

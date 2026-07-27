@@ -232,8 +232,7 @@
   "media": {
     "confirm_delete": "Biztos törlöd a következőt:  \"{{name}}\"?",
     "upload_failed": "Hiba a fájl feltöltése során",
-    "no_valid_files": "Nem található érvényes fájl. Támogatott formátumok: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "Nem található érvényes fájl. Támogatott formátumok: {{formats}}"
   },
   "move": {
     "failed_note": "Hiba a jegyzet mozgatásánál.",

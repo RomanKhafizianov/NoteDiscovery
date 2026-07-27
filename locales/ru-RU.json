@@ -231,8 +231,7 @@
   "media": {
     "confirm_delete": "Удалить «{{name}}»?",
     "upload_failed": "Не удалось загрузить файл",
-    "no_valid_files": "Не найдено подходящих файлов. Поддерживает: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "Не найдено подходящих файлов. Поддерживает: {{formats}}"
   },
   "move": {
     "failed_note": "Не удалось переместить заметку.",
