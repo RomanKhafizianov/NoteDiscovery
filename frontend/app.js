@@ -384,6 +384,7 @@ function noteApp() {
         // Unified drag state for notes, folders, and media
         draggedItem: null,  // { path: string, type: 'note' | 'folder' | 'image' | 'audio' | 'video' | 'document' }
         dropTarget: null,   // 'editor' | 'folder' | null
+        externalDragActive: false,  // true while OS files (not sidebar items) are being dragged over the editor
         
         // Undo/Redo history
         undoHistory: [],
@@ -2788,10 +2789,15 @@ function noteApp() {
         
         // Handle dragover on editor to show cursor position
         onEditorDragOver(event) {
-            if (!this.draggedItem) return;
+            // Two drag sources land here: internal sidebar items (draggedItem set)
+            // and OS files (dataTransfer.types includes 'Files'). Both should
+            // show the drop affordance and position the caret at the mouse.
+            const isFileDrag = event.dataTransfer?.types?.includes('Files');
+            if (!this.draggedItem && !isFileDrag) return;
             
             event.preventDefault();
             this.dropTarget = 'editor';
+            if (isFileDrag) this.externalDragActive = true;
             
             // Focus the textarea
             const textarea = event.target;
@@ -2843,9 +2849,11 @@ function noteApp() {
         
         // Handle dragenter on editor
         onEditorDragEnter(event) {
-            if (!this.draggedItem) return;
+            const isFileDrag = event.dataTransfer?.types?.includes('Files');
+            if (!this.draggedItem && !isFileDrag) return;
             event.preventDefault();
             this.dropTarget = 'editor';
+            if (isFileDrag) this.externalDragActive = true;
         },
         
         // Handle dragleave on editor
@@ -2854,6 +2862,7 @@ function noteApp() {
             // (not just moving between child elements)
             if (event.target.tagName === 'TEXTAREA') {
                 this.dropTarget = null;
+                this.externalDragActive = false;
             }
         },
         
@@ -2861,6 +2870,7 @@ function noteApp() {
         async onEditorDrop(event) {
             event.preventDefault();
             this.dropTarget = null;
+            this.externalDragActive = false;
             
             // Check if files are being dropped (media from file system)
             if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
