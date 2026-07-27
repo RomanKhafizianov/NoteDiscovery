@@ -232,8 +232,7 @@
   "media": {
     "confirm_delete": "¿Eliminar \"{{name}}\"?",
     "upload_failed": "Error al subir archivo",
-    "no_valid_files": "No se encontraron archivos válidos. Soporta: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "No se encontraron archivos válidos. Soporta: {{formats}}"
   },
   "move": {
     "failed_note": "Error al mover la nota.",

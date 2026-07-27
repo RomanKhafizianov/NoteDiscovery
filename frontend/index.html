@@ -3137,9 +3137,9 @@
                                     @dragenter="onEditorDragEnter($event)"
                                     @dragleave="onEditorDragLeave($event)"
                                     @paste="handlePaste($event)"
-                                    :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + (draggedItem && dropTarget === 'editor' ? ' link-drop-target' : '')"
-                                    :style="'background-color: var(--bg-primary); color: var(--text-primary);' + (draggedItem && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
-                                    :placeholder="draggedItem && dropTarget === 'editor' ? t('editor.drop_hint') : t('editor.placeholder')"
+                                    :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + ((draggedItem || externalDragActive) && dropTarget === 'editor' ? ' link-drop-target' : '')"
+                                    :style="'background-color: var(--bg-primary); color: var(--text-primary);' + ((draggedItem || externalDragActive) && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
+                                    :placeholder="(draggedItem || externalDragActive) && dropTarget === 'editor' ? t('editor.drop_hint') : t('editor.placeholder')"
                                 ></textarea>
                             </div>
                         </div>

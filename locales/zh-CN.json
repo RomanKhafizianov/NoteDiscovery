@@ -231,8 +231,7 @@
   "media": {
     "confirm_delete": "删除 \"{{name}}\"？",
     "upload_failed": "上传文件失败",
-    "no_valid_files": "未找到有效文件。支持：JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "未找到有效文件。支持：{{formats}}"
   },
   "move": {
     "failed_note": "移动笔记失败。",

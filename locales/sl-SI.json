@@ -231,8 +231,7 @@
   "media": {
     "confirm_delete": "Izbrišem \"{{name}}\"?",
     "upload_failed": "Nalaganje datoteke ni uspelo",
-    "no_valid_files": "Ni najdenih veljavnih datotek. Podprto: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "Ni najdenih veljavnih datotek. Podprto: {{formats}}"
   },
   "move": {
     "failed_note": "Napaka pri premikanju zapisa.",

@@ -231,8 +231,7 @@
   "media": {
     "confirm_delete": "「{{name}}」を削除しますか？",
     "upload_failed": "ファイルのアップロードに失敗しました",
-    "no_valid_files": "有効なファイルが見つかりません。対応: JPG, PNG, GIF, WebP, MP3, MP4, PDF",
-    "formats": "JPG, PNG, GIF, WebP, MP3, MP4, PDF"
+    "no_valid_files": "有効なファイルが見つかりません。対応: {{formats}}"
   },
   "move": {
     "failed_note": "ノートの移動に失敗しました。",
