@@ -78,6 +78,15 @@ with open(version_path, 'r', encoding='utf-8') as f:
     version = f.read().strip()
     config['app']['version'] = version
 
+# App name: APP_NAME env var > app.name in config.yaml. An empty value is
+# treated as unset (matches Docker convention and DEFAULT_THEME below), since a
+# blank name would leave the UI and the login page unlabeled.
+_app_name_source = "config.yaml"
+if os.environ.get('APP_NAME', '').strip():
+    config['app']['name'] = os.environ['APP_NAME'].strip()
+    _app_name_source = "APP_NAME env var"
+logger.info("App name: %s (from %s)", config['app']['name'], _app_name_source)
+
 # Environment variable overrides for authentication settings
 # Allows different configs for local vs production deployments
 if 'AUTHENTICATION_ENABLED' in os.environ:
