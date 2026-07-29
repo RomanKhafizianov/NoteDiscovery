@@ -6627,6 +6627,8 @@ function noteApp() {
             // we only accept it as a true HR when the previous line is blank — which is
             // CommonMark's disambiguator between a setext underline and a thematic break.
             const HR = /^([-*_])(\s*\1){2,}\s*$/;
+            // Setext heading underline: a run of `=` (h1) or `-` (h2) and nothing else.
+            const SETEXT_UNDERLINE = /^(=+|-+)\s*$/;
             const IMG_MD = /^!\[[^\]]*\]\([^)]*\)\s*$/;
             const IMG_WIKI = /^!\[\[[^\]]+\]\]\s*$/;
             const TABLE_ROW = /^\|.+\|\s*$/;
@@ -6683,6 +6685,29 @@ function noteApp() {
                     landmarks.push({ line: lineNum, kind: 'h' + headingMatch[1].length });
                     inTable = false;
                     continue;
+                }
+
+                // Setext heading (`text` followed by `===` or `---`). The rendered
+                // heading corresponds to the TEXT line, so that is what the anchor
+                // must point at. Checked before HR because `---` is ambiguous and
+                // CommonMark resolves it as a setext underline whenever it follows a
+                // paragraph. Skipping it entirely leaves the DOM with a heading the
+                // scanner never counted, which fails the per-kind count check and
+                // discards every anchor of that heading level in the note.
+                if (!inTable && i > startIdx && SETEXT_UNDERLINE.test(line)) {
+                    const prev = lines[i - 1];
+                    const prevIsParagraph = prev.trim() !== ''
+                        && !HEADING.test(prev)
+                        && !FENCE_OPEN.test(prev)
+                        && !TABLE_ROW.test(prev)
+                        && !IMG_MD.test(prev)
+                        && !IMG_WIKI.test(prev)
+                        && !BLOCK_MATH_CLOSE.test(prev)
+                        && !SETEXT_UNDERLINE.test(prev);
+                    if (prevIsParagraph) {
+                        landmarks.push({ line: i - 1, kind: line[0] === '=' ? 'h1' : 'h2' });
+                        continue;
+                    }
                 }
 
                 if (HR.test(line)) {
@@ -6984,15 +7009,24 @@ function noteApp() {
             if (anchors && anchors.length) {
                 for (const a of anchors) {
                     if (!a || !Number.isFinite(a.previewTop) || a.previewTop < 0) continue;
+                    // A landmark inside the final viewport of either pane can never be
+                    // brought to that pane's top, so it has no usable anchor position.
+                    // These must be dropped rather than clamped: a clamped entry sits
+                    // at the end of the range, swallows every later anchor via the
+                    // monotonicity check, and blocks the doc-end anchor below - which
+                    // left the preview stopping short of the bottom.
+                    if (a.previewTop >= maxPreviewTop) continue;
                     let editorPct;
                     if (editorMeasurable && Number.isFinite(a.editorY) && a.editorY >= 0 && editorScrollable > 0) {
                         // Real measurement path.
-                        editorPct = Math.min(1, a.editorY / editorScrollable);
+                        if (a.editorY >= editorScrollable) continue;
+                        editorPct = a.editorY / editorScrollable;
                     } else {
                         // Fallback: uniform-wrap approximation. Used when the
                         // editor is hidden (preview-only mode) or when mirror
                         // measurement returned no entry for this line.
                         editorPct = Math.max(0, Math.min(1, a.line / denom));
+                        if (editorPct >= 1) continue;
                     }
                     const last = list[list.length - 1];
                     // Enforce strict monotonicity on both axes so the bracket
@@ -7004,10 +7038,10 @@ function noteApp() {
                     }
                 }
             }
-            const last = list[list.length - 1];
-            if (1 > last.editorPct && maxPreviewTop >= last.previewTop) {
-                list.push({ editorPct: 1, previewTop: maxPreviewTop });
-            }
+            // Every surviving entry is strictly inside both scroll ranges, so the
+            // doc-end anchor always applies. It guarantees that scrolling either pane
+            // to its end scrolls the other to its end.
+            list.push({ editorPct: 1, previewTop: maxPreviewTop });
             return { list, maxPreviewTop };
         },
 
@@ -7090,6 +7124,17 @@ function noteApp() {
             if (this._previewScrollHandler) {
                 preview.removeEventListener('scroll', this._previewScrollHandler);
             }
+
+            // Drop any frame queued by the previous note, so its write can't land
+            // against the new note's content.
+            if (this._editorSyncFrame) {
+                cancelAnimationFrame(this._editorSyncFrame);
+                this._editorSyncFrame = null;
+            }
+            if (this._previewSyncFrame) {
+                cancelAnimationFrame(this._previewSyncFrame);
+                this._previewSyncFrame = null;
+            }
             
             // Create new scroll handlers
             this._editorScrollHandler = () => {
@@ -7099,31 +7144,46 @@ function noteApp() {
                 }
 
                 if (USE_ANCHOR_SYNC) {
-                    // Landmark-anchored sync using EDITOR PERCENTAGE (not line
-                    // index — see _buildAnchorRange for the wrap-safety reason).
-                    // Preview lands at the pixel position interpolated between
-                    // the bracketing landmark pair. Degenerates to legacy
-                    // percentage sync when there are no landmarks.
-                    const editorScrollable = editor.scrollHeight - editor.clientHeight;
-                    if (editorScrollable <= 0) return;
+                    // Coalesce bursts into one sync per frame: _getScrollAnchors()
+                    // reads a rect per landmark, so running it per scroll event is
+                    // O(landmarks) layout work at event rate. The frame callback
+                    // re-reads scrollTop, so it always acts on the latest position.
+                    if (this._editorSyncFrame) return;
+                    this._editorSyncFrame = requestAnimationFrame(() => {
+                        this._editorSyncFrame = null;
 
-                    const editorPct = editor.scrollTop / editorScrollable;
-                    const totalLines = (this.noteContent || '').split('\n').length;
-                    const anchors = this._getScrollAnchors();
+                        // Landmark-anchored sync using EDITOR PERCENTAGE (not line
+                        // index — see _buildAnchorRange for the wrap-safety reason).
+                        // Preview lands at the pixel position interpolated between
+                        // the bracketing landmark pair. Degenerates to legacy
+                        // percentage sync when there are no landmarks.
+                        const editorScrollable = editor.scrollHeight - editor.clientHeight;
+                        if (editorScrollable <= 0) return;
 
-                    // Store as percentage so cross-view-mode restore works even
-                    // when the editor is hidden (display:none, scrollHeight=0).
-                    if (this.currentNote) {
-                        this.noteScrollPositions[this.currentNote] = { editorPct };
-                    }
+                        const editorPct = editor.scrollTop / editorScrollable;
+                        const totalLines = (this.noteContent || '').split('\n').length;
+                        const anchors = this._getScrollAnchors();
 
-                    if (preview.scrollHeight - preview.clientHeight > 0) {
-                        const target = this._editorPctToPreviewScrollTop(
-                            editorPct, anchors, editor, preview, totalLines
-                        );
-                        this.isScrolling = true;
-                        preview.scrollTop = target;
-                    }
+                        // Store as percentage so cross-view-mode restore works even
+                        // when the editor is hidden (display:none, scrollHeight=0).
+                        if (this.currentNote) {
+                            this.noteScrollPositions[this.currentNote] = { editorPct };
+                        }
+
+                        if (preview.scrollHeight - preview.clientHeight > 0) {
+                            const target = this._editorPctToPreviewScrollTop(
+                                editorPct, anchors, editor, preview, totalLines
+                            );
+                            // Only arm the reentrancy guard when the write will actually
+                            // move the pane. Assigning an unchanged scrollTop fires no
+                            // scroll event, which would leave the guard set and make it
+                            // swallow the user's next real scroll.
+                            if (Math.abs(preview.scrollTop - target) >= 1) {
+                                this.isScrolling = true;
+                                preview.scrollTop = target;
+                            }
+                        }
+                    });
                 } else {
                     // Legacy percentage sync. Kept behind USE_ANCHOR_SYNC so we
                     // can bisect regressions during development. Delete this
@@ -7152,27 +7212,36 @@ function noteApp() {
                 }
 
                 if (USE_ANCHOR_SYNC) {
-                    const previewScrollable = preview.scrollHeight - preview.clientHeight;
-                    if (previewScrollable <= 0) return;
+                    // Frame-coalesced for the same reason as the editor handler above.
+                    if (this._previewSyncFrame) return;
+                    this._previewSyncFrame = requestAnimationFrame(() => {
+                        this._previewSyncFrame = null;
 
-                    const anchors = this._getScrollAnchors();
-                    const totalLines = (this.noteContent || '').split('\n').length;
-                    const editorPct = this._previewScrollTopToEditorPct(
-                        preview.scrollTop, anchors, editor, preview, totalLines
-                    );
+                        const previewScrollable = preview.scrollHeight - preview.clientHeight;
+                        if (previewScrollable <= 0) return;
 
-                    // Capture preview-driven scrolls too — this is the only path
-                    // that fires in preview-only mode, where the textarea is
-                    // display:none and never scrolls.
-                    if (this.currentNote) {
-                        this.noteScrollPositions[this.currentNote] = { editorPct };
-                    }
+                        const anchors = this._getScrollAnchors();
+                        const totalLines = (this.noteContent || '').split('\n').length;
+                        const editorPct = this._previewScrollTopToEditorPct(
+                            preview.scrollTop, anchors, editor, preview, totalLines
+                        );
 
-                    const editorScrollable = editor.scrollHeight - editor.clientHeight;
-                    if (editorScrollable > 0) {
-                        this.isScrolling = true;
-                        editor.scrollTop = editorPct * editorScrollable;
-                    }
+                        // Capture preview-driven scrolls too — this is the only path
+                        // that fires in preview-only mode, where the textarea is
+                        // display:none and never scrolls.
+                        if (this.currentNote) {
+                            this.noteScrollPositions[this.currentNote] = { editorPct };
+                        }
+
+                        const editorScrollable = editor.scrollHeight - editor.clientHeight;
+                        if (editorScrollable > 0) {
+                            const target = editorPct * editorScrollable;
+                            if (Math.abs(editor.scrollTop - target) >= 1) {
+                                this.isScrolling = true;
+                                editor.scrollTop = target;
+                            }
+                        }
+                    });
                 } else {
                     const scrollableHeight = preview.scrollHeight - preview.clientHeight;
                     if (scrollableHeight <= 0) return;
