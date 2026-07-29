@@ -277,7 +277,9 @@
     "new_button_option_template": "从模板新建笔记",
     "new_button_option_drawing": "新建绘图",
     "auto_fill_note_title": "用时间戳自动填充标题",
-    "auto_fill_note_title_desc": "yyyymmddHHMMSS。Enter 接受，输入以替换。"
+    "auto_fill_note_title_desc": "yyyymmddHHMMSS。Enter 接受，输入以替换。",
+    "smart_scroll_sync": "智能滚动同步",
+    "smart_scroll_sync_desc": "在两个窗格间对齐标题、图片和表格。关闭时使用百分比滚动。"
   },
   "homepage": {
     "title": "首页",

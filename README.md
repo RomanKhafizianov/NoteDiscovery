@@ -2,6 +2,7 @@
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat">
   <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml">
   <img alt="Latest Version" src="https://img.shields.io/github/v/tag/gamosoft/notediscovery">
+  <a href="https://github.com/gamosoft/NoteDiscovery/pkgs/container/notediscovery"><img alt="GHCR Pulls" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgamosoft%2FNoteDiscovery%2Fstats%2Fghcr.json&style=flat"></a>
   <img alt="License" src="https://img.shields.io/github/license/gamosoft/notediscovery">
 </p>
 

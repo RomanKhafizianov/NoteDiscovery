@@ -278,7 +278,9 @@
     "new_button_option_template": "Nueva nota desde plantilla",
     "new_button_option_drawing": "Nuevo dibujo",
     "auto_fill_note_title": "Título con marca de tiempo",
-    "auto_fill_note_title_desc": "aaaammddHHMMSS. Intro acepta, escribe para reemplazar."
+    "auto_fill_note_title_desc": "aaaammddHHMMSS. Intro acepta, escribe para reemplazar.",
+    "smart_scroll_sync": "Sincronización inteligente",
+    "smart_scroll_sync_desc": "Alinea encabezados, imágenes y tablas entre paneles. Desactivado: desplazamiento por porcentaje."
   },
   "homepage": {
     "title": "Inicio",
