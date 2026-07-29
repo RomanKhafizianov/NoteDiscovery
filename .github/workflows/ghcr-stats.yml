@@ -31,7 +31,6 @@ jobs:
           mkdir -p out
           python3 <<'PY'
           import json, os, re, sys, urllib.request
-          from datetime import datetime, timezone
 
           URL = "https://github.com/gamosoft/NoteDiscovery/pkgs/container/notediscovery"
           req = urllib.request.Request(URL, headers={
@@ -70,11 +69,20 @@ jobs:
               print("::endgroup::", file=sys.stderr)
               sys.exit(1)
 
+          # The abbreviated count is scraped text that later reaches a shell
+          # command and GITHUB_OUTPUT, so only accept the shape GitHub renders
+          # ("308K", "1.2M"). Anything else means the markup changed.
+          if not re.fullmatch(r"[\d.,]+[KMB]?", pretty_downloads):
+              print(f"::error::Unexpected download format: {pretty_downloads!r}", file=sys.stderr)
+              sys.exit(1)
+
           print(f"Parsed downloads: raw={raw_downloads:,} pretty={pretty_downloads!r}")
 
           # shields.io endpoint schema. See https://shields.io/badges/endpoint-badge
-          # `message` is what the badge shows; extra fields (`raw_downloads`,
-          # `updated`) are ignored by shields but useful for downstream tools.
+          # `message` is what the badge shows; `raw_downloads` is ignored by
+          # shields but useful for downstream tools. Nothing here may vary
+          # between runs unless the count itself moved, otherwise the
+          # skip-commit check in the publish step below can never fire.
           payload = {
               "schemaVersion": 1,
               "label": "ghcr pulls",
@@ -82,7 +90,6 @@ jobs:
               "color": "blue",
               "cacheSeconds": 3600,
               "raw_downloads": raw_downloads,
-              "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
           }
 
           with open("out/ghcr.json", "w", encoding="utf-8") as f:
@@ -97,6 +104,8 @@ jobs:
       - name: Publish to stats branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRETTY: ${{ steps.scrape.outputs.pretty }}
+          RAW: ${{ steps.scrape.outputs.raw }}
         run: |
           set -euo pipefail
 
@@ -130,6 +139,6 @@ jobs:
                   echo "No change in scraped count — skipping commit."
                   exit 0
               fi
-              git commit -m "chore(stats): update GHCR pull count to ${{ steps.scrape.outputs.pretty }} (${{ steps.scrape.outputs.raw }}) [skip ci]"
+              git commit -m "chore(stats): update GHCR pull count to ${PRETTY} (${RAW}) [skip ci]"
               git push origin stats
           )
