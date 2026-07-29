@@ -1,6 +1,8 @@
 # NoteDiscovery Configuration
 
 app:
+  # Name shown in the UI, the login page and the browser title.
+  # Override via the APP_NAME env var.
   name: "NoteDiscovery"
   
 server:
