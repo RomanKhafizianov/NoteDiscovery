@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoteDiscovery</title>
+    <title>__APP_NAME__</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -11,14 +11,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/static/manifest.json">
+    <!-- PWA Manifest (served from root so the service worker does not cache a stale app name) -->
+    <link rel="manifest" href="/manifest.json">
     
     <!-- PWA Meta Tags -->
-    <meta name="application-name" content="NoteDiscovery">
+    <meta name="application-name" content="__APP_NAME__">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NoteDiscovery">
+    <meta name="apple-mobile-web-app-title" content="__APP_NAME__">
     <meta name="mobile-web-app-capable" content="yes">
     <!-- Theme color: initial value, updated dynamically by app.js when theme changes -->
     <meta name="theme-color" content="#667eea">
@@ -1505,7 +1505,7 @@
                 <!-- Logo -->
                 <img 
                     src="/static/logo.svg" 
-                    alt="NoteDiscovery" 
+                    alt="__APP_NAME__" 
                     class="icon-rail-logo"
                     @click="goHome()"
                     :title="t('sidebar.go_to_homepage')"
@@ -2361,6 +2361,23 @@
                                     </label>
                                     <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.auto_fill_note_title_desc')"></p>
                                 </div>
+
+                                <div class="mb-4">
+                                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                                        <span class="text-xs font-medium flex-1 min-w-0" style="color: var(--text-secondary);" x-text="t('settings.smart_scroll_sync')"></span>
+                                        <div
+                                            @click="smartScrollSync = !smartScrollSync; localStorage.setItem('smartScrollSync', smartScrollSync)"
+                                            class="relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0"
+                                            :style="smartScrollSync ? 'background-color: var(--accent-primary)' : 'background-color: var(--bg-tertiary)'"
+                                        >
+                                            <div
+                                                class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                                                :style="'background-color: var(--bg-primary);' + (smartScrollSync ? ' transform: translateX(20px);' : '')"
+                                            ></div>
+                                        </div>
+                                    </label>
+                                    <p class="text-xs mt-1" style="color: var(--text-tertiary);" x-text="t('settings.smart_scroll_sync_desc')"></p>
+                                </div>
                                 
                                 <!-- Logout (if auth enabled) - uses authEnabled from main app state -->
                                 <div x-show="authEnabled" class="mb-4">
@@ -3137,9 +3154,9 @@
                                     @dragenter="onEditorDragEnter($event)"
                                     @dragleave="onEditorDragLeave($event)"
                                     @paste="handlePaste($event)"
-                                    :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + (draggedItem && dropTarget === 'editor' ? ' link-drop-target' : '')"
-                                    :style="'background-color: var(--bg-primary); color: var(--text-primary);' + (draggedItem && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
-                                    :placeholder="draggedItem && dropTarget === 'editor' ? t('editor.drop_hint') : t('editor.placeholder')"
+                                    :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + ((draggedItem || externalDragActive) && dropTarget === 'editor' ? ' link-drop-target' : '')"
+                                    :style="'background-color: var(--bg-primary); color: var(--text-primary);' + ((draggedItem || externalDragActive) && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
+                                    :placeholder="(draggedItem || externalDragActive) && dropTarget === 'editor' ? t('editor.drop_hint') : t('editor.placeholder')"
                                 ></textarea>
                             </div>
                         </div>

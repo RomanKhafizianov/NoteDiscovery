@@ -18,7 +18,7 @@
 
 ### Media Support
 - **Drawing editor** — In-app **`drawing-*.png`** sketches next to your notes ([overview](#drawing-editor)); full guide: **[DRAWING.md](DRAWING.md)**
-- **Drag & drop upload** - Drop files from your file system directly into the editor
+- **Drag & drop upload** - Drop files from your file system into the editor: images/audio/video/PDF go to `_attachments`; `.md` files land next to the current note and get an inline link at the drop point
 - **Clipboard paste** - Paste images from clipboard with Ctrl+V
 - **Images** - JPG, PNG, GIF, WebP (default max 10MB, configurable)
 - **Audio** - MP3, WAV, OGG, M4A (default max 50MB, configurable)
@@ -27,6 +27,7 @@
 - **In-app viewing** - View all media types directly in the sidebar
 - **Inline preview** - Audio/video players and PDF viewer embedded in notes
 - **Relative media paths** - For `![alt](path)`, paths resolve from the note’s folder
+- **Inline image sizing** - Obsidian-compatible syntax to size images: `![alt|300](path)` or `![[image.png|300x200]]` (width, or `WIDTHxHEIGHT`; `0` means "auto" for that dimension). Works in preview, print, export, and shared views.
 
 ### Organization
 - **Folder hierarchy** - Organize notes in nested folders
@@ -122,6 +123,7 @@ To link to a heading, convert the heading text to a slug: **lowercase, spaces �
 - **Resizable sidebar** - Drag to adjust width
 - **Collapsible sidebar panel** - Show/hide the sidebar contents while keeping the icon rail in place
 - **View mode memory** - Remembers Edit/Split/Preview preference
+- **Smart scroll sync** - Optional (**Settings → Smart scroll sync**, off by default): aligns headings, images, tables and code blocks between the editor and preview panes instead of scrolling both by percentage
 - **Responsive design** - Works on all screen sizes
 
 ## 📊 Note Statistics
@@ -363,6 +365,12 @@ date: {{date}}
 | `Esc` | `Esc` | Exit Zen Mode |
 | `F3` | `F3` | Next search match |
 | `Shift+F3` | `Shift+F3` | Previous search match |
+| `Ctrl+Alt+1` | `Cmd+Option+1` | View mode: **Edit** |
+| `Ctrl+Alt+2` | `Cmd+Option+2` | View mode: **Split** (falls back to Edit on mobile) |
+| `Ctrl+Alt+3` | `Cmd+Option+3` | View mode: **Preview** |
+| `Ctrl+Alt+V` | `Cmd+Option+V` | Cycle view mode (Edit → Split → Preview) |
+
+> **View mode shortcuts** work anywhere in the app — you don't need to click into the editor first. They're disabled while Zen Mode is active (Zen is edit-only) and while the graph overlay is open.
 
 > **Note for Mac users:** Some Option-based shortcuts (`Cmd+Option+N/F/T`) may conflict with browser shortcuts in Chrome/Brave. Safari has better compatibility. If shortcuts don't work, try using `Ctrl` instead of `Cmd`, or use the UI buttons.
 
