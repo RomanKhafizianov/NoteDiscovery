@@ -15,6 +15,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Optional
+from html import escape as html_escape
 import aiofiles
 from datetime import datetime
 import bcrypt
@@ -318,6 +319,35 @@ plugin_manager.run_hook('on_app_startup')
 static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
+
+# The app name is admin-controlled configuration rather than user input, but it
+# still has to be escaped for the context it lands in: an unescaped quote or
+# angle bracket in the name would corrupt the HTML attribute or JSON string
+# literal it is substituted into.
+def _render_app_name_html(content: str) -> str:
+    """Substitute __APP_NAME__ placeholders in an HTML document."""
+    return content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
+
+
+def _render_app_name_json(content: str) -> str:
+    """Substitute __APP_NAME__ placeholders inside JSON string literals."""
+    return content.replace('__APP_NAME__', json.dumps(config['app']['name'])[1:-1])
+
+
+# PWA manifest - served from root rather than /static because the service worker
+# serves /static/ cache-first, which would pin a stale app name.
+@app.get("/manifest.json", include_in_schema=False)
+@limiter.limit("30/minute")
+async def pwa_manifest(request: Request):
+    """Serve the PWA manifest with the configured app name injected."""
+    manifest_path = static_path / "manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    async with aiofiles.open(manifest_path, 'r', encoding='utf-8') as f:
+        content = await f.read()
+    return Response(content=_render_app_name_json(content), media_type="application/manifest+json")
+
+
 # PWA Service Worker - must be served from root for proper scope
 @app.get("/sw.js", include_in_schema=False)
 @limiter.limit("30/minute")
@@ -486,8 +516,7 @@ async def login_page(request: Request, error: str = None):
         content = await f.read()
     
     # Inject app name throughout the login page
-    app_name = config['app']['name']
-    content = content.replace('NoteDiscovery', app_name)
+    content = _render_app_name_html(content)
     content = content.replace('__DEFAULT_THEME__', DEFAULT_THEME)
     
     return content
@@ -1855,8 +1884,7 @@ async def catch_all(full_path: str, request: Request):
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
-    app_name = config['app']['name']
-    return content.replace('<title>NoteDiscovery</title>', f'<title>{app_name}</title>')
+    return _render_app_name_html(content)
 
 
 # ============================================================================
