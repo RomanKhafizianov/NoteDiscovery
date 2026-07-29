@@ -30,13 +30,6 @@ const CONFIG = {
     TOAST_DURATION_SUCCESS_MS: 3500,
 };
 
-// TEMPORARY dev-only toggle. When true, editor/preview scroll sync uses
-// landmark-anchored interpolation (accurate around images/tables/code/headings).
-// When false, the legacy percentage-based sync runs unchanged.
-// Once anchor sync is proven in the wild, DELETE this const and the `else`
-// branches it gates in setupScrollSync() and _restoreNoteScroll().
-const USE_ANCHOR_SYNC = true;
-
 /** Heroicons outline "share" (same d= as shared-note icon in the file tree) */
 const SHARE_ICON_PATH = 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z';
 
@@ -51,6 +44,10 @@ const LOCAL_SETTINGS = {
     tabInsertsTab: { key: 'tabInsertsTab', type: 'boolean', default: false },
     sidebarPanelCollapsed: { key: 'sidebarPanelCollapsed', type: 'boolean', default: false },
     autoFillNoteTitle: { key: 'autoFillNoteTitle', type: 'boolean', default: false },
+    // Landmark-anchored editor/preview scroll sync. Off by default: percentage sync
+    // is cheaper and adequate for plain prose, while anchoring earns its cost on
+    // notes with images, tables or code blocks.
+    smartScrollSync: { key: 'smartScrollSync', type: 'boolean', default: false },
     // String settings
     sortMode: { key: 'sortMode', type: 'string', default: 'a-z' },
     newButtonAction: {
@@ -436,6 +433,7 @@ function noteApp() {
         newTemplateNoteName: '',
         newButtonAction: 'chooser',
         autoFillNoteTitle: false,
+        smartScrollSync: false,
         lastUsedTemplate: '',
         
         // New note / folder name modal (replaces window.prompt)
@@ -6393,7 +6391,11 @@ function noteApp() {
             // interpolate the editor<->preview mapping accurately across images
             // and other tall blocks. Runs after all other DOM rewrites so the
             // final element identity is what gets tagged.
-            if (USE_ANCHOR_SYNC) {
+            //
+            // Reading the reactive setting here is deliberate: it makes this getter
+            // depend on it, so toggling the preference re-renders and (un)stamps the
+            // anchors without any explicit refresh.
+            if (this.smartScrollSync) {
                 try {
                     const landmarks = this._scanSourceLandmarks(this.noteContent);
                     this._annotateSourceAnchors(tempDiv, landmarks);
@@ -7143,7 +7145,7 @@ function noteApp() {
                     return;
                 }
 
-                if (USE_ANCHOR_SYNC) {
+                if (this.smartScrollSync) {
                     // Coalesce bursts into one sync per frame: _getScrollAnchors()
                     // reads a rect per landmark, so running it per scroll event is
                     // O(landmarks) layout work at event rate. The frame callback
@@ -7185,9 +7187,8 @@ function noteApp() {
                         }
                     });
                 } else {
-                    // Legacy percentage sync. Kept behind USE_ANCHOR_SYNC so we
-                    // can bisect regressions during development. Delete this
-                    // else-branch (and the constant) once anchor sync ships.
+                    // Percentage sync: the default, and what runs when the
+                    // smart-scroll-sync preference is off.
                     const scrollableHeight = editor.scrollHeight - editor.clientHeight;
                     if (scrollableHeight <= 0) return;
 
@@ -7211,7 +7212,7 @@ function noteApp() {
                     return;
                 }
 
-                if (USE_ANCHOR_SYNC) {
+                if (this.smartScrollSync) {
                     // Frame-coalesced for the same reason as the editor handler above.
                     if (this._previewSyncFrame) return;
                     this._previewSyncFrame = requestAnimationFrame(() => {
@@ -7751,8 +7752,8 @@ function noteApp() {
          * called from the viewMode watcher because browsers reset scrollTop when an
          * overflow:auto element goes from display:none back to visible. Accepts either
          * a legacy number (percentage) or { editorPct } from the anchor path, so the
-         * USE_ANCHOR_SYNC toggle is safe to flip mid-session. Idempotent; isScrolling
-         * keeps the sync handlers from echoing these programmatic writes.
+         * smart-scroll-sync preference is safe to flip mid-session. Idempotent;
+         * isScrolling keeps the sync handlers from echoing these programmatic writes.
          */
         _restoreNoteScroll() {
             if (!this.currentNote || this.currentMedia) return;
@@ -7781,7 +7782,7 @@ function noteApp() {
             if (preview) {
                 const scrollable = preview.scrollHeight - preview.clientHeight;
                 if (scrollable > 0) {
-                    if (USE_ANCHOR_SYNC) {
+                    if (this.smartScrollSync) {
                         const anchors = this._getScrollAnchors();
                         const totalLines = (this.noteContent || '').split('\n').length;
                         this.isScrolling = true;

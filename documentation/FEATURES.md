@@ -123,6 +123,7 @@ To link to a heading, convert the heading text to a slug: **lowercase, spaces �
 - **Resizable sidebar** - Drag to adjust width
 - **Collapsible sidebar panel** - Show/hide the sidebar contents while keeping the icon rail in place
 - **View mode memory** - Remembers Edit/Split/Preview preference
+- **Smart scroll sync** - Optional (**Settings → Smart scroll sync**, off by default): aligns headings, images, tables and code blocks between the editor and preview panes instead of scrolling both by percentage
 - **Responsive design** - Works on all screen sizes
 
 ## 📊 Note Statistics

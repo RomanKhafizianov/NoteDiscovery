@@ -278,7 +278,9 @@
     "new_button_option_template": "Neue Notiz aus Vorlage",
     "new_button_option_drawing": "Neue Zeichnung",
     "auto_fill_note_title": "Titel mit Zeitstempel",
-    "auto_fill_note_title_desc": "jjjjmmttHHMMSS. Enter akzeptiert, Tippen ersetzt."
+    "auto_fill_note_title_desc": "jjjjmmttHHMMSS. Enter akzeptiert, Tippen ersetzt.",
+    "smart_scroll_sync": "Intelligente Scroll-Sync",
+    "smart_scroll_sync_desc": "Richtet Überschriften, Bilder und Tabellen zwischen den Bereichen aus. Aus: prozentuales Scrollen."
   },
   "homepage": {
     "title": "Startseite",

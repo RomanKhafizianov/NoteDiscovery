@@ -278,7 +278,9 @@
     "new_button_option_template": "Nouvelle note depuis un modèle",
     "new_button_option_drawing": "Nouveau dessin",
     "auto_fill_note_title": "Titre avec horodatage",
-    "auto_fill_note_title_desc": "aaaammjjHHMMSS. Entrée accepte, tapez pour remplacer."
+    "auto_fill_note_title_desc": "aaaammjjHHMMSS. Entrée accepte, tapez pour remplacer.",
+    "smart_scroll_sync": "Synchronisation intelligente",
+    "smart_scroll_sync_desc": "Aligne titres, images et tableaux entre les volets. Désactivé : défilement en pourcentage."
   },
   "homepage": {
     "title": "Accueil",

@@ -278,7 +278,9 @@
     "new_button_option_template": "Új jegyzet sablonból",
     "new_button_option_drawing": "Új rajz",
     "auto_fill_note_title": "Cím kitöltése időbélyeggel",
-    "auto_fill_note_title_desc": "éééé.hh.nn.ÓÓ.PP.MM."
+    "auto_fill_note_title_desc": "éééé.hh.nn.ÓÓ.PP.MM.",
+    "smart_scroll_sync": "Intelligens gördítés-szinkron",
+    "smart_scroll_sync_desc": "Igazítja a címsorokat, képeket és táblázatokat a panelek között. Kikapcsolva: százalékos gördítés."
   },
   "homepage": {
     "title": "Főoldal",
