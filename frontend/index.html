@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoteDiscovery</title>
+    <title>__APP_NAME__</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -11,14 +11,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/static/manifest.json">
+    <!-- PWA Manifest (served from root so the service worker does not cache a stale app name) -->
+    <link rel="manifest" href="/manifest.json">
     
     <!-- PWA Meta Tags -->
-    <meta name="application-name" content="NoteDiscovery">
+    <meta name="application-name" content="__APP_NAME__">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NoteDiscovery">
+    <meta name="apple-mobile-web-app-title" content="__APP_NAME__">
     <meta name="mobile-web-app-capable" content="yes">
     <!-- Theme color: initial value, updated dynamically by app.js when theme changes -->
     <meta name="theme-color" content="#667eea">
@@ -1505,7 +1505,7 @@
                 <!-- Logo -->
                 <img 
                     src="/static/logo.svg" 
-                    alt="NoteDiscovery" 
+                    alt="__APP_NAME__" 
                     class="icon-rail-logo"
                     @click="goHome()"
                     :title="t('sidebar.go_to_homepage')"

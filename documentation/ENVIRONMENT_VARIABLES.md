@@ -9,8 +9,27 @@ NoteDiscovery supports environment variables to override configuration settings,
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `PORT` | integer | `8000` | HTTP port for the application (Docker, run.py) |
+| `APP_NAME` | string | `NoteDiscovery` | Name shown in the UI, the login page, the browser title and the API docs. Overrides `app.name` in `config.yaml`. |
 
 > **Note**: Advanced server settings (CORS origins, debug mode) are configured via `config.yaml` only, not via environment variables. See [config.yaml](#advanced-server-configuration) for details.
+
+#### Example: Naming your instance
+
+```bash
+# Docker
+docker run -e APP_NAME="My Notes" ...
+
+# Docker Compose
+environment:
+  - APP_NAME=My Notes
+```
+
+Equivalent in `config.yaml`:
+
+```yaml
+app:
+  name: "My Notes"
+```
 
 ### Storage
 
