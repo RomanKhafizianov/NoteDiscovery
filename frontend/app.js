@@ -8068,6 +8068,34 @@ function noteApp() {
             }
         },
         
+        /**
+         * Correct the scheme and host of a server-generated share URL.
+         *
+         * The backend builds share URLs from request.base_url, whose scheme comes from
+         * the connection it actually received. Behind a TLS-terminating reverse proxy
+         * that connection is plain http, so the link comes back as http:// even though
+         * the note is reachable only over https. The browser is authoritative for the
+         * scheme and host it is currently on, so adopt those two and keep the server's
+         * path, which may carry a deployment prefix the frontend cannot infer.
+         */
+        _localizeShareUrl(info) {
+            if (!info || typeof info.url !== 'string' || !info.url) return info;
+            try {
+                const src = new URL(info.url, window.location.href);
+                // Take the origin wholesale rather than assigning protocol/host
+                // separately: the URL host setter leaves an existing port in place when
+                // the new value carries none, which would yield https://host:8000/...
+                info.url = new URL(
+                    src.pathname + src.search + src.hash,
+                    window.location.origin
+                ).toString();
+            } catch (e) {
+                // Keep the server's value rather than risk producing a broken link.
+                console.warn('Could not normalize share URL:', e);
+            }
+            return info;
+        },
+
         // Open share modal and fetch current share status
         async openShareModal() {
             if (!this.currentNote) return;
@@ -8084,7 +8112,7 @@ function noteApp() {
                 const response = await fetch(`/api/share/${encodedPath}`);
                 
                 if (response.ok) {
-                    this.shareInfo = await response.json();
+                    this.shareInfo = this._localizeShareUrl(await response.json());
                 } else {
                     this.shareInfo = { shared: false };
                 }
@@ -8112,7 +8140,7 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    this.shareInfo = await response.json();
+                    this.shareInfo = this._localizeShareUrl(await response.json());
                     this.shareInfo.shared = true;
                     // Update the shared paths set
                     this._sharedNotePaths.add(this.currentNote);
