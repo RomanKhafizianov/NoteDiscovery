@@ -444,12 +444,13 @@ def generate_export_html(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     
-    <!-- Highlight.js for code syntax highlighting -->
+    <!-- Exports stay on CDNs so the file renders on machines with no access to
+         this server. Keep versions in sync with scripts/vendor_assets.py. -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/{highlight_theme}.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     
     <!-- Marked.js for markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     
     <!-- DOMPurify for HTML sanitization (XSS prevention) -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
