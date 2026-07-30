@@ -3,9 +3,11 @@
 NoteDiscovery serves every JavaScript and CSS library from its own `/static/vendor/`
 path instead of a public CDN. This means:
 
-- **Works offline** — air-gapped networks, LAN-only installs and internet outages
-  no longer break the app. Previously the UI would not render at all without
-  internet, because both the Markdown parser and the UI framework were remote.
+- **The app works offline** — air-gapped networks, LAN-only installs and internet
+  outages no longer break the editor. Previously the UI would not render at all
+  without internet, because both the Markdown parser and the UI framework were
+  remote. Downloadable HTML exports are the exception, see
+  [Known gap](#known-gap-downloadable-html-exports).
 - **No third-party requests** — your browser never discloses your IP address or
   the page you are on to jsdelivr, cdnjs or unpkg.
 - **No supply-chain exposure to CDNs** — a compromised CDN cannot inject code
@@ -81,12 +83,17 @@ python scripts/vendor_assets.py --force --update-lock
 This refreshes the pinned hashes. Review the resulting `vendor_lock.json` diff
 before committing it, since it is the record of exactly what users will receive.
 
-## Known gap: HTML export
+## Known gap: downloadable HTML exports
 
-Standalone HTML exports (`backend/export.py`) still reference CDNs. That is
-deliberate: an export is meant to be a portable single file that renders on a
-machine which may have no access to your NoteDiscovery server, so pointing it at
-`/static/vendor/` would make it *less* portable, not more. The trade-off is that
-an exported file needs internet to render maths, diagrams and syntax
-highlighting. Inlining ~13 MB into every export is the only alternative that
-would be truly self-contained.
+A downloaded export is the one page that still loads from CDNs, deliberately: it
+is meant to be a portable single file that renders on a machine with no access to
+your NoteDiscovery server, so pointing it at `/static/vendor/` would make it
+*less* portable, not more. The trade-off is that an exported file needs internet
+to render maths, diagrams and syntax highlighting. Inlining ~13 MB into every
+export is the only alternative that would be truly self-contained.
+
+Everything served by the instance itself uses the vendored copies, including
+shared links (`/share/<token>`) and the print preview. Both are produced by
+`generate_export_html()` in `backend/export.py`, which switches on its
+`local_assets` argument. The CDN versions are pinned to match the vendored ones,
+so a note renders the same either way.

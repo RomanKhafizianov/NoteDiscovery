@@ -64,7 +64,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 ### Key Benefits
 
 - 🔒 **Total Privacy** - Your notes never leave your server
-- 📴 **Works Fully Offline** - All browser libraries are served locally, no CDN calls at runtime — see [documentation/THIRD_PARTY.md](documentation/THIRD_PARTY.md)
+- 📴 **No CDN Required** - The app and its shared links serve every browser library locally, so they work on air-gapped networks — see [documentation/THIRD_PARTY.md](documentation/THIRD_PARTY.md)
 - 🔐 **Optional Authentication** - Simple password protection for self-hosted deployments
 - 💰 **Zero Cost** - No subscriptions, no hidden fees
 - 🚀 **Fast & Lightweight** - Instant search and navigation

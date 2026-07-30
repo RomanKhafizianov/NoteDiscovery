@@ -1486,13 +1486,15 @@ async def export_note_to_html(request: Request, note_path: str, theme: Optional[
         # Get note title
         title = Path(note_path).stem
         
-        # Generate HTML (show print button only when not downloading)
+        # A download has to render anywhere, so it keeps the CDN URLs; the print
+        # preview is served by us and can use the vendored copies.
         html_content = generate_export_html(
             title=title,
             content=content_with_links,
             theme_css=theme_css,
             is_dark=is_dark,
-            show_print_button=not download
+            show_print_button=not download,
+            local_assets=not download
         )
         
         # Return as downloadable file or inline (for print preview)
@@ -1856,12 +1858,13 @@ async def view_shared_note(request: Request, token: str):
         # Get note title
         title = Path(note_path).stem
         
-        # Generate HTML
+        # Served by this instance, so the vendored libraries are reachable
         html_content = generate_export_html(
             title=title,
             content=content_with_links,
             theme_css=theme_css,
-            is_dark=is_dark
+            is_dark=is_dark,
+            local_assets=True
         )
         
         return HTMLResponse(content=html_content)
