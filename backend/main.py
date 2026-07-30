@@ -346,7 +346,8 @@ def _render_app_name_json(content: str) -> str:
 # PWA manifest - served from root rather than /static because the service worker
 # serves /static/ cache-first, which would pin a stale app name.
 @app.get("/manifest.json", include_in_schema=False)
-@limiter.limit("30/minute")
+# Fetched on every page load alongside /sw.js, so this tracks the catch-all page limit.
+@limiter.limit("120/minute")
 async def pwa_manifest(request: Request):
     """Serve the PWA manifest with the configured app name injected."""
     manifest_path = static_path / "manifest.json"
@@ -359,7 +360,8 @@ async def pwa_manifest(request: Request):
 
 # PWA Service Worker - must be served from root for proper scope
 @app.get("/sw.js", include_in_schema=False)
-@limiter.limit("30/minute")
+# Fetched on every page load alongside /manifest.json.
+@limiter.limit("120/minute")
 async def service_worker(request: Request):
     """Serve the PWA service worker from root path for proper scope.
     Injects the app version from VERSION file for cache invalidation."""
@@ -1299,7 +1301,10 @@ async def get_note(note_path: str, include_backlinks: bool = True):
 
 
 @api_router.post("/notes/{note_path:path}", tags=["Notes"])
-@limiter.limit("60/minute")
+# This is the autosave endpoint. With autosave_delay_ms at its 1000ms default a single
+# editing session can approach one request per second on its own, so the limit has to
+# sit well clear of that or active typing starts failing to save.
+@limiter.limit("300/minute")
 async def create_or_update_note(request: Request, note_path: str, content: dict):
     """Create or update a note"""
     try:
