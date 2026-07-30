@@ -48,7 +48,7 @@ def ensure_frontend_assets():
         return
 
     # flush: the subprocess writes to the same stdout right after this
-    print("Downloading frontend libraries (first run only, ~13 MB)...", flush=True)
+    print("Downloading frontend libraries...", flush=True)
     if subprocess.call([sys.executable, str(script)]) != 0:
         print("WARNING: frontend libraries could not be downloaded.")
         print("         The web UI will not load until you run:")

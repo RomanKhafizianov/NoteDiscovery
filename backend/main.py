@@ -7,9 +7,11 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Form, Dep
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from starlette.middleware.sessions import SessionMiddleware
 import os
+import re
 import yaml
 import json
 import logging
@@ -208,6 +210,11 @@ app.add_middleware(
 )
 logger.info("CORS allowed origins: %s", allowed_origins)
 
+# The vendored libraries are served from here rather than a CDN, so nothing
+# compresses them for us. The threshold leaves small responses alone, where the
+# gzip header would cost more than it saves.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # ===========================================================
 # =================
 # Security Helpers
@@ -327,6 +334,42 @@ plugin_manager.run_hook('on_app_startup')
 # Mount static files
 static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+
+def _check_vendored_assets() -> None:
+    """Warn if the UI references browser libraries that were never downloaded.
+
+    Reads the expected set out of index.html rather than keeping a second list in
+    sync, so adding a library or changing its path cannot silently escape this.
+    Only entry points are checked, not every font or lazy-loaded chunk.
+    """
+    index_file = static_path / "index.html"
+    if not index_file.exists():
+        return
+
+    try:
+        markup = index_file.read_text(encoding="utf-8")
+    except OSError:
+        return
+
+    referenced = set(re.findall(r'["\']/static/(vendor/[^"\']+)["\']', markup))
+    missing = sorted(path for path in referenced if not (static_path / path).exists())
+    if not missing:
+        logger.info("Vendored browser libraries: %d present", len(referenced))
+        return
+
+    logger.warning(
+        "%d of %d vendored browser libraries are missing - the web UI will not load",
+        len(missing), len(referenced),
+    )
+    for path in missing[:5]:
+        logger.warning("    missing: frontend/%s", path)
+    if len(missing) > 5:
+        logger.warning("    ... and %d more", len(missing) - 5)
+    logger.warning("    Fix with: python scripts/vendor_assets.py")
+
+
+_check_vendored_assets()
 
 
 # The app name is admin-controlled configuration rather than user input, but it
