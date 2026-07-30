@@ -64,6 +64,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 ### Key Benefits
 
 - 🔒 **Total Privacy** - Your notes never leave your server
+- 📴 **Works Fully Offline** - All browser libraries are served locally, no CDN calls at runtime — see [documentation/THIRD_PARTY.md](documentation/THIRD_PARTY.md)
 - 🔐 **Optional Authentication** - Simple password protection for self-hosted deployments
 - 💰 **Zero Cost** - No subscriptions, no hidden fees
 - 🚀 **Fast & Lightweight** - Instant search and navigation
@@ -273,6 +274,7 @@ Want to learn more?
 - 🤖 **[MCP.md](documentation/MCP.md)** - AI assistant integration (Claude, Cursor, and more)
 - 🔐 **[AUTHENTICATION.md](documentation/AUTHENTICATION.md)** - Enable password protection for your instance
 - 🔧 **[ENVIRONMENT_VARIABLES.md](documentation/ENVIRONMENT_VARIABLES.md)** - Configure settings via environment variables
+- 📦 **[THIRD_PARTY.md](documentation/THIRD_PARTY.md)** - Locally hosted browser libraries, licences, and how to update them
 
 ## 🌍 Multiple Languages
 
