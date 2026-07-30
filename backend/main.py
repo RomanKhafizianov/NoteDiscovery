@@ -12,6 +12,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHea
 from starlette.middleware.sessions import SessionMiddleware
 import os
 import re
+import mimetypes
 import yaml
 import json
 import logging
@@ -330,6 +331,12 @@ plugin_manager = PluginManager(config['storage']['plugins_dir'])
 # Run app startup hooks
 plugin_manager.run_hook('on_app_startup')
 
+
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("font/woff2", ".woff2")
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "frontend"

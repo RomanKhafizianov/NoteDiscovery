@@ -101,10 +101,15 @@
     <script src="/static/vendor/highlight.js/languages/http.min.js"></script>
     
     <script type="module">
-        // Diagram types load on demand from ./chunks/ next to this module
-        import mermaid from '/static/vendor/mermaid/mermaid.esm.min.mjs';
-        // Note: Mermaid is initialized dynamically by app.js renderMermaid() based on current theme
-        window.mermaid = mermaid;
+        // Diagram types load on demand from ./chunks/ next to this module.
+        // Exposed as a promise because module scripts are deferred: a preview can
+        // render before this finishes, and renderMermaid() waits on it.
+        window.mermaidReady = import('/static/vendor/mermaid/mermaid.esm.min.mjs')
+            .then((module) => (window.mermaid = module.default))
+            .catch((error) => {
+                console.error('Mermaid failed to load:', error);
+                return null;
+            });
     </script>
     
     <script src="/static/vendor/vis-network/vis-network.min.js"></script>
@@ -2425,7 +2430,8 @@
                                 rel="noopener noreferrer"
                                 class="inline-flex items-center transition-all hover:scale-105"
                             >
-                                <img src="https://www.pikapods.com/static/run-button.svg" alt="Run on PikaPods" style="height: 28px;">
+                                <!-- Served locally so opening Settings makes no third-party request -->
+                                <img src="/static/pikapods-run-button.svg" alt="Run on PikaPods" style="height: 28px;">
                             </a>
                             <!-- Link to hide these buttons -->
                             <a 

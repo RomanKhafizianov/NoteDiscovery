@@ -5826,8 +5826,11 @@ function noteApp() {
         
         // Render Mermaid diagrams
         async renderMermaid() {
+            if (typeof window.mermaid === 'undefined' && window.mermaidReady) {
+                await window.mermaidReady;
+            }
             if (typeof window.mermaid === 'undefined') {
-                console.warn('Mermaid not loaded yet');
+                console.warn('Mermaid not loaded');
                 return;
             }
             

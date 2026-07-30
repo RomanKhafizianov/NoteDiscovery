@@ -44,6 +44,11 @@ one exists. None of the Apache-2.0 libraries above ships one (checked against th
 published packages for the exact pinned versions), so the licence texts we
 include are sufficient.
 
+One non-library asset is served locally for the same reason:
+`frontend/pikapods-run-button.svg` is PikaPods' own deploy button, kept here so
+that opening Settings does not fetch an image from them. It is their brand asset
+and is used only to link to them.
+
 ## How the files get there
 
 The libraries are **not committed to this repository**. `scripts/vendor_assets.py`
