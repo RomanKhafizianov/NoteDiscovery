@@ -7,15 +7,20 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Form, Dep
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from starlette.middleware.sessions import SessionMiddleware
 import os
+import re
+import mimetypes
 import yaml
 import json
 import logging
 from pathlib import Path
 from typing import List, Optional
 from html import escape as html_escape
+from urllib.parse import quote_plus
+import hashlib
 import aiofiles
 from datetime import datetime
 import bcrypt
@@ -208,6 +213,11 @@ app.add_middleware(
 )
 logger.info("CORS allowed origins: %s", allowed_origins)
 
+# The vendored libraries are served from here rather than a CDN, so nothing
+# compresses them for us. The threshold leaves small responses alone, where the
+# gzip header would cost more than it saves.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # ===========================================================
 # =================
 # Security Helpers
@@ -324,9 +334,57 @@ plugin_manager = PluginManager(config['storage']['plugins_dir'])
 plugin_manager.run_hook('on_app_startup')
 
 
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("font/woff2", ".woff2")
+
 # Mount static files
 static_path = Path(__file__).parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+
+def _check_vendored_assets() -> None:
+    """Warn if the UI references browser libraries that were never downloaded.
+
+    Reads the expected set out of index.html rather than keeping a second list in
+    sync, so adding a library or changing its path cannot silently escape this.
+    Only entry points are checked, not every font or lazy-loaded chunk.
+    """
+    index_file = static_path / "index.html"
+    if not index_file.exists():
+        return
+
+    try:
+        markup = index_file.read_text(encoding="utf-8")
+    except OSError:
+        return
+
+    referenced = set(re.findall(r'["\']/static/(vendor/[^"\']+)["\']', markup))
+    missing = sorted(path for path in referenced if not (static_path / path).exists())
+    if not missing:
+        logger.info("Vendored browser libraries: %d present", len(referenced))
+        return
+
+    logger.warning(
+        "%d of %d vendored browser libraries are missing - the web UI will not load",
+        len(missing), len(referenced),
+    )
+    for path in missing[:5]:
+        logger.warning("    missing: frontend/%s", path)
+    if len(missing) > 5:
+        logger.warning("    ... and %d more", len(missing) - 5)
+    logger.warning("    Fix with: python scripts/vendor_assets.py")
+
+
+_check_vendored_assets()
+
+
+# __APP_VERSION__ lands in a query string in index.html and in the service worker's
+# copy of that same URL. Both must resolve to identical text or the worker precaches
+# an address the page never asks for, so they share this one encoded value.
+version_token = quote_plus(version)
 
 
 # The app name is admin-controlled configuration rather than user input, but it
@@ -334,13 +392,34 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 # angle bracket in the name would corrupt the HTML attribute or JSON string
 # literal it is substituted into.
 def _render_app_name_html(content: str) -> str:
-    """Substitute __APP_NAME__ placeholders in an HTML document."""
-    return content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
+    """Substitute __APP_NAME__ and __APP_VERSION__ placeholders in an HTML document.
+
+    The version turns our own scripts into per-release URLs. Without it an upgraded
+    client can pair new HTML with the previous app.js still held by the service
+    worker, which breaks the page until a manual reload.
+    """
+    content = content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
+    return content.replace('__APP_VERSION__', version_token)
 
 
 def _render_app_name_json(content: str) -> str:
     """Substitute __APP_NAME__ placeholders inside JSON string literals."""
     return content.replace('__APP_NAME__', json.dumps(config['app']['name'])[1:-1])
+
+
+def _html_page_response(content: str, request: Request) -> Response:
+    """Serve a rendered page that always revalidates but rarely re-downloads.
+
+    no-cache stops a browser from pairing a cached page with scripts from a
+    different release; the ETag, taken from the rendered bytes themselves, turns
+    that revalidation into a 304 whenever nothing actually changed.
+    """
+    etag = '"' + hashlib.sha256(content.encode('utf-8')).hexdigest()[:16] + '"'
+    headers = {"Cache-Control": "no-cache", "ETag": etag}
+    if_none_match = request.headers.get("if-none-match", "")
+    if etag in [tag.strip().removeprefix("W/") for tag in if_none_match.split(",")]:
+        return Response(status_code=304, headers=headers)
+    return HTMLResponse(content=content, headers=headers)
 
 
 # PWA manifest - served from root rather than /static because the service worker
@@ -369,8 +448,8 @@ async def service_worker(request: Request):
     if sw_path.exists():
         async with aiofiles.open(sw_path, 'r', encoding='utf-8') as f:
             content = await f.read()
-        # Inject app version into cache name
-        content = content.replace('__APP_VERSION__', version)
+        # Same token as index.html: it names the cache and the precached app.js URL
+        content = content.replace('__APP_VERSION__', version_token)
         return Response(content=content, media_type="application/javascript")
     raise HTTPException(status_code=404, detail="Service worker not found")
 
@@ -530,7 +609,7 @@ async def login_page(request: Request, error: str = None):
     content = _render_app_name_html(content)
     content = content.replace('__DEFAULT_THEME__', DEFAULT_THEME)
     
-    return content
+    return _html_page_response(content, request)
 
 
 @app.post("/login", include_in_schema=False)
@@ -1486,13 +1565,15 @@ async def export_note_to_html(request: Request, note_path: str, theme: Optional[
         # Get note title
         title = Path(note_path).stem
         
-        # Generate HTML (show print button only when not downloading)
+        # A download has to render anywhere, so it keeps the CDN URLs; the print
+        # preview is served by us and can use the vendored copies.
         html_content = generate_export_html(
             title=title,
             content=content_with_links,
             theme_css=theme_css,
             is_dark=is_dark,
-            show_print_button=not download
+            show_print_button=not download,
+            local_assets=not download
         )
         
         # Return as downloadable file or inline (for print preview)
@@ -1856,12 +1937,13 @@ async def view_shared_note(request: Request, token: str):
         # Get note title
         title = Path(note_path).stem
         
-        # Generate HTML
+        # Served by this instance, so the vendored libraries are reachable
         html_content = generate_export_html(
             title=title,
             content=content_with_links,
             theme_css=theme_css,
-            is_dark=is_dark
+            is_dark=is_dark,
+            local_assets=True
         )
         
         return HTMLResponse(content=html_content)
@@ -1898,7 +1980,7 @@ async def catch_all(full_path: str, request: Request):
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
-    return _render_app_name_html(content)
+    return _html_page_response(_render_app_name_html(content), request)
 
 
 # ============================================================================

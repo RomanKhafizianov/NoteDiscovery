@@ -1399,10 +1399,10 @@ function noteApp() {
                 const highlightTheme = document.getElementById('highlight-theme');
                 if (highlightTheme) {
                     if (themeId === 'light') {
-                        highlightTheme.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+                        highlightTheme.href = '/static/vendor/highlight.js/styles/github.min.css';
                     } else {
                         // Use dark theme for dark/custom themes
-                        highlightTheme.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+                        highlightTheme.href = '/static/vendor/highlight.js/styles/github-dark.min.css';
                     }
                 }
                 
@@ -5826,8 +5826,11 @@ function noteApp() {
         
         // Render Mermaid diagrams
         async renderMermaid() {
+            if (typeof window.mermaid === 'undefined' && window.mermaidReady) {
+                await window.mermaidReady;
+            }
             if (typeof window.mermaid === 'undefined') {
-                console.warn('Mermaid not loaded yet');
+                console.warn('Mermaid not loaded');
                 return;
             }
             
