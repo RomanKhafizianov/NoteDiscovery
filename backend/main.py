@@ -585,7 +585,7 @@ def verify_password(password: str) -> bool:
     try:
         return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
     except Exception as e:
-        logger.error("Password verification error occurred")
+        logger.error("Password verification error: %s", e)
         return False
 
 
