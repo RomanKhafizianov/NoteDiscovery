@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import List, Optional
 from html import escape as html_escape
 from urllib.parse import quote_plus
+import hashlib
 import aiofiles
 from datetime import datetime
 import bcrypt
@@ -400,6 +401,21 @@ def _render_app_name_json(content: str) -> str:
     return content.replace('__APP_NAME__', json.dumps(config['app']['name'])[1:-1])
 
 
+def _html_page_response(content: str, request: Request) -> Response:
+    """Serve a rendered page that always revalidates but rarely re-downloads.
+
+    no-cache stops a browser from pairing a cached page with scripts from a
+    different release; the ETag, taken from the rendered bytes themselves, turns
+    that revalidation into a 304 whenever nothing actually changed.
+    """
+    etag = '"' + hashlib.sha256(content.encode('utf-8')).hexdigest()[:16] + '"'
+    headers = {"Cache-Control": "no-cache", "ETag": etag}
+    if_none_match = request.headers.get("if-none-match", "")
+    if etag in [tag.strip().removeprefix("W/") for tag in if_none_match.split(",")]:
+        return Response(status_code=304, headers=headers)
+    return HTMLResponse(content=content, headers=headers)
+
+
 # PWA manifest - served from root rather than /static because the service worker
 # serves /static/ cache-first, which would pin a stale app name.
 @app.get("/manifest.json", include_in_schema=False)
@@ -587,7 +603,7 @@ async def login_page(request: Request, error: str = None):
     content = _render_app_name_html(content)
     content = content.replace('__DEFAULT_THEME__', DEFAULT_THEME)
     
-    return HTMLResponse(content=content, headers={"Cache-Control": "no-cache"})
+    return _html_page_response(content, request)
 
 
 @app.post("/login", include_in_schema=False)
@@ -1958,13 +1974,7 @@ async def catch_all(full_path: str, request: Request):
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
-    # no-cache means revalidate, not "never store": the browser still gets a 304 when
-    # nothing changed. It keeps the document from going stale and referencing script
-    # URLs from an older release.
-    return HTMLResponse(
-        content=_render_app_name_html(content),
-        headers={"Cache-Control": "no-cache"},
-    )
+    return _html_page_response(_render_app_name_html(content), request)
 
 
 # ============================================================================
