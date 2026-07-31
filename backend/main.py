@@ -381,6 +381,12 @@ def _check_vendored_assets() -> None:
 _check_vendored_assets()
 
 
+# __APP_VERSION__ lands in a query string in index.html and in the service worker's
+# copy of that same URL. Both must resolve to identical text or the worker precaches
+# an address the page never asks for, so they share this one encoded value.
+version_token = quote_plus(version)
+
+
 # The app name is admin-controlled configuration rather than user input, but it
 # still has to be escaped for the context it lands in: an unescaped quote or
 # angle bracket in the name would corrupt the HTML attribute or JSON string
@@ -393,7 +399,7 @@ def _render_app_name_html(content: str) -> str:
     worker, which breaks the page until a manual reload.
     """
     content = content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
-    return content.replace('__APP_VERSION__', quote_plus(version))
+    return content.replace('__APP_VERSION__', version_token)
 
 
 def _render_app_name_json(content: str) -> str:
@@ -442,8 +448,8 @@ async def service_worker(request: Request):
     if sw_path.exists():
         async with aiofiles.open(sw_path, 'r', encoding='utf-8') as f:
             content = await f.read()
-        # Inject app version into cache name
-        content = content.replace('__APP_VERSION__', version)
+        # Same token as index.html: it names the cache and the precached app.js URL
+        content = content.replace('__APP_VERSION__', version_token)
         return Response(content=content, media_type="application/javascript")
     raise HTTPException(status_code=404, detail="Service worker not found")
 
