@@ -4118,8 +4118,9 @@
         </button>
     </nav>
     
-    <script src="/static/editor-markdown-continue.js"></script>
-    <script src="/static/app.js"></script>
+    <!-- ?v= is the app version, so a release cannot be served from a stale cache -->
+    <script src="/static/editor-markdown-continue.js?v=__APP_VERSION__"></script>
+    <script src="/static/app.js?v=__APP_VERSION__"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

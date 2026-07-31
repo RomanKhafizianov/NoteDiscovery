@@ -19,6 +19,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 from html import escape as html_escape
+from urllib.parse import quote_plus
 import aiofiles
 from datetime import datetime
 import bcrypt
@@ -384,8 +385,14 @@ _check_vendored_assets()
 # angle bracket in the name would corrupt the HTML attribute or JSON string
 # literal it is substituted into.
 def _render_app_name_html(content: str) -> str:
-    """Substitute __APP_NAME__ placeholders in an HTML document."""
-    return content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
+    """Substitute __APP_NAME__ and __APP_VERSION__ placeholders in an HTML document.
+
+    The version turns our own scripts into per-release URLs. Without it an upgraded
+    client can pair new HTML with the previous app.js still held by the service
+    worker, which breaks the page until a manual reload.
+    """
+    content = content.replace('__APP_NAME__', html_escape(config['app']['name'], quote=True))
+    return content.replace('__APP_VERSION__', quote_plus(version))
 
 
 def _render_app_name_json(content: str) -> str:
@@ -580,7 +587,7 @@ async def login_page(request: Request, error: str = None):
     content = _render_app_name_html(content)
     content = content.replace('__DEFAULT_THEME__', DEFAULT_THEME)
     
-    return content
+    return HTMLResponse(content=content, headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/login", include_in_schema=False)
@@ -1951,7 +1958,13 @@ async def catch_all(full_path: str, request: Request):
     index_path = static_path / "index.html"
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
-    return _render_app_name_html(content)
+    # no-cache means revalidate, not "never store": the browser still gets a 304 when
+    # nothing changed. It keeps the document from going stale and referencing script
+    # URLs from an older release.
+    return HTMLResponse(
+        content=_render_app_name_html(content),
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 # ============================================================================
