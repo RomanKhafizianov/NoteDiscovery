@@ -180,6 +180,41 @@
             font-weight: 300;
         }
 
+        .project-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.25rem auto 0;
+            max-width: 36rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .project-badges a {
+            display: inline-flex;
+            flex-shrink: 0;
+            line-height: 0;
+            opacity: 0.9;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .project-badges a:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+
+        .project-badges img {
+            height: 20px;
+            width: auto;
+            display: block;
+            border-radius: 3px;
+        }
+
         .hero {
             background: var(--card-bg);
             border-radius: 20px;
@@ -662,6 +697,17 @@
                 font-size: 1.2rem;
             }
 
+            .project-badges {
+                gap: 0.4rem;
+                padding: 0.45rem 0.6rem;
+                border-radius: 1rem;
+                max-width: calc(100% - 1rem);
+            }
+
+            .project-badges img {
+                height: 18px;
+            }
+
             .hero, .benefits {
                 padding: 2rem;
             }
@@ -782,6 +828,23 @@
             <img src="logo.svg" alt="NoteDiscovery Logo" class="logo">
             <h1>NoteDiscovery</h1>
             <p class="tagline">Your Self-Hosted Knowledge Base</p>
+            <nav class="project-badges" aria-label="Project status">
+                <a href="https://github.com/gamosoft/NoteDiscovery/stargazers" target="_blank" rel="noopener" aria-label="GitHub stars">
+                    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat" loading="lazy" decoding="async">
+                </a>
+                <a href="https://github.com/gamosoft/NoteDiscovery/pkgs/container/notediscovery" target="_blank" rel="noopener" aria-label="GHCR container pulls">
+                    <img alt="GHCR Pulls" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgamosoft%2FNoteDiscovery%2Fstats%2Fghcr.json&amp;style=flat" loading="lazy" decoding="async">
+                </a>
+                <a href="https://github.com/gamosoft/NoteDiscovery/releases" target="_blank" rel="noopener" aria-label="Latest release">
+                    <img alt="Latest Version" src="https://img.shields.io/github/v/tag/gamosoft/notediscovery?style=flat" loading="lazy" decoding="async">
+                </a>
+                <a href="https://github.com/gamosoft/NoteDiscovery/blob/main/LICENSE" target="_blank" rel="noopener" aria-label="License">
+                    <img alt="License" src="https://img.shields.io/github/license/gamosoft/notediscovery?style=flat" loading="lazy" decoding="async">
+                </a>
+                <a href="https://github.com/gamosoft/NoteDiscovery/actions/workflows/docker-publish.yml" target="_blank" rel="noopener" aria-label="Build status">
+                    <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml?style=flat" loading="lazy" decoding="async">
+                </a>
+            </nav>
         </header>
 
         <div class="hero animate-on-scroll">
