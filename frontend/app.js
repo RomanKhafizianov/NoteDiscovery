@@ -178,9 +178,11 @@ const EDITOR_TAB_OUTDENT_MAX_SPACES = 4;
 
 const MEDIA_FORMATS_DISPLAY = 'JPG, PNG, GIF, WebP, MP3, MP4, PDF, MD';
 
-/** GFM task item as (marker + `[`)(state). Literal spaces, not \s: marked needs a
- *  real space either side of the brackets, and must agree on what counts as a task. */
-const TASK_ITEM_RE = /^(\s*(?:>\s*)*(?:[-*+]|\d{1,9}[.)]) +\[)([ xX])(?=\] )/;
+/** GFM task item as (everything up to `[`)(state). Literal spaces around the
+ *  brackets, not \s, because that is what marked requires; the leading chain covers
+ *  containers opened on the same line, e.g. `- > - [ ] x`, which marked does render.
+ *  Missing a task marked renders is the one unsafe direction: see _scanTaskLines. */
+const TASK_ITEM_RE = /^(\s*(?:(?:[-*+]|\d{1,9}[.)]) +|>\s*)*(?:[-*+]|\d{1,9}[.)]) +\[)([ xX])(?=\] )/;
 
 function editorIndentRemoveLen(lineSegment) {
     if (!lineSegment || lineSegment.length === 0) return 0;
@@ -4205,10 +4207,40 @@ function noteApp() {
             this.handleInternalLink(event);
         },
 
-        /** Tick/untick the clicked task item in the source. True when it was a checkbox. */
+        /**
+         * The checkbox a click should toggle: the box itself, or the one belonging to
+         * the task item whose text was clicked. Returns null when the click was meant
+         * for something else — following a link, playing a video, selecting text.
+         */
+        _taskBoxForClick(event) {
+            const target = event.target;
+            if (!target || !target.closest) return null;
+
+            if (target.tagName === 'INPUT' && target.type === 'checkbox') return target;
+
+            // Anything with its own click behaviour, plus code blocks, which people
+            // click to read and copy rather than to tick something off.
+            if (target.closest('a, img, video, audio, iframe, pre, button, label, summary')) return null;
+
+            // detail > 1 is the second half of a double-click, which is someone
+            // selecting a word rather than aiming at the item.
+            if (event.detail !== 1) return null;
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed) return null;
+
+            const item = target.closest('li');
+            if (!item) return null;
+
+            // First box in document order belongs to this item unless it sits in a
+            // nested one, which is the case when a plain bullet has task children.
+            const box = item.querySelector('input[type="checkbox"][data-task-index]');
+            return box && box.closest('li') === item ? box : null;
+        },
+
+        /** Tick/untick the clicked task item in the source. True when it was a task. */
         toggleTaskFromPreview(event) {
-            const box = event.target;
-            if (!box || box.tagName !== 'INPUT' || box.type !== 'checkbox') return false;
+            const box = this._taskBoxForClick(event);
+            if (!box) return false;
 
             const index = parseInt(box.getAttribute('data-task-index'), 10);
             if (!Number.isInteger(index)) return false;
@@ -6634,8 +6666,10 @@ function noteApp() {
         
         /**
          * Source line of every task item, in document order. Frontmatter and fenced
-         * code are skipped since neither renders a checkbox. Callers must compare this
-         * count with the rendered boxes: pairing them when they differ ticks the wrong line.
+         * code are skipped since neither renders a checkbox. Callers pair these with the
+         * rendered boxes only when the counts match, which is safe as long as this can
+         * over-count but never under-count: a miss here could cancel out a spare and
+         * pass that check with everything shifted by one.
          */
         _scanTaskLines(source) {
             if (typeof source !== 'string' || !source) return [];

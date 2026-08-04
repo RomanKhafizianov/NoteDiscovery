@@ -10,7 +10,7 @@
 - **Undo/Redo** - Ctrl+Z / Ctrl+Y support
 - **Note templates** - Create notes from templates with dynamic placeholders
 - **Quick-create** - Set the **+ / New** button to skip the type chooser and create your most common item (note, folder, template, or drawing) in one click; **Shift+click** always shows the full chooser. Optionally pre-fill new note titles with a `yyyymmddHHMMSS` timestamp.
-- **Interactive task lists** - Click a `- [ ]` checkbox in the preview to tick it; the change is written back to the note source and saved
+- **Interactive task lists** - Click a `- [ ]` checkbox or its text in the preview to tick it; the change is written back to the note source and saved. Needs text after the brackets (`- [ ] task`, not `- [ ]`)
 - **Syntax highlighting** for code blocks (50+ languages)
 - **Copy code blocks** - One-click copy button on hover
 - **LaTeX/Math rendering** - Beautiful mathematical equations with MathJax (see [MATHJAX.md](MATHJAX.md))
