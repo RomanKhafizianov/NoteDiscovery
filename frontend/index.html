@@ -581,7 +581,10 @@
         .markdown-preview input[type="checkbox"]:not([disabled]) {
             cursor: pointer;
         }
-        .markdown-preview li:has(> input[type="checkbox"]) {
+        /* Loose lists (a blank line anywhere in them) wrap item content in a <p>,
+           so both shapes need covering or the bullet reappears next to the box. */
+        .markdown-preview li:has(> input[type="checkbox"]),
+        .markdown-preview li:has(> p > input[type="checkbox"]) {
             list-style: none;
             margin-left: -1.25rem;
         }

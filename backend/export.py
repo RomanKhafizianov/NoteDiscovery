@@ -709,7 +709,9 @@ def generate_export_html(
         .markdown-preview input[type="checkbox"] {{
             margin-right: 0.5em;
         }}
-        .markdown-preview li:has(> input[type="checkbox"]) {{
+        /* Loose lists wrap item content in a <p>, so both shapes need covering. */
+        .markdown-preview li:has(> input[type="checkbox"]),
+        .markdown-preview li:has(> p > input[type="checkbox"]) {{
             list-style: none;
             margin-left: -1.25em;
         }}
