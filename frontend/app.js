@@ -178,6 +178,10 @@ const EDITOR_TAB_OUTDENT_MAX_SPACES = 4;
 
 const MEDIA_FORMATS_DISPLAY = 'JPG, PNG, GIF, WebP, MP3, MP4, PDF, MD';
 
+/** GFM task item as (marker + `[`)(state). Literal spaces, not \s: marked needs a
+ *  real space either side of the brackets, and must agree on what counts as a task. */
+const TASK_ITEM_RE = /^(\s*(?:>\s*)*(?:[-*+]|\d{1,9}[.)]) +\[)([ xX])(?=\] )/;
+
 function editorIndentRemoveLen(lineSegment) {
     if (!lineSegment || lineSegment.length === 0) return 0;
     if (lineSegment.charCodeAt(0) === 9 /* \t */) return 1;
@@ -4195,6 +4199,37 @@ function noteApp() {
             }
         },
         
+        // Single click entry point for the preview pane.
+        handlePreviewClick(event) {
+            if (this.toggleTaskFromPreview(event)) return;
+            this.handleInternalLink(event);
+        },
+
+        /** Tick/untick the clicked task item in the source. True when it was a checkbox. */
+        toggleTaskFromPreview(event) {
+            const box = event.target;
+            if (!box || box.tagName !== 'INPUT' || box.type !== 'checkbox') return false;
+
+            const index = parseInt(box.getAttribute('data-task-index'), 10);
+            if (!Number.isInteger(index)) return false;
+
+            // Rescanned per click: the note can change between render and click.
+            const lineIdx = this._scanTaskLines(this.noteContent)[index];
+            if (lineIdx === undefined) return false;
+
+            const lines = this.noteContent.split('\n');
+            const toggled = lines[lineIdx].replace(
+                TASK_ITEM_RE,
+                (match, prefix, state) => prefix + (state === ' ' ? 'x' : ' ')
+            );
+            if (toggled === lines[lineIdx]) return false;
+
+            lines[lineIdx] = toggled;
+            this.noteContent = lines.join('\n');
+            this.autoSave();
+            return true;
+        },
+
         // Handle clicks on internal links in preview
         handleInternalLink(event) {
             // Check if clicked element is a link
@@ -6387,6 +6422,17 @@ function noteApp() {
                 span.replaceWith(wrapper);
             });
 
+            // marked renders these disabled, and a disabled input fires no click event.
+            // The index is how a click finds its line, so only trust it when both sides
+            // counted the same items; otherwise leave the boxes read-only.
+            const taskBoxes = tempDiv.querySelectorAll('input[type="checkbox"]');
+            if (taskBoxes.length && taskBoxes.length === this._scanTaskLines(this.noteContent).length) {
+                taskBoxes.forEach((box, i) => {
+                    box.removeAttribute('disabled');
+                    box.setAttribute('data-task-index', String(i));
+                });
+            }
+
             // Landmark scroll-sync anchors. Stamps `data-source-line` on the DOM
             // elements corresponding to block-level constructs whose source line
             // can be determined from the raw editor content (headings, images,
@@ -6586,6 +6632,48 @@ function noteApp() {
             preElement.appendChild(button);
         },
         
+        /**
+         * Source line of every task item, in document order. Frontmatter and fenced
+         * code are skipped since neither renders a checkbox. Callers must compare this
+         * count with the rendered boxes: pairing them when they differ ticks the wrong line.
+         */
+        _scanTaskLines(source) {
+            if (typeof source !== 'string' || !source) return [];
+            const lines = source.split('\n');
+            const taskLines = [];
+            let startIdx = 0;
+
+            if (lines[0] && lines[0].trim() === '---') {
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '---') {
+                        startIdx = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // Indented fences count here: one nested in a list item still hides tasks.
+            const FENCE = /^\s*(`{3,}|~{3,})/;
+            let openFence = null;
+
+            for (let i = startIdx; i < lines.length; i++) {
+                const fence = lines[i].match(FENCE);
+                if (openFence) {
+                    if (fence && fence[1][0] === openFence[0] && fence[1].length >= openFence.length) {
+                        openFence = null;
+                    }
+                    continue;
+                }
+                if (fence) {
+                    openFence = fence[1];
+                    continue;
+                }
+                if (TASK_ITEM_RE.test(lines[i])) taskLines.push(i);
+            }
+
+            return taskLines;
+        },
+
         /**
          * Scan raw editor source for block-level landmarks whose source position can be
          * determined without marked.js (which sees a pre-processed string with mangled

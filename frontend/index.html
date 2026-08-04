@@ -577,6 +577,10 @@
         .markdown-preview input[type="checkbox"] {
             margin-right: 0.5rem;
         }
+        /* Exports keep them disabled, so only the live preview gets the affordance */
+        .markdown-preview input[type="checkbox"]:not([disabled]) {
+            cursor: pointer;
+        }
         .markdown-preview li:has(> input[type="checkbox"]) {
             list-style: none;
             margin-left: -1.25rem;
@@ -3293,7 +3297,7 @@
                                 class="p-6 markdown-preview"
                                 :class="{ 'pt-2': getHasMetadata() && currentNote, 'readable-width': readableLineLength }"
                                 x-html="renderedMarkdown"
-                                @click="handleInternalLink($event)"
+                                @click="handlePreviewClick($event)"
                             ></div>
                         </div>
                         
