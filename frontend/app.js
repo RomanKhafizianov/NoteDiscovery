@@ -178,6 +178,12 @@ const EDITOR_TAB_OUTDENT_MAX_SPACES = 4;
 
 const MEDIA_FORMATS_DISPLAY = 'JPG, PNG, GIF, WebP, MP3, MP4, PDF, MD';
 
+/** GFM task item as (everything up to `[`)(state). Literal spaces around the
+ *  brackets, not \s, because that is what marked requires; the leading chain covers
+ *  containers opened on the same line, e.g. `- > - [ ] x`, which marked does render.
+ *  Missing a task marked renders is the one unsafe direction: see _scanTaskLines. */
+const TASK_ITEM_RE = /^(\s*(?:(?:[-*+]|\d{1,9}[.)]) +|>\s*)*(?:[-*+]|\d{1,9}[.)]) +\[)([ xX])(?=\] )/;
+
 function editorIndentRemoveLen(lineSegment) {
     if (!lineSegment || lineSegment.length === 0) return 0;
     if (lineSegment.charCodeAt(0) === 9 /* \t */) return 1;
@@ -4195,6 +4201,67 @@ function noteApp() {
             }
         },
         
+        // Single click entry point for the preview pane.
+        handlePreviewClick(event) {
+            if (this.toggleTaskFromPreview(event)) return;
+            this.handleInternalLink(event);
+        },
+
+        /**
+         * The checkbox a click should toggle: the box itself, or the one belonging to
+         * the task item whose text was clicked. Returns null when the click was meant
+         * for something else — following a link, playing a video, selecting text.
+         */
+        _taskBoxForClick(event) {
+            const target = event.target;
+            if (!target || !target.closest) return null;
+
+            if (target.tagName === 'INPUT' && target.type === 'checkbox') return target;
+
+            // Anything with its own click behaviour, plus code blocks, which people
+            // click to read and copy rather than to tick something off.
+            if (target.closest('a, img, video, audio, iframe, pre, button, label, summary')) return null;
+
+            // detail > 1 is the second half of a double-click, which is someone
+            // selecting a word rather than aiming at the item.
+            if (event.detail !== 1) return null;
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed) return null;
+
+            const item = target.closest('li');
+            if (!item) return null;
+
+            // First box in document order belongs to this item unless it sits in a
+            // nested one, which is the case when a plain bullet has task children.
+            const box = item.querySelector('input[type="checkbox"][data-task-index]');
+            return box && box.closest('li') === item ? box : null;
+        },
+
+        /** Tick/untick the clicked task item in the source. True when it was a task. */
+        toggleTaskFromPreview(event) {
+            const box = this._taskBoxForClick(event);
+            if (!box) return false;
+
+            const index = parseInt(box.getAttribute('data-task-index'), 10);
+            if (!Number.isInteger(index)) return false;
+
+            // Rescanned per click: the note can change between render and click.
+            const lineIdx = this._scanTaskLines(this.noteContent)[index];
+            if (lineIdx === undefined) return false;
+
+            const lines = this.noteContent.split('\n');
+            const toggled = lines[lineIdx].replace(
+                TASK_ITEM_RE,
+                (match, prefix, state) => prefix + (state === ' ' ? 'x' : ' ')
+            );
+            if (toggled === lines[lineIdx]) return false;
+
+            lines[lineIdx] = toggled;
+            this.noteContent = lines.join('\n');
+            this.autoSave();
+            return true;
+        },
+
         // Handle clicks on internal links in preview
         handleInternalLink(event) {
             // Check if clicked element is a link
@@ -6387,6 +6454,17 @@ function noteApp() {
                 span.replaceWith(wrapper);
             });
 
+            // marked renders these disabled, and a disabled input fires no click event.
+            // The index is how a click finds its line, so only trust it when both sides
+            // counted the same items; otherwise leave the boxes read-only.
+            const taskBoxes = tempDiv.querySelectorAll('input[type="checkbox"]');
+            if (taskBoxes.length && taskBoxes.length === this._scanTaskLines(this.noteContent).length) {
+                taskBoxes.forEach((box, i) => {
+                    box.removeAttribute('disabled');
+                    box.setAttribute('data-task-index', String(i));
+                });
+            }
+
             // Landmark scroll-sync anchors. Stamps `data-source-line` on the DOM
             // elements corresponding to block-level constructs whose source line
             // can be determined from the raw editor content (headings, images,
@@ -6586,6 +6664,50 @@ function noteApp() {
             preElement.appendChild(button);
         },
         
+        /**
+         * Source line of every task item, in document order. Frontmatter and fenced
+         * code are skipped since neither renders a checkbox. Callers pair these with the
+         * rendered boxes only when the counts match, which is safe as long as this can
+         * over-count but never under-count: a miss here could cancel out a spare and
+         * pass that check with everything shifted by one.
+         */
+        _scanTaskLines(source) {
+            if (typeof source !== 'string' || !source) return [];
+            const lines = source.split('\n');
+            const taskLines = [];
+            let startIdx = 0;
+
+            if (lines[0] && lines[0].trim() === '---') {
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '---') {
+                        startIdx = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // Indented fences count here: one nested in a list item still hides tasks.
+            const FENCE = /^\s*(`{3,}|~{3,})/;
+            let openFence = null;
+
+            for (let i = startIdx; i < lines.length; i++) {
+                const fence = lines[i].match(FENCE);
+                if (openFence) {
+                    if (fence && fence[1][0] === openFence[0] && fence[1].length >= openFence.length) {
+                        openFence = null;
+                    }
+                    continue;
+                }
+                if (fence) {
+                    openFence = fence[1];
+                    continue;
+                }
+                if (TASK_ITEM_RE.test(lines[i])) taskLines.push(i);
+            }
+
+            return taskLines;
+        },
+
         /**
          * Scan raw editor source for block-level landmarks whose source position can be
          * determined without marked.js (which sees a pre-processed string with mangled
