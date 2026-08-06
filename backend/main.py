@@ -204,10 +204,13 @@ app = FastAPI(
 # CORS middleware configuration
 # Use config.yaml to control allowed origins (default: ["*"] for self-hosted simplicity)
 allowed_origins = config.get('server', {}).get('allowed_origins', ["*"])
+# Credentials must not be sent with wildcard origins (CORS spec disallows it and
+# browsers reject it; explicitly disable to avoid misconfiguration).
+_allow_credentials = "*" not in allowed_origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
