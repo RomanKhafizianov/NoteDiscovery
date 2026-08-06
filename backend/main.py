@@ -204,8 +204,8 @@ app = FastAPI(
 # CORS middleware configuration
 # Use config.yaml to control allowed origins (default: ["*"] for self-hosted simplicity)
 allowed_origins = config.get('server', {}).get('allowed_origins', ["*"])
-# Credentials must not be sent with wildcard origins (CORS spec disallows it and
-# browsers reject it; explicitly disable to avoid misconfiguration).
+# Starlette swaps the wildcard for the requesting Origin once a cookie is present,
+# so "*" plus credentials would allow credentialed reads from any origin.
 _allow_credentials = "*" not in allowed_origins
 app.add_middleware(
     CORSMiddleware,
