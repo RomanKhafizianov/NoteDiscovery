@@ -3189,12 +3189,25 @@ function noteApp() {
             }
         },
         
+        // Tear down the media viewer. Every path that clears currentMedia goes through
+        // here: currentMediaType drives the shared toolbar's undo/redo, so a leftover
+        // 'drawing' would wire a note's undo button to drawingUndo().
+        closeMediaViewer() {
+            if (this.currentMediaType === 'drawing') {
+                this._drawingDisconnectResizeObserver();
+            }
+            this.currentMedia = '';
+            this.currentMediaType = 'image';
+        },
+        
         // View a media file (image, audio, video, PDF) in the main pane
         viewMedia(mediaPath, mediaType = null, updateHistory = true) {
             if (this.currentMediaType === 'drawing') {
                 this._drawingDisconnectResizeObserver();
                 this._drawingCancelAutosave();
             }
+            // Close mobile sidebar when a media file is selected, same as loadNote
+            this.mobileSidebarOpen = false;
             this.showGraph = false; // Ensure graph is closed
             this.currentNote = '';
             this.currentNoteName = '';
@@ -4531,10 +4544,7 @@ function noteApp() {
                         window.history.replaceState({ homepageFolder: this.selectedHomepageFolder || '' }, '', '/');
                         this.currentNote = '';
                         this.noteContent = '';
-                        if (this.currentMediaType === 'drawing') {
-                            this._drawingDisconnectResizeObserver();
-                        }
-                        this.currentMedia = '';
+                        this.closeMediaViewer();
                         document.title = this.appName;
                         return;
                     }
@@ -4554,10 +4564,7 @@ function noteApp() {
                 // Doing it there means a single, unified restore path instead of two racing
                 // ones. See the post-$nextTick block for the full timing rationale.
                 this.currentNoteName = notePath.split('/').pop().replace('.md', '');
-                if (this.currentMediaType === 'drawing') {
-                    this._drawingDisconnectResizeObserver();
-                }
-                this.currentMedia = ''; // Clear image viewer when loading a note
+                this.closeMediaViewer(); // Clear image viewer when loading a note
                 this.shareInfo = null; // Reset share info for new note
                 
                 // Update browser tab title
@@ -5891,20 +5898,38 @@ function noteApp() {
             }
         },
         
+        /**
+         * Mermaid's core is ~650 KB across two dozen chunks, so it is fetched on first
+         * use rather than at page load: most notes contain no diagrams. Diagram types
+         * then load on demand from ./chunks/ next to the module.
+         */
+        loadMermaid() {
+            if (!window.mermaidReady) {
+                window.mermaidReady = import('/static/vendor/mermaid/mermaid.esm.min.mjs')
+                    .then((module) => (window.mermaid = module.default))
+                    .catch((error) => {
+                        console.error('Mermaid failed to load:', error);
+                        window.mermaidReady = null; // let the next diagram retry
+                        return null;
+                    });
+            }
+            return window.mermaidReady;
+        },
+        
         // Render Mermaid diagrams
         async renderMermaid() {
-            if (typeof window.mermaid === 'undefined' && window.mermaidReady) {
-                await window.mermaidReady;
-            }
-            if (typeof window.mermaid === 'undefined') {
-                console.warn('Mermaid not loaded');
-                return;
-            }
-            
             // Use requestAnimationFrame for better performance than setTimeout
             requestAnimationFrame(async () => {
                 const previewContent = document.querySelector('.markdown-preview');
                 if (!previewContent) return;
+                
+                // Find all code blocks with language 'mermaid'
+                const mermaidBlocks = previewContent.querySelectorAll('pre code.language-mermaid');
+                
+                // Early return if no diagrams to render, before paying for the library
+                if (mermaidBlocks.length === 0) return;
+                
+                if (!(await this.loadMermaid())) return;
                 
                 // Get the appropriate theme based on current app theme
                 const themeType = this.getThemeType();
@@ -5934,12 +5959,6 @@ function noteApp() {
                     });
                     this.lastMermaidTheme = mermaidTheme;
                 }
-                
-                // Find all code blocks with language 'mermaid'
-                const mermaidBlocks = previewContent.querySelectorAll('pre code.language-mermaid');
-                
-                // Early return if no diagrams to render
-                if (mermaidBlocks.length === 0) return;
                 
                 for (let i = 0; i < mermaidBlocks.length; i++) {
                     const block = mermaidBlocks[i];
@@ -8399,7 +8418,7 @@ function noteApp() {
             this.currentNote = '';
             this.currentNoteName = '';
             this.noteContent = '';
-            this.currentMedia = '';
+            this.closeMediaViewer();
             this.outline = [];
             this.backlinks = [];
             document.title = this.appName;
@@ -8422,7 +8441,7 @@ function noteApp() {
             this.currentNote = '';
             this.currentNoteName = '';
             this.noteContent = '';
-            this.currentMedia = '';
+            this.closeMediaViewer();
             this.outline = [];
             this.backlinks = [];
             this.mobileSidebarOpen = false;
@@ -8447,8 +8466,16 @@ function noteApp() {
         // Mobile files/home tab - context-aware behavior
         mobileFilesTabClick() {
             if (this.currentNote || this.currentMedia || this.showGraph) {
-                // Viewing content → go home
-                this.goHome();
+                // Leaving content lands in the folder the item lives in, not the vault
+                // root: this tab is the only way out of a note on mobile, and dropping
+                // the user at the root loses their place. Root stays one tap away on
+                // the homepage breadcrumb.
+                const openPath = this.currentNote || this.currentMedia;
+                const parentFolder = openPath
+                    ? openPath.split('/').slice(0, -1).join('/')
+                    : this.selectedHomepageFolder;
+                this.goToHomepageFolder(parentFolder);
+                this.mobileSidebarOpen = false;
             } else {
                 // On homepage → toggle files sidebar
                 this.activePanel = 'files';
