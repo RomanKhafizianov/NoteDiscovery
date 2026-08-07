@@ -5898,20 +5898,38 @@ function noteApp() {
             }
         },
         
+        /**
+         * Mermaid's core is ~650 KB across two dozen chunks, so it is fetched on first
+         * use rather than at page load: most notes contain no diagrams. Diagram types
+         * then load on demand from ./chunks/ next to the module.
+         */
+        loadMermaid() {
+            if (!window.mermaidReady) {
+                window.mermaidReady = import('/static/vendor/mermaid/mermaid.esm.min.mjs')
+                    .then((module) => (window.mermaid = module.default))
+                    .catch((error) => {
+                        console.error('Mermaid failed to load:', error);
+                        window.mermaidReady = null; // let the next diagram retry
+                        return null;
+                    });
+            }
+            return window.mermaidReady;
+        },
+        
         // Render Mermaid diagrams
         async renderMermaid() {
-            if (typeof window.mermaid === 'undefined' && window.mermaidReady) {
-                await window.mermaidReady;
-            }
-            if (typeof window.mermaid === 'undefined') {
-                console.warn('Mermaid not loaded');
-                return;
-            }
-            
             // Use requestAnimationFrame for better performance than setTimeout
             requestAnimationFrame(async () => {
                 const previewContent = document.querySelector('.markdown-preview');
                 if (!previewContent) return;
+                
+                // Find all code blocks with language 'mermaid'
+                const mermaidBlocks = previewContent.querySelectorAll('pre code.language-mermaid');
+                
+                // Early return if no diagrams to render, before paying for the library
+                if (mermaidBlocks.length === 0) return;
+                
+                if (!(await this.loadMermaid())) return;
                 
                 // Get the appropriate theme based on current app theme
                 const themeType = this.getThemeType();
@@ -5941,12 +5959,6 @@ function noteApp() {
                     });
                     this.lastMermaidTheme = mermaidTheme;
                 }
-                
-                // Find all code blocks with language 'mermaid'
-                const mermaidBlocks = previewContent.querySelectorAll('pre code.language-mermaid');
-                
-                // Early return if no diagrams to render
-                if (mermaidBlocks.length === 0) return;
                 
                 for (let i = 0; i < mermaidBlocks.length; i++) {
                     const block = mermaidBlocks[i];

@@ -100,18 +100,7 @@
     <script src="/static/vendor/highlight.js/languages/css.min.js"></script>
     <script src="/static/vendor/highlight.js/languages/http.min.js"></script>
     
-    <script type="module">
-        // Diagram types load on demand from ./chunks/ next to this module.
-        // Exposed as a promise because module scripts are deferred: a preview can
-        // render before this finishes, and renderMermaid() waits on it.
-        window.mermaidReady = import('/static/vendor/mermaid/mermaid.esm.min.mjs')
-            .then((module) => (window.mermaid = module.default))
-            .catch((error) => {
-                console.error('Mermaid failed to load:', error);
-                return null;
-            });
-    </script>
-    
+    <!-- Mermaid is not loaded here: renderMermaid() imports it on first diagram -->
     <script src="/static/vendor/vis-network/vis-network.min.js"></script>
     <script src="/static/vendor/qrcode-generator/qrcode.min.js"></script>
     
