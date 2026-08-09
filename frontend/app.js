@@ -1626,6 +1626,10 @@ function noteApp() {
             this._noteLookup.byEndPath.clear();
             this._mediaLookup.clear();
             
+            const setFirst = (map, key, value) => {
+                if (!map.has(key)) map.set(key, value);
+            };
+            
             for (const note of this.notes) {
                 const path = note.path;
                 const pathLower = path.toLowerCase();
@@ -1647,38 +1651,50 @@ function noteApp() {
                 // Notes only from here
                 const nameWithoutMd = name.replace(/\.md$/i, '');
                 const nameWithoutMdLower = nameWithoutMd.toLowerCase();
+                const urlPath = path.replace(/\.md$/i, '');
                 
-                // Store all variations for fast lookup
-                this._noteLookup.byPath.set(path, true);
-                this._noteLookup.byPath.set(path.replace(/\.md$/i, ''), true);
-                this._noteLookup.byPathLower.set(pathLower, true);
-                this._noteLookup.byPathLower.set(pathLower.replace(/\.md$/i, ''), true);
-                this._noteLookup.byName.set(name, true);
-                this._noteLookup.byName.set(nameWithoutMd, true);
-                this._noteLookup.byNameLower.set(nameLower, true);
-                this._noteLookup.byNameLower.set(nameWithoutMdLower, true);
+                // Store all variations for fast lookup. The value is the note's URL
+                // path, so a wikilink can be resolved to a href and not just tested
+                // for existence. Name keys collide when two folders hold the same
+                // note name, so first match wins, the same rule the media map above
+                // and the name lookup in handleInternalLink already use.
+                setFirst(this._noteLookup.byPath, path, urlPath);
+                setFirst(this._noteLookup.byPath, urlPath, urlPath);
+                setFirst(this._noteLookup.byPathLower, pathLower, urlPath);
+                setFirst(this._noteLookup.byPathLower, pathLower.replace(/\.md$/i, ''), urlPath);
+                setFirst(this._noteLookup.byName, name, urlPath);
+                setFirst(this._noteLookup.byName, nameWithoutMd, urlPath);
+                setFirst(this._noteLookup.byNameLower, nameLower, urlPath);
+                setFirst(this._noteLookup.byNameLower, nameWithoutMdLower, urlPath);
                 
                 // End path matching (for /folder/note style links)
-                this._noteLookup.byEndPath.set('/' + nameWithoutMdLower, true);
-                this._noteLookup.byEndPath.set('/' + nameLower, true);
+                setFirst(this._noteLookup.byEndPath, '/' + nameWithoutMdLower, urlPath);
+                setFirst(this._noteLookup.byEndPath, '/' + nameLower, urlPath);
             }
         },
         
-        // Fast O(1) check if a wikilink target exists
-        wikiLinkExists(linkTarget) {
+        // Resolve a wikilink target to the target note's URL path (O(1) lookup)
+        // Returns the path without its .md extension, or null when nothing matches
+        resolveWikiLink(linkTarget) {
             const targetLower = linkTarget.toLowerCase();
             
             // Check all lookup maps
             return (
-                this._noteLookup.byPath.has(linkTarget) ||
-                this._noteLookup.byPath.has(linkTarget + '.md') ||
-                this._noteLookup.byPathLower.has(targetLower) ||
-                this._noteLookup.byPathLower.has(targetLower + '.md') ||
-                this._noteLookup.byName.has(linkTarget) ||
-                this._noteLookup.byNameLower.has(targetLower) ||
-                this._noteLookup.byEndPath.has('/' + targetLower) ||
-                this._noteLookup.byEndPath.has('/' + targetLower + '.md')
+                this._noteLookup.byPath.get(linkTarget) ??
+                this._noteLookup.byPath.get(linkTarget + '.md') ??
+                this._noteLookup.byPathLower.get(targetLower) ??
+                this._noteLookup.byPathLower.get(targetLower + '.md') ??
+                this._noteLookup.byName.get(linkTarget) ??
+                this._noteLookup.byNameLower.get(targetLower) ??
+                this._noteLookup.byEndPath.get('/' + targetLower) ??
+                this._noteLookup.byEndPath.get('/' + targetLower + '.md') ??
+                null
             );
+        },
+        
+        // Fast O(1) check if a wikilink target exists
+        wikiLinkExists(linkTarget) {
+            return this.resolveWikiLink(linkTarget) !== null;
         },
         
         // Resolve media wikilink to full path (O(1) lookup)
@@ -6274,14 +6290,22 @@ function noteApp() {
                     const linkTarget = target.trim();
                     const linkText = displayText ? displayText.trim() : linkTarget;
                     
-                    // Fast O(1) check using pre-built lookup maps
+                    // Fast O(1) lookup using pre-built lookup maps
                     // Handle section anchors: extract base note path
                     const hashIndex = linkTarget.indexOf('#');
                     const basePath = hashIndex !== -1 ? linkTarget.substring(0, hashIndex) : linkTarget;
-                    const noteExists = basePath === '' || self.wikiLinkExists(basePath);
+                    const anchor = hashIndex !== -1 ? linkTarget.substring(hashIndex) : '';
+                    const resolvedPath = basePath === '' ? null : self.resolveWikiLink(basePath);
+                    const noteExists = basePath === '' || resolvedPath !== null;
+                    
+                    // A wikilink names a note, not a location relative to the note it is
+                    // written in, so the href has to be absolute. Left as written when it
+                    // resolves to nothing: that raw target is what the create-from-link
+                    // prompt offers as the path of the new note.
+                    const hrefTarget = resolvedPath !== null ? '/' + resolvedPath + anchor : linkTarget;
                     
                     // Escape special chars: href needs quote escaping, text needs HTML escaping
-                    const safeHref = linkTarget.replace(/"/g, '%22');
+                    const safeHref = hrefTarget.replace(/"/g, '%22');
                     const safeText = linkText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     
                     // Return link with data attribute for styling broken links
