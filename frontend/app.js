@@ -7465,7 +7465,8 @@ function noteApp() {
             // Link count (standard markdown links)
             const markdownLinkMatches = content.match(/\[([^\]]+)\]\(([^\)]+)\)/g) || [];
             const markdownLinks = markdownLinkMatches.length;
-            const markdownInternalLinks = markdownLinkMatches.filter(l => l.includes('.md')).length;
+            // Test the target, not the whole link: a label mentioning ".md" is not an internal link.
+            const markdownInternalLinks = markdownLinkMatches.filter(l => /\]\([^)]+\.md(?:#[^)]*)?\)$/.test(l)).length;
             
             // Wikilink count ([[note]] or [[note|display text]] format)
             const wikilinks = (content.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g) || []).length;
@@ -7476,7 +7477,9 @@ function noteApp() {
             
             // Code blocks
             const codeBlocks = (content.match(/```[\s\S]*?```/g) || []).length;
-            const inlineCode = (content.match(/`[^`]+`/g) || []).length;
+            // Fences come out first: the ``` pairs around a block otherwise match
+            // the inline pattern and each block counts as an inline span as well.
+            const inlineCode = (content.replace(/```[\s\S]*?```/g, '').match(/`[^`]+`/g) || []).length;
             
             // Headings
             const h1 = (content.match(/^# /gm) || []).length;
