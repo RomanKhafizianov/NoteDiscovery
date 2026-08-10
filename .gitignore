@@ -57,3 +57,6 @@ video/
 
 # Browser libraries, downloaded by scripts/vendor_assets.py
 frontend/vendor/
+
+# Local test suite, not shipped
+tests/

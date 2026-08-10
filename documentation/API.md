@@ -406,7 +406,7 @@ Plugins can hook into various events in the application lifecycle.
 | `on_note_save` | Note is being saved | ✅ Yes (return transformed content, or None) |
 | `on_note_load` | Note is loaded | ✅ Yes (return transformed content, or None) |
 | `on_note_delete` | Note is deleted | ❌ No |
-| `on_search` | Search is performed | ❌ No |
+| `on_search` | Search is performed | ✅ Yes (return a replacement result list, or None) |
 | `on_app_startup` | App starts | ❌ No |
 
 See [PLUGINS.md](PLUGINS.md) for full documentation on creating plugins.
