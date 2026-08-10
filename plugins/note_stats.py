@@ -2,14 +2,17 @@
 Note Statistics Plugin for NoteDiscovery
 
 Computes per-note metrics (words, sentences, reading time, links, tasks, …)
-returned via /api/plugins/note_stats/calculate and consumed by the frontend
-stats panel. On save we also emit a one-line INFO summary for quick
-visibility in the server logs.
+served from /api/plugins/note_stats/calculate for API and MCP consumers. The
+web UI computes the same metrics client-side and does not call this endpoint.
+On save we also emit a one-line INFO summary for quick visibility in the
+server logs.
 """
 
 import logging
 import math
 import re
+
+from fastapi import APIRouter
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -21,6 +24,23 @@ class Plugin:
         self.name = "Note Statistics"
         self.version = "1.0.0"
         self.enabled = True
+
+    def setup(self, ctx):
+        """Swap the module logger for the per-plugin one the host provides."""
+        global logger
+        logger = ctx.logger
+
+    def get_routes(self) -> APIRouter:
+        """Expose /api/plugins/note_stats/calculate."""
+        router = APIRouter()
+
+        @router.get("/calculate")
+        async def calculate(content: str):
+            if not self.enabled:
+                return {"enabled": False, "stats": None}
+            return {"enabled": True, "stats": self.calculate_stats(content)}
+
+        return router
 
     def calculate_stats(self, content: str) -> dict:
         """Compute the full metric set returned to the frontend / API."""
