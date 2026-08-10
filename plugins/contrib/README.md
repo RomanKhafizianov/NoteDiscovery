@@ -10,19 +10,41 @@ project's own testing. Read one before you run it.
 
 ## Installing one
 
-Copy the file up one directory and restart:
+With the repository checked out, copy the file up one directory and restart:
 
 ```bash
 cp plugins/contrib/<plugin>.py plugins/
 docker-compose restart
 ```
 
-On Docker, this assumes you've mounted the folder (uncomment `- ./plugins:/app/plugins`
-in `docker-compose.yml`). Copying a file straight into a running container works
-too, but it disappears the next time the container is recreated.
+### On Docker
 
-To remove a plugin, delete it from `plugins/` and restart. To leave it installed
-but switch it off, toggle it in Settings → Plugins.
+Customising plugins means mounting a host folder — uncomment `- ./plugins:/app/plugins`
+in `docker-compose.yml` — and that mount hides the `contrib/` folder bundled in the
+image. So fetch the one file you want straight into your mounted folder:
+
+```bash
+curl -o plugins/<plugin>.py \
+  https://raw.githubusercontent.com/gamosoft/NoteDiscovery/main/plugins/contrib/<plugin>.py
+docker-compose restart
+```
+
+Or lift the whole bundled folder out of the image once, and mount that:
+
+```bash
+docker cp notediscovery:/app/plugins ./plugins
+# uncomment the plugins volume in docker-compose.yml
+cp plugins/contrib/<plugin>.py plugins/
+docker-compose up -d
+```
+
+Copying a file into a running container without a mount appears to work, but it's
+gone the next time the container is recreated.
+
+### Removing one
+
+Delete it from `plugins/` and restart. To keep it installed but switch it off,
+toggle it in Settings → Plugins.
 
 ## Contributing one
 
