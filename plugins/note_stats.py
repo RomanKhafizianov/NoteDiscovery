@@ -8,6 +8,7 @@ visibility in the server logs.
 """
 
 import logging
+import math
 import re
 
 logger = logging.getLogger("uvicorn.error")
@@ -26,7 +27,9 @@ class Plugin:
         words = len(re.findall(r'\S+', content))
         chars = len(re.sub(r'\s', '', content))
         total_chars = len(content)
-        reading_time = max(1, round(words / WORDS_PER_MINUTE))
+        # floor(x + 0.5) rather than round(): round() is banker's rounding, so
+        # exactly 500 words would report 2 minutes here and 3 in the browser.
+        reading_time = max(1, math.floor(words / WORDS_PER_MINUTE + 0.5))
         lines = len(content.split('\n'))
         paragraphs = len([p for p in content.split('\n\n') if p.strip()])
         sentences = len(re.findall(r'[.!?]+(?:\s|$)', content))
@@ -37,19 +40,24 @@ class Plugin:
         tables = len(re.findall(r'^\s*\|(?:\s*:?-+:?\s*\|){1,}\s*$', content, re.MULTILINE))
 
         markdown_links = len(re.findall(r'\[([^\]]+)\]\(([^\)]+)\)', content))
-        markdown_internal_links = len(re.findall(r'\[([^\]]+)\]\(([^\)]+\.md)\)', content))
+        # A trailing #anchor still points at a local note, so it counts as internal.
+        markdown_internal_links = len(re.findall(r'\[[^\]]+\]\([^\)]+\.md(?:#[^\)]*)?\)', content))
         wikilinks = len(re.findall(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', content))
         links = markdown_links + wikilinks
         internal_links = markdown_internal_links + wikilinks  # wikilinks are always internal
 
         code_blocks = len(re.findall(r'```[\s\S]*?```', content))
-        inline_code = len(re.findall(r'`[^`]+`', content))
+        # Fences come out first: the ``` pairs around a block otherwise match
+        # the inline pattern and each block counts as an inline span as well.
+        inline_code = len(re.findall(r'`[^`]+`', re.sub(r'```[\s\S]*?```', '', content)))
 
         h1_count = len(re.findall(r'^# ', content, re.MULTILINE))
         h2_count = len(re.findall(r'^## ', content, re.MULTILINE))
         h3_count = len(re.findall(r'^### ', content, re.MULTILINE))
 
-        total_tasks = len(re.findall(r'- \[[ x]\]', content))
+        # Both must agree on case: a case-sensitive total against a
+        # case-insensitive completed count makes "- [X]" produce pending = -1.
+        total_tasks = len(re.findall(r'- \[[ x]\]', content, re.IGNORECASE))
         completed_tasks = len(re.findall(r'- \[x\]', content, re.IGNORECASE))
 
         images = len(re.findall(r'!\[([^\]]*)\]\(([^\)]+)\)', content))

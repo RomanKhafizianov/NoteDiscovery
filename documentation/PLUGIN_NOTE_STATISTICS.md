@@ -200,7 +200,7 @@ Find orphaned notes or track reference density.
 **Reading Time:** `words / 200 minutes`  
 **Links:** Regex match `[text](url)` markdown links + `[[wikilinks]]`  
 **Wikilinks:** Regex match `[[target]]` and `[[target|display]]` (Obsidian-style)  
-**Tasks:** Match `- [ ]` and `- [x]`  
+**Tasks:** Match `- [ ]` and `- [x]`, case-insensitive so `- [X]` counts too  
 **Code Blocks:** Match ` ```language ` ` fences  
 **Headings:** Match `#`, `##`, `###` at line start  
 
