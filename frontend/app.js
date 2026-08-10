@@ -4297,8 +4297,13 @@ function noteApp() {
             // Parse href into note path and anchor (e.g., "note.md#section" -> notePath="note.md", anchor="section")
             const decodedHref = decodeURIComponent(href);
             const hashIndex = decodedHref.indexOf('#');
-            const notePath = hashIndex !== -1 ? decodedHref.substring(0, hashIndex) : decodedHref;
+            const rawPath = hashIndex !== -1 ? decodedHref.substring(0, hashIndex) : decodedHref;
             const anchor = hashIndex !== -1 ? decodedHref.substring(hashIndex + 1) : null;
+
+            // Root-relative hrefs like /folder/note are vault paths with a slash bolted
+            // on, and vault paths carry none. Protocol-relative //host already returned
+            // above as external, so nothing here can be a host.
+            const notePath = rawPath.replace(/^\/+/, '');
             
             // If it's just an anchor link (#heading), scroll within current note
             if (!notePath && anchor) {
