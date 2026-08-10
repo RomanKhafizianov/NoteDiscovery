@@ -35,6 +35,13 @@ also makes the order your responsibility. Return results in a stable order
 (due date, name, relevance score), not one that shifts between calls, or paginated
 clients can see duplicates.
 
+## Bundled and Contributed Plugins
+
+`note_stats` ships in `plugins/` and loads at startup. Community plugins live in
+`plugins/contrib/`, which the loader ignores — install one by copying it into
+`plugins/` and restarting. Each carries its own documentation in its docstring;
+see [plugins/contrib/README.md](../plugins/contrib/README.md).
+
 ## Creating a Plugin
 
 ### 1. Create a Python file
