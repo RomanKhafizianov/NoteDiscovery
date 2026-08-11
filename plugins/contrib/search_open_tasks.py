@@ -7,10 +7,15 @@ Install: cp plugins/contrib/search_open_tasks.py plugins/
 Author:  @LuBeDa
 Caveats: One result per note, not per task — the sidebar keys results by path,
          so a note shows its first open task there and carries the rest in
-         `matches` for API and MCP consumers. Opening a result highlights
-         nothing, because "@tasks" is not text that appears in the note.
-         YAML frontmatter and fenced code blocks are skipped, so list-shaped
-         metadata and checkbox examples inside fences are not read as tasks.
+         `matches` for API and MCP consumers. Numbered checkboxes are also found.
+         Opening a result highlights nothing, because "@tasks" is not text 
+         that appears in the note. YAML frontmatter and fenced code blocks are
+         skipped, so list-shaped metadata and checkbox examples inside fences
+         are not read as tasks.
+         Every "@tasks" search reads every note in the vault, because a task
+         list has no index behind it the way core's full-text search does. On
+         a large vault expect the query to take about as long as one cold
+         full-text search, and to get slower as the vault grows.
 """
 
 import logging
@@ -28,8 +33,11 @@ TRIGGERS = {"@task", "@tasks"}
 # Unchecked checkboxes only, on any marker that starts a markdown list item:
 # the three bullets, or an ordered number closed by "." or ")". CommonMark caps
 # that number at nine digits. "- [x]" is a finished task and never matches.
+#
+# Every gap is [ \t] rather than \s, which would also match the newline and let
+# an empty "- [ ]" swallow the line below it as its own text.
 OPEN_TASK_PATTERN = re.compile(
-    r'^[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+\[ \]\s+(\S.*?)\s*$',
+    r'^[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+\[ \][ \t]+(\S.*?)[ \t]*$',
     re.MULTILINE,
 )
 
