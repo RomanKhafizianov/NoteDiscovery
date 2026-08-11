@@ -9,6 +9,8 @@ Caveats: One result per note, not per task — the sidebar keys results by path,
          so a note shows its first open task there and carries the rest in
          `matches` for API and MCP consumers. Opening a result highlights
          nothing, because "@tasks" is not text that appears in the note.
+         YAML frontmatter and fenced code blocks are skipped, so list-shaped
+         metadata and checkbox examples inside fences are not read as tasks.
 """
 
 import logging
@@ -23,9 +25,19 @@ logger = logging.getLogger("uvicorn.error")
 # stripped, lowercased query, so "@Tasks " triggers too.
 TRIGGERS = {"@task", "@tasks"}
 
-# Unchecked checkboxes only, on any of the three bullet markers. "- [x]" is a
-# finished task and deliberately never matches.
-OPEN_TASK_PATTERN = re.compile(r'^[ \t]*[-*+] \[ \]\s+(\S.*?)\s*$', re.MULTILINE)
+# Unchecked checkboxes only, on any marker that starts a markdown list item:
+# the three bullets, or an ordered number closed by "." or ")". CommonMark caps
+# that number at nine digits. "- [x]" is a finished task and never matches.
+OPEN_TASK_PATTERN = re.compile(
+    r'^[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+\[ \]\s+(\S.*?)\s*$',
+    re.MULTILINE,
+)
+
+# A CommonMark fence opener: up to three leading spaces, then three or more
+# backticks or tildes. It closes on a line of the same character, at least as
+# long, with nothing but whitespace after it — the rule the preview pipeline's
+# own fence scanner uses.
+FENCE_OPEN_PATTERN = re.compile(r'^ {0,3}(`{3,}|~{3,})')
 
 # A task longer than this is cut for display. Every task still gets its own
 # entry — this trims a line, it never drops one.
@@ -101,8 +113,15 @@ class Plugin:
         return notes
 
     def _open_tasks(self, content: str) -> list:
-        """One match entry per unchecked task, ordered as they appear."""
+        """One match entry per unchecked task, ordered as they appear.
+
+        Bulleted and numbered lists both count, so "- [ ]", "1. [ ]" and
+        "1) [ ]" are all open tasks. "- []" is not: the box needs the space
+        GitHub-flavoured markdown puts inside it, and without one the line is
+        ordinary text wearing empty brackets.
+        """
         matches = []
+        content = self._blank_non_task_regions(content)
 
         for match in OPEN_TASK_PATTERN.finditer(content):
             text = match.group(1)
@@ -117,3 +136,51 @@ class Plugin:
             })
 
         return matches
+
+    def _blank_non_task_regions(self, content: str) -> str:
+        """Empty out the lines no task can live on, keeping every newline.
+
+        Frontmatter carries list-shaped metadata that is not a task, and a
+        fence holds an example of one rather than one someone owes. The lines
+        are blanked rather than dropped because `line_number` counts newlines
+        and the sidebar uses it to jump to the task.
+        """
+        lines = content.split('\n')
+        first_body_line = 0
+
+        # Frontmatter counts only when the very first line is `---` and a
+        # closing `---` follows — the same rule core's tag parser applies, so
+        # an unterminated block leaves the whole note readable.
+        if lines and lines[0].strip() == '---':
+            for i in range(1, len(lines)):
+                if lines[i].strip() == '---':
+                    lines[:i + 1] = [''] * (i + 1)
+                    first_body_line = i + 1
+                    break
+
+        fence_char = None
+        fence_len = 0
+        for i in range(first_body_line, len(lines)):
+            line = lines[i]
+
+            if fence_char is None:
+                opener = FENCE_OPEN_PATTERN.match(line)
+                if opener:
+                    fence_char = opener.group(1)[0]
+                    fence_len = len(opener.group(1))
+                    lines[i] = ''
+                continue
+
+            # Inside a fence: blank the line either way, and let a valid
+            # closer end the block. An unclosed fence runs to end of note,
+            # which is what a markdown renderer does with one too.
+            closer = FENCE_OPEN_PATTERN.match(line)
+            lines[i] = ''
+            if (closer
+                    and closer.group(1)[0] == fence_char
+                    and len(closer.group(1)) >= fence_len
+                    and not line[closer.end():].strip()):
+                fence_char = None
+                fence_len = 0
+
+        return '\n'.join(lines)
