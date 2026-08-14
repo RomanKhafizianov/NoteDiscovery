@@ -555,7 +555,8 @@ def search_notes(notes_dir: str, query: str) -> List[Dict]:
 
     idx = note_index.get_index()
     if candidates is None:
-        # Query too short to tokenize — iterate every indexed note instead.
+        # Nothing in the query is indexable, "???" for instance — the index
+        # can't narrow it, so iterate every note.
         candidate_records = idx.all_note_records()
     else:
         candidate_records = [(p, idx.get_note_record(p)) for p in candidates]

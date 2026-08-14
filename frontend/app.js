@@ -17,6 +17,7 @@ const CONFIG = {
     DRAWING_MIN_DOC_DIM: 64,
     DRAWING_MAX_DOC_DIM: 4096,
     SEARCH_DEBOUNCE_DELAY: 500,        // ms - Delay before running note search while typing
+    SEARCH_MIN_QUERY_LENGTH: 2,        // Shorter queries show the folder tree instead of searching
     SAVE_INDICATOR_DURATION: 2000,     // ms - How long to show "saved" indicator
     SCROLL_SYNC_DELAY: 50,             // ms - Delay to prevent scroll sync interference
     SCROLL_SYNC_MAX_RETRIES: 10,       // Maximum attempts to find editor/preview elements
@@ -2014,7 +2015,7 @@ function noteApp() {
         
         // Unified filtering logic combining tags and text search
         async applyFilters() {
-            const hasTextSearch = this.searchQuery.trim().length > 0;
+            const hasTextSearch = this.isSearchable();
             const hasTagFilter = this.selectedTags.length > 0;
             
             // Case 1: No filters at all → show full folder tree
@@ -5879,12 +5880,19 @@ function noteApp() {
         },
         
         // Search notes
+        // Whether the query is worth sending. A single character matches most of
+        // a vault and can't use the search index, so it reads every note to
+        // answer something nobody wants — the sidebar shows its hint instead.
+        isSearchable() {
+            return this.searchQuery.trim().length >= CONFIG.SEARCH_MIN_QUERY_LENGTH;
+        },
+
         debouncedSearchNotes() {
             if (this.searchDebounceTimeout) {
                 clearTimeout(this.searchDebounceTimeout);
             }
 
-            const hasTextSearch = this.searchQuery.trim().length > 0;
+            const hasTextSearch = this.isSearchable();
             if (!hasTextSearch) {
                 this.isSearching = false;
                 this.searchNotes();
