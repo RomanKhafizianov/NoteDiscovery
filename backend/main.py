@@ -274,6 +274,12 @@ UPLOAD_MAX_VIDEO_MB = int(os.getenv('UPLOAD_MAX_VIDEO_MB', '100'))
 UPLOAD_MAX_PDF_MB = int(os.getenv('UPLOAD_MAX_PDF_MB', '20'))
 UPLOAD_MAX_NOTE_MB = int(os.getenv('UPLOAD_MAX_NOTE_MB', '10'))
 
+# Shortest query the search endpoint will act on. A single character matches
+# most of a vault and cannot use the search index, so answering it means reading
+# every note for a result nobody wants. Mirrored by SEARCH_MIN_QUERY_LENGTH in
+# frontend/app.js, which stops sending those queries in the first place.
+SEARCH_MIN_QUERY_LENGTH = 2
+
 # Autosave debounce in milliseconds (applies to note typing AND drawing PNG autosave).
 try:
     _autosave_raw = int(os.getenv(
@@ -1649,7 +1655,12 @@ async def search(
                 "message": "No search term provided"
             }
 
-        results = search_notes(config['storage']['notes_dir'], q)
+        # Below the floor, skip the vault read but still run the hooks, so a
+        # plugin answering a short trigger of its own keeps working.
+        if len(q.strip()) < SEARCH_MIN_QUERY_LENGTH:
+            results = []
+        else:
+            results = search_notes(config['storage']['notes_dir'], q)
 
         # Run plugin hooks — a plugin may return a replacement result set
         hooked = plugin_manager.dispatch('on_search', query=q, results=results)

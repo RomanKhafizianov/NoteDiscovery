@@ -208,6 +208,7 @@ items:                         # YAML list format
 
 ### Text Search
 - **Content-only** - Searches note contents (not file/folder names)
+- **Partial words** - Case-insensitive substring match, so `feat` finds `Features`
 - **Real-time results** - As you type
 - **Highlight matches** - See context in results
 - **In-note highlighting** - Search terms highlighted in open notes
