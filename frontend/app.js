@@ -38,6 +38,17 @@ const CONFIG = {
 /** Heroicons outline "share" (same d= as shared-note icon in the file tree) */
 const SHARE_ICON_PATH = 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z';
 
+/**
+ * Latin letters that Unicode decomposition cannot reduce to an ASCII base letter.
+ * Accents come off "ó" and "ż" on their own, but "ł" and "ß" are indivisible, so
+ * without this they read as punctuation: "żółty" would become "zo-ty".
+ */
+const SLUG_TRANSLITERATIONS = {
+    'ł': 'l', 'ø': 'o', 'ß': 'ss', 'đ': 'd', 'ð': 'd', 'þ': 'th',
+    'æ': 'ae', 'œ': 'oe', 'ħ': 'h', 'ı': 'i', 'ŧ': 't',
+};
+const SLUG_TRANSLITERATION_RE = new RegExp(`[${Object.keys(SLUG_TRANSLITERATIONS).join('')}]`, 'gi');
+
 // localStorage settings configuration - centralized definition of all persisted settings
 const LOCAL_SETTINGS = {
     // Boolean settings
@@ -8361,10 +8372,25 @@ function noteApp() {
             return text;
         },
 
+        /**
+         * Spell text with the ASCII letters a share slug can hold: café -> cafe,
+         * straße -> strasse. Case is kept for callers that care about it, and
+         * characters with no Latin reading are left in place for them to deal with.
+         */
+        _toSlugAlphabet(text) {
+            return (text || '')
+                .replace(SLUG_TRANSLITERATION_RE, (ch) => {
+                    const mapped = SLUG_TRANSLITERATIONS[ch.toLowerCase()];
+                    if (!mapped) return ch;
+                    return ch === ch.toLowerCase() ? mapped : mapped[0].toUpperCase() + mapped.slice(1);
+                })
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '');
+        },
+
         /** Reduce text to the token alphabet the backend accepts. */
         _slugify(text) {
-            return (text || '')
-                .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')   // café -> cafe
+            return this._toSlugAlphabet(text)
                 .replace(/[^A-Za-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '')
                 .slice(0, CONFIG.SHARE_SLUG_MAX_LENGTH)
@@ -8396,10 +8422,14 @@ function noteApp() {
             return this._slugify(filename);
         },
 
-        /** Keep field and state identical, dropping characters a URL can't carry. */
+        /**
+         * Keep field and state identical, dropping characters a URL can't carry.
+         * Accented letters are spelled out rather than deleted, so typing a name
+         * produces what the suggested one would have.
+         */
         onShareSlugInput(event) {
             const el = event?.target;
-            const cleaned = String((el ? el.value : this.shareSlug) || '')
+            const cleaned = this._toSlugAlphabet(el ? el.value : this.shareSlug)
                 .replace(/\s+/g, '-')
                 .replace(/[^A-Za-z0-9_-]/g, '')
                 .slice(0, CONFIG.SHARE_SLUG_MAX_LENGTH);

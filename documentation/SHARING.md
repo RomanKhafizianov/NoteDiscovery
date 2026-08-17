@@ -20,7 +20,11 @@ type. NoteDiscovery checks the name while you type and refuses one that another 
 already uses.
 
 Names may contain letters, numbers, hyphens and underscores, between 3 and 64
-characters. Two links cannot differ only in capitalisation.
+characters. Two links cannot differ only in capitalisation. Accented letters are
+spelled out with their closest ASCII equivalent, so `Łódź` becomes `lodz` and
+`straße` becomes `strasse` - whether you type the name or accept the suggested one.
+Scripts with no Latin reading, such as Japanese or Cyrillic, cannot be used in a link
+name; those notes fall back to a suggestion based on the filename.
 
 > **A readable name is a guessable name.** A random link is effectively impossible to
 > find, while `/share/recipes` is something anyone can try. Keep the random link for
