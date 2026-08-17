@@ -4267,10 +4267,54 @@ function noteApp() {
             return box && box.closest('li') === item ? box : null;
         },
 
+        /**
+         * Every task in the note to the opposite of the clicked one, so ticking one box
+         * off a mixed list ticks the rest. A single assignment, so one Ctrl+Z undoes it.
+         */
+        _toggleAllTasksFromPreview(box) {
+            const index = parseInt(box.getAttribute('data-task-index'), 10);
+            if (!Number.isInteger(index)) return false;
+
+            const taskLines = this._scanTaskLines(this.noteContent);
+            const clickedLine = taskLines[index];
+            if (clickedLine === undefined) return false;
+
+            const lines = this.noteContent.split('\n');
+            const clicked = lines[clickedLine].match(TASK_ITEM_RE);
+            if (!clicked) return false;
+
+            // Intent comes from the source, not the DOM: clicking the box has already
+            // flipped the input, clicking the text next to it has not.
+            const nextState = clicked[2] === ' ' ? 'x' : ' ';
+            let changed = 0;
+
+            for (const lineIdx of taskLines) {
+                const updated = lines[lineIdx].replace(TASK_ITEM_RE, (m, prefix) => prefix + nextState);
+                if (updated !== lines[lineIdx]) {
+                    lines[lineIdx] = updated;
+                    changed++;
+                }
+            }
+            if (!changed) return true;
+
+            this.noteContent = lines.join('\n');
+            this.autoSave();
+            this.toast(
+                this.t(nextState === 'x' ? 'editor.tasks_all_checked' : 'editor.tasks_all_unchecked',
+                    { changed, total: taskLines.length })
+            );
+            return true;
+        },
+
         /** Tick/untick the clicked task item in the source. True when it was a task. */
         toggleTaskFromPreview(event) {
             const box = this._taskBoxForClick(event);
             if (!box) return false;
+
+            // Ctrl (Cmd on a Mac) applies the change to every task in the note. Ctrl
+            // leaves the text selection alone, unlike Shift, so the guards in
+            // _taskBoxForClick hold for the box and the item text alike.
+            if (event.ctrlKey || event.metaKey) return this._toggleAllTasksFromPreview(box);
 
             const index = parseInt(box.getAttribute('data-task-index'), 10);
             if (!Number.isInteger(index)) return false;

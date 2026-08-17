@@ -81,7 +81,9 @@
     "just_now": "just now",
     "minutes_ago": "{{count}}m ago",
     "hours_ago": "{{count}}h ago",
-    "days_ago": "{{count}}d ago"
+    "days_ago": "{{count}}d ago",
+    "tasks_all_checked": "{{changed}} of {{total}} tasks checked",
+    "tasks_all_unchecked": "{{changed}} of {{total}} tasks unchecked"
   },
   "notes": {
     "confirm_delete": "Delete \"{{name}}\"?",

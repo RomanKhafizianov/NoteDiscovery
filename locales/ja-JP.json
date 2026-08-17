@@ -81,7 +81,9 @@
     "just_now": "たった今",
     "minutes_ago": "{{count}}分前",
     "hours_ago": "{{count}}時間前",
-    "days_ago": "{{count}}日前"
+    "days_ago": "{{count}}日前",
+    "tasks_all_checked": "{{total}} 件中 {{changed}} 件のタスクをチェックしました",
+    "tasks_all_unchecked": "{{total}} 件中 {{changed}} 件のタスクのチェックを解除しました"
   },
   "notes": {
     "confirm_delete": "「{{name}}」を削除しますか？",

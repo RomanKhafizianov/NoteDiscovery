@@ -81,7 +81,9 @@
     "just_now": "adesso",
     "minutes_ago": "{{count}}m fa",
     "hours_ago": "{{count}}h fa",
-    "days_ago": "{{count}}g fa"
+    "days_ago": "{{count}}g fa",
+    "tasks_all_checked": "{{changed}} di {{total}} attività selezionate",
+    "tasks_all_unchecked": "{{changed}} di {{total}} attività deselezionate"
   },
   "notes": {
     "confirm_delete": "Eliminare \"{{name}}\"?",

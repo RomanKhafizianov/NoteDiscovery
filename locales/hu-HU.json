@@ -81,7 +81,9 @@
     "just_now": "éppen most",
     "minutes_ago": "{{count}} perce",
     "hours_ago": "{{count}} órája",
-    "days_ago": "{{count}} napja"
+    "days_ago": "{{count}} napja",
+    "tasks_all_checked": "{{total}} feladatból {{changed}} bejelölve",
+    "tasks_all_unchecked": "{{total}} feladatból {{changed}} jelölése törölve"
   },
   "notes": {
     "confirm_delete": "Biztos törlöd a következőt: \"{{name}}\"?",

@@ -81,7 +81,9 @@
     "just_now": "gerade eben",
     "minutes_ago": "vor {{count}}m",
     "hours_ago": "vor {{count}}h",
-    "days_ago": "vor {{count}}T"
+    "days_ago": "vor {{count}}T",
+    "tasks_all_checked": "{{changed}} von {{total}} Aufgaben als erledigt markiert",
+    "tasks_all_unchecked": "{{changed}} von {{total}} Aufgaben als offen markiert"
   },
   "notes": {
     "confirm_delete": "\"{{name}}\" löschen?",

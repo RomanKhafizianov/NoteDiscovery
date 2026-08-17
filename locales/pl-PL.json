@@ -81,7 +81,9 @@
     "just_now": "przed chwilą",
     "minutes_ago": "{{count}} min temu",
     "hours_ago": "{{count}} godz. temu",
-    "days_ago": "{{count}} dni temu"
+    "days_ago": "{{count}} dni temu",
+    "tasks_all_checked": "Zaznaczono {{changed}} z {{total}} zadań",
+    "tasks_all_unchecked": "Odznaczono {{changed}} z {{total}} zadań"
   },
   "notes": {
     "confirm_delete": "Usunąć „{{name}}”?",

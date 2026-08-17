@@ -81,7 +81,9 @@
     "just_now": "только что",
     "minutes_ago": "{{count}} мин. назад",
     "hours_ago": "{{count}} ч. назад",
-    "days_ago": "{{count}} дн. назад"
+    "days_ago": "{{count}} дн. назад",
+    "tasks_all_checked": "Отмечено {{changed}} из {{total}} задач",
+    "tasks_all_unchecked": "Снята отметка с {{changed}} из {{total}} задач"
   },
   "notes": {
     "confirm_delete": "Удалить «{{name}}»?",

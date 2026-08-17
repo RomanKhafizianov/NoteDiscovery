@@ -81,7 +81,9 @@
     "just_now": "à l'instant",
     "minutes_ago": "il y a {{count}}m",
     "hours_ago": "il y a {{count}}h",
-    "days_ago": "il y a {{count}}j"
+    "days_ago": "il y a {{count}}j",
+    "tasks_all_checked": "{{changed}} tâches sur {{total}} cochées",
+    "tasks_all_unchecked": "{{changed}} tâches sur {{total}} décochées"
   },
   "notes": {
     "confirm_delete": "Supprimer \"{{name}}\" ?",
