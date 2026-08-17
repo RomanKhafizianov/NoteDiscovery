@@ -7567,9 +7567,17 @@ function noteApp() {
             const h2 = (content.match(/^## /gm) || []).length;
             const h3 = (content.match(/^### /gm) || []).length;
             
-            // Tasks
-            const totalTasks = (content.match(/- \[[ x]\]/gi) || []).length;
-            const completedTasks = (content.match(/- \[x\]/gi) || []).length;
+            // Tasks: found the same way the preview's clickable checkboxes are, so the
+            // panel counts exactly the boxes you can see and tick. A plain `- [x]` search
+            // would instead count examples inside code fences and frontmatter while
+            // missing every task on a *, + or numbered marker.
+            const contentLines = content.split('\n');
+            const taskLines = this._scanTaskLines(content);
+            const totalTasks = taskLines.length;
+            const completedTasks = taskLines.filter((i) => {
+                const state = contentLines[i].match(TASK_ITEM_RE);
+                return state && state[2] !== ' ';
+            }).length;
             const pendingTasks = totalTasks - completedTasks;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             
