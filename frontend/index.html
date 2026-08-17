@@ -3934,13 +3934,44 @@
             
             <!-- Not shared state -->
             <div x-show="!shareLoading && !shareInfo?.shared">
-                <p class="mb-4 text-sm" style="color: var(--text-secondary);" x-text="t('share.not_shared_description')"></p>
+                <p class="mb-3 text-sm" style="color: var(--text-secondary);" x-text="t('share.not_shared_description')"></p>
+                
+                <!-- Link name: generated unless the user wants to choose it -->
+                <label class="flex items-center gap-2 mb-3 text-sm cursor-pointer" style="color: var(--text-secondary);">
+                    <input type="checkbox" x-model="shareUseRandomLink" @change="onShareRandomLinkToggle()" />
+                    <span x-text="t('share.use_random_link')"></span>
+                </label>
+                
+                <div x-show="!shareUseRandomLink" class="mb-3">
+                    <input 
+                        type="text"
+                        x-model="shareSlug"
+                        @input="onShareSlugInput($event)"
+                        @keydown.enter.prevent="canSubmitShareLink() && createShareLink()"
+                        :placeholder="t('share.link_name')"
+                        :aria-label="t('share.link_name')"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        class="w-full px-3 py-2 rounded border text-sm"
+                        style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
+                    />
+                    <!-- Both lines render even when empty: they change on every
+                         keystroke, and hiding them resizes the dialog as you type -->
+                    <p class="mt-1 text-xs break-all" style="color: var(--text-tertiary);" x-text="shareSlugPreviewUrl() || '\u00A0'"></p>
+                    <p class="mt-1 text-xs" 
+                       :style="shareSlugOk() ? 'color: var(--success, #22c55e);' : 'color: var(--error);'" 
+                       x-text="shareSlugMessage() || '\u00A0'"></p>
+                    <p class="mt-2 text-xs" style="color: var(--text-tertiary);" x-text="t('share.custom_link_warning')"></p>
+                </div>
+                
                 <button 
                     @click="createShareLink()"
+                    :disabled="!canSubmitShareLink()"
+                    :class="canSubmitShareLink() ? '' : 'opacity-50 cursor-not-allowed'"
                     class="w-full px-4 py-2 rounded font-medium text-white transition-colors"
                     style="background-color: var(--accent-primary);"
-                    onmouseover="this.style.backgroundColor='var(--accent-hover)'"
-                    onmouseout="this.style.backgroundColor='var(--accent-primary)'"
+                    onmouseover="if(!this.disabled) this.style.backgroundColor='var(--accent-hover)'"
+                    onmouseout="if(!this.disabled) this.style.backgroundColor='var(--accent-primary)'"
                     x-text="t('share.create_link')"
                 >
                 </button>
@@ -3950,15 +3981,18 @@
             <div x-show="!shareLoading && shareInfo?.shared">
                 <p class="mb-2 text-sm" style="color: var(--text-secondary);" x-text="t('share.shared_description')"></p>
                 
-                <!-- Share URL -->
-                <div class="flex gap-2 mb-4">
+                <!-- Link name, editable: the full URL follows on the line below -->
+                <div class="flex gap-2 mb-1">
                     <input 
                         type="text"
-                        :value="shareInfo?.url || ''"
-                        readonly
+                        x-model="shareSlug"
+                        @input="onShareSlugInput($event)"
+                        @keydown.enter.prevent="updateShareLinkSlug()"
+                        :aria-label="t('share.link_name')"
+                        spellcheck="false"
+                        autocapitalize="off"
                         class="flex-1 px-3 py-2 rounded border text-sm"
                         style="background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary);"
-                        @click="$el.select()"
                     />
                     <button 
                         @click="copyShareLink()"
@@ -3976,6 +4010,30 @@
                         <span x-text="shareLinkCopied ? t('common.copied') : t('share.copy')"></span>
                     </button>
                 </div>
+                
+                <!-- Full URL for whatever the field currently holds. Kept in the layout
+                     even when empty so editing the name does not resize the dialog -->
+                <p class="mb-1 text-xs break-all" style="color: var(--text-tertiary);">
+                    <span x-text="shareSlugPreviewUrl() || '\u00A0'"></span>
+                    <span x-show="shareSlugChanged()" x-text="' - ' + t('share.link_not_saved')"></span>
+                </p>
+                <p class="mb-3 text-xs" 
+                   :style="shareSlugOk() ? 'color: var(--success, #22c55e);' : 'color: var(--error);'" 
+                   x-text="shareSlugMessage() || '\u00A0'"></p>
+                
+                <!-- Renaming retires the current URL, so it is an explicit step -->
+                <button 
+                    x-show="shareSlugChanged()"
+                    @click="updateShareLinkSlug()"
+                    :disabled="!canSubmitShareLink()"
+                    :class="canSubmitShareLink() ? '' : 'opacity-50 cursor-not-allowed'"
+                    class="w-full px-4 py-2 mb-4 rounded font-medium text-white transition-colors"
+                    style="background-color: var(--accent-primary);"
+                    onmouseover="if(!this.disabled) this.style.backgroundColor='var(--accent-hover)'"
+                    onmouseout="if(!this.disabled) this.style.backgroundColor='var(--accent-primary)'"
+                    x-text="t('share.update_link')"
+                >
+                </button>
                 
                 <!-- QR Code -->
                 <div class="mb-4 flex flex-col items-center">

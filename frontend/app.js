@@ -18,6 +18,10 @@ const CONFIG = {
     DRAWING_MAX_DOC_DIM: 4096,
     SEARCH_DEBOUNCE_DELAY: 500,        // ms - Delay before running note search while typing
     SEARCH_MIN_QUERY_LENGTH: 2,        // Shorter queries show the folder tree instead of searching
+    SHARE_SLUG_MIN_LENGTH: 3,          // Mirrors SLUG_MIN_LENGTH in backend/share.py
+    SHARE_SLUG_MAX_LENGTH: 64,         // Mirrors SLUG_MAX_LENGTH in backend/share.py
+    SHARE_SLUG_WORDS: 4,               // Words pulled from a note when suggesting a link name
+    SHARE_SLUG_CHECK_DEBOUNCE: 300,    // ms - Delay before asking the server whether a name is free
     SAVE_INDICATOR_DURATION: 2000,     // ms - How long to show "saved" indicator
     SCROLL_SYNC_DELAY: 50,             // ms - Delay to prevent scroll sync interference
     SCROLL_SYNC_MAX_RETRIES: 10,       // Maximum attempts to find editor/preview elements
@@ -470,6 +474,11 @@ function noteApp() {
         shareLoading: false,
         showShareQR: false,
         shareLinkCopied: false,
+        shareUseRandomLink: true,   // Off hands the link name to the user
+        shareSlug: '',              // Just the last URL segment, without /share/
+        shareSlugState: '',         // '' while unknown, 'ok', or a rejection reason code
+        _shareSlugCheckTid: null,
+        _shareResetTid: null,
         _sharedNotePaths: new Set(),  // O(1) lookup for shared note indicators
         _sharedNotePathsList: [], // sorted paths, mirrors Set for reactive sidebar panel
         
@@ -8282,11 +8291,18 @@ function noteApp() {
         // Close share modal and reset state after animation
         closeShareModal() {
             this.showShareModal = false;
-            // Delay state reset until modal is fully hidden
-            setTimeout(() => {
+            clearTimeout(this._shareSlugCheckTid);
+            // Delay state reset until modal is fully hidden. Reopening cancels it,
+            // otherwise a pending reset lands on the freshly loaded dialog and blanks
+            // it while it is on screen.
+            clearTimeout(this._shareResetTid);
+            this._shareResetTid = setTimeout(() => {
                 this.showShareQR = false;
                 this.shareInfo = null;
                 this.shareLoading = false;
+                this.shareUseRandomLink = true;
+                this.shareSlug = '';
+                this.shareSlugState = '';
             }, 200);
         },
         
@@ -8332,15 +8348,179 @@ function noteApp() {
             return info;
         },
 
+        /**
+         * Drop YAML frontmatter so a suggested link name comes from the prose.
+         */
+        _bodyWithoutFrontmatter(content) {
+            const text = typeof content === 'string' ? content : '';
+            const lines = text.split('\n');
+            if (lines[0]?.trim() !== '---') return text;
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '---') return lines.slice(i + 1).join('\n');
+            }
+            return text;
+        },
+
+        /** Reduce text to the token alphabet the backend accepts. */
+        _slugify(text) {
+            return (text || '')
+                .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')   // café -> cafe
+                .replace(/[^A-Za-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, CONFIG.SHARE_SLUG_MAX_LENGTH)
+                .replace(/-+$/g, '')
+                .toLowerCase();
+        },
+
+        /**
+         * Propose a link name from the note's opening words, falling back to its
+         * filename when those are all markup or a script the URL alphabet can't hold.
+         */
+        _suggestShareSlug() {
+            const body = this._bodyWithoutFrontmatter(this.noteContent);
+            const openingWords = (text) => text
+                .replace(/^#{1,6}\s+/gm, '')
+                .replace(/[*_`~>\[\]()!|]/g, ' ')
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, CONFIG.SHARE_SLUG_WORDS)
+                .join(' ');
+            // The heading on its own reads best. Reaching into the rest of the body is
+            // for notes that open straight into prose, or whose title is a word or two.
+            const firstLine = body.split('\n').find(line => line.trim()) || '';
+            for (const candidate of [openingWords(firstLine), openingWords(body)]) {
+                const slug = this._slugify(candidate);
+                if (slug.length >= CONFIG.SHARE_SLUG_MIN_LENGTH) return slug;
+            }
+            const filename = (this.currentNote || '').split('/').pop().replace(/\.md$/, '');
+            return this._slugify(filename);
+        },
+
+        /** Keep field and state identical, dropping characters a URL can't carry. */
+        onShareSlugInput(event) {
+            const el = event?.target;
+            const cleaned = String((el ? el.value : this.shareSlug) || '')
+                .replace(/\s+/g, '-')
+                .replace(/[^A-Za-z0-9_-]/g, '')
+                .slice(0, CONFIG.SHARE_SLUG_MAX_LENGTH);
+            this.shareSlug = cleaned;
+            // Alpine repaints only when the bound value changes, and a rejected
+            // keystroke leaves it unchanged, so put the field back by hand.
+            if (el && el.value !== cleaned) el.value = cleaned;
+            this._scheduleShareSlugCheck();
+        },
+
+        onShareRandomLinkToggle() {
+            if (this.shareUseRandomLink) {
+                this.shareSlugState = '';
+                return;
+            }
+            if (!this.shareSlug) this.shareSlug = this._suggestShareSlug();
+            this._scheduleShareSlugCheck();
+        },
+
+        _scheduleShareSlugCheck() {
+            clearTimeout(this._shareSlugCheckTid);
+            const slug = this.shareSlug;
+            if (!slug) {
+                this.shareSlugState = '';
+                return;
+            }
+            if (slug.length < CONFIG.SHARE_SLUG_MIN_LENGTH) {
+                this.shareSlugState = 'too_short';
+                return;
+            }
+            this.shareSlugState = '';
+            this._shareSlugCheckTid = setTimeout(
+                () => this._checkShareSlug(slug),
+                CONFIG.SHARE_SLUG_CHECK_DEBOUNCE
+            );
+        },
+
+        /**
+         * Ask whether a name is free. Advisory only - saving re-checks server-side,
+         * so a failed check leaves the field neutral instead of blocking the button.
+         */
+        async _checkShareSlug(slug) {
+            try {
+                const params = new URLSearchParams({ slug });
+                if (this.currentNote) {
+                    params.set('note_path', this.currentNote.replace(/\.md$/, ''));
+                }
+                const response = await fetch(`/api/share-slug?${params.toString()}`);
+                if (!response.ok) return;
+                const data = await response.json();
+                if (slug !== this.shareSlug) return;   // A later keystroke owns the field
+                this.shareSlugState = data.available ? 'ok' : (data.reason || 'taken');
+            } catch (error) {
+                console.warn('Could not check share link name:', error);
+            }
+        },
+
+        /** Full URL for what is currently typed, built the way the server builds it. */
+        shareSlugPreviewUrl() {
+            if (!this.shareSlug) return '';
+            return `${window.location.origin}/share/${this.shareSlug}`;
+        },
+
+        _shareSlugMessageFor(state) {
+            if (!state) return '';
+            if (state === 'ok') return this.t('share.slug_available');
+            if (state === 'taken') return this.t('share.slug_taken');
+            if (state === 'too_short') {
+                return this.t('share.slug_too_short', { min: CONFIG.SHARE_SLUG_MIN_LENGTH });
+            }
+            if (state === 'too_long') {
+                return this.t('share.slug_too_long', { max: CONFIG.SHARE_SLUG_MAX_LENGTH });
+            }
+            return this.t('share.slug_invalid_chars');
+        },
+
+        shareSlugMessage() {
+            return this._shareSlugMessageFor(this.shareSlugState);
+        },
+
+        shareSlugOk() {
+            return this.shareSlugState === 'ok';
+        },
+
+        /** A generated link is always fine; a typed one has to pass validation. */
+        canSubmitShareLink() {
+            if (this.shareUseRandomLink && !this.shareInfo?.shared) return true;
+            return this.shareSlug.length >= CONFIG.SHARE_SLUG_MIN_LENGTH
+                && !['taken', 'too_short', 'too_long', 'invalid_chars'].includes(this.shareSlugState);
+        },
+
+        /** True when the field holds a name the note is not actually shared under. */
+        shareSlugChanged() {
+            return !!this.shareInfo?.shared && this.shareSlug !== (this.shareInfo.token || '');
+        },
+
+        _shareSlugReason(detail) {
+            return detail && typeof detail === 'object' && typeof detail.reason === 'string'
+                ? detail.reason
+                : '';
+        },
+
+        _shareErrorText(detail) {
+            const reason = this._shareSlugReason(detail);
+            if (reason) return this._shareSlugMessageFor(reason);
+            return typeof detail === 'string' && detail ? detail : 'Unknown error';
+        },
+
         // Open share modal and fetch current share status
         async openShareModal() {
             if (!this.currentNote) return;
             
+            clearTimeout(this._shareResetTid);
             // Reset state BEFORE showing modal to prevent flicker
             this.showShareQR = false;
             this.shareInfo = null;
             this.shareLoading = true;
             this.showShareModal = true;
+            this.shareUseRandomLink = true;
+            this.shareSlug = '';
+            this.shareSlugState = '';
             
             try {
                 const notePath = this.currentNote.replace('.md', '');
@@ -8356,6 +8536,9 @@ function noteApp() {
                 console.error('Failed to get share status:', error);
                 this.shareInfo = { shared: false };
             } finally {
+                // An existing link's own name is what the field starts from, so editing
+                // it is a rename rather than a fresh choice.
+                this.shareSlug = this.shareInfo?.shared ? (this.shareInfo.token || '') : '';
                 this.shareLoading = false;
             }
         },
@@ -8369,25 +8552,83 @@ function noteApp() {
             try {
                 const notePath = this.currentNote.replace('.md', '');
                 const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const body = { theme: this.currentTheme || 'light' };
+                if (!this.shareUseRandomLink && this.shareSlug) body.slug = this.shareSlug;
                 const response = await fetch(`/api/share/${encodedPath}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ theme: this.currentTheme || 'light' })
+                    body: JSON.stringify(body)
                 });
                 
                 if (response.ok) {
                     this.shareInfo = this._localizeShareUrl(await response.json());
                     this.shareInfo.shared = true;
+                    this.shareSlug = this.shareInfo.token || '';
+                    this.shareSlugState = '';
                     // Update the shared paths set
                     this._sharedNotePaths.add(this.currentNote);
                     this._syncSharedNotePathsList();
                 } else {
                     const error = await response.json();
-                    this.toast(this.t('share.error_creating', { error: error.detail || 'Unknown error' }), { type: 'error' });
+                    // A rejected name belongs on the field, not only in a toast that
+                    // disappears while the dialog is still open.
+                    const reason = this._shareSlugReason(error.detail);
+                    if (reason) this.shareSlugState = reason;
+                    this.toast(this.t('share.error_creating', { error: this._shareErrorText(error.detail) }), { type: 'error' });
                 }
             } catch (error) {
                 console.error('Failed to create share link:', error);
                 this.toast(this.t('share.error_creating', { error: error.message }), { type: 'error' });
+            } finally {
+                this.shareLoading = false;
+            }
+        },
+        
+        /**
+         * Move the note to a new link name.
+         *
+         * A note has one share token, so this is a swap: the previous URL stops
+         * resolving the moment the new one starts.
+         */
+        async updateShareLinkSlug() {
+            if (!this.currentNote || !this.shareSlugChanged() || !this.canSubmitShareLink()) return;
+            
+            const ok = await this.confirmModalAsk({
+                message: this.t('share.confirm_slug_change'),
+                danger: true,
+                confirmLabel: this.t('share.update_link'),
+            });
+            if (!ok) return;
+            
+            this.shareLoading = true;
+            
+            try {
+                const notePath = this.currentNote.replace('.md', '');
+                const encodedPath = notePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const response = await fetch(`/api/share/${encodedPath}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        theme: this.shareInfo?.theme || this.currentTheme || 'light',
+                        slug: this.shareSlug
+                    })
+                });
+                
+                if (response.ok) {
+                    this.shareInfo = this._localizeShareUrl(await response.json());
+                    this.shareInfo.shared = true;
+                    this.shareSlug = this.shareInfo.token || '';
+                    this.shareSlugState = '';
+                    this.shareLinkCopied = false;
+                } else {
+                    const error = await response.json();
+                    const reason = this._shareSlugReason(error.detail);
+                    if (reason) this.shareSlugState = reason;
+                    this.toast(this.t('share.error_updating', { error: this._shareErrorText(error.detail) }), { type: 'error' });
+                }
+            } catch (error) {
+                console.error('Failed to update share link:', error);
+                this.toast(this.t('share.error_updating', { error: error.message }), { type: 'error' });
             } finally {
                 this.shareLoading = false;
             }
@@ -8436,10 +8677,12 @@ function noteApp() {
                 });
                 
                 if (response.ok) {
-                    this.shareInfo = { shared: false };
                     // Update the shared paths set
                     this._sharedNotePaths.delete(this.currentNote);
                     this._syncSharedNotePathsList();
+                    // Nothing is left to do here, and dropping back to the "create a
+                    // link" step offers to undo what was just confirmed.
+                    this.closeShareModal();
                 } else {
                     const error = await response.json();
                     this.toast(this.t('share.error_revoking', { error: error.detail || 'Unknown error' }), { type: 'error' });

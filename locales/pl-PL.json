@@ -148,7 +148,19 @@
     "show_qr": "Pokaż kod QR",
     "hide_qr": "Ukryj kod QR",
     "panel_title": "Udostępnione",
-    "no_shared": "Brak udostępnionych notatek"
+    "no_shared": "Brak udostępnionych notatek",
+    "link_name": "Nazwa linku",
+    "use_random_link": "Użyj losowego linku",
+    "custom_link_warning": "Każdy, kto odgadnie nazwę, może otworzyć notatkę. Do treści wrażliwych użyj losowego linku.",
+    "slug_available": "Nazwa jest dostępna",
+    "slug_taken": "Inny link już używa tej nazwy",
+    "slug_invalid_chars": "Używaj tylko liter, cyfr, łączników i podkreśleń",
+    "slug_too_short": "Użyj co najmniej {{min}} znaków",
+    "slug_too_long": "Użyj najwyżej {{max}} znaków",
+    "update_link": "Zaktualizuj link",
+    "link_not_saved": "niezapisane",
+    "confirm_slug_change": "Czy na pewno chcesz zmienić nazwę linku? Obecny link natychmiast przestanie działać.",
+    "error_updating": "Nie udało się zaktualizować linku udostępniania: {{error}}"
   },
   "quick_switcher": {
     "placeholder": "Wpisz, aby wyszukać notatki...",
