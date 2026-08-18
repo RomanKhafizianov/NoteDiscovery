@@ -788,10 +788,19 @@ POST /api/share/{note_path}
 Content-Type: application/json
 
 {
-  "theme": "dracula"
+  "theme": "dracula",
+  "slug": "quarterly-report"
 }
 ```
-Creates a share token for the note. The `theme` is optional (defaults to "light").
+Creates a share token for the note. Both fields are optional: `theme` defaults to
+"light", and without `slug` the token is generated at random.
+
+A `slug` becomes the token itself. It must be 3-64 characters of letters, numbers,
+hyphens and underscores, and must not match another link's token (compared without
+regard to case). On a note that is already shared, a slug different from the current
+token **renames the link and the previous URL stops working** - a note has one token,
+so this is a move rather than a second link. Sending the note's current token, or no
+slug at all, leaves an existing link untouched.
 
 **Response:**
 ```json
@@ -800,6 +809,32 @@ Creates a share token for the note. The `theme` is optional (defaults to "light"
   "token": "LRFEo86oSVeJ3Gju",
   "url": "http://localhost:8000/share/LRFEo86oSVeJ3Gju",
   "note_path": "folder/note.md"
+}
+```
+
+**Slug errors:** `400` for a name that could never work, `409` for one already in use.
+The `reason` is a stable code (`too_short`, `too_long`, `invalid_chars`, `taken`) so
+clients can localise the message.
+```json
+{
+  "detail": { "reason": "taken", "message": "Share slug rejected: taken" }
+}
+```
+
+### Check Share Slug
+```http
+GET /api/share-slug?slug=quarterly-report&note_path=folder/note
+```
+Reports whether a custom slug can be used, for validating input before saving.
+`note_path` is optional; when given, that note's own current token is not treated as a
+conflict. Advisory only - the create call validates again, since another request can
+claim the same name in between.
+
+**Response:**
+```json
+{
+  "available": false,
+  "reason": "taken"
 }
 ```
 

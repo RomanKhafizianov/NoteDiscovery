@@ -68,6 +68,9 @@ from .share import (
     delete_token_for_note,
     update_token_path,
     get_all_shared_paths,
+    is_slug_available,
+    validate_slug,
+    ShareSlugError,
 )
 from .export import generate_export_html, embed_images_as_base64, convert_wikilinks_to_html, strip_frontmatter
 
@@ -1798,15 +1801,23 @@ async def create_share(request: Request, note_path: str, data: dict = None):
     """
     Create a share token for a note.
     Returns the share URL that can be accessed without authentication.
-    Optionally accepts { "theme": "theme-name" } to set the display theme.
+    Optionally accepts { "theme": "theme-name" } to set the display theme, and
+    { "slug": "custom-name" } to choose the token instead of generating one. On a
+    note that is already shared, a different slug renames the link and the previous
+    URL stops working.
     """
     try:
         notes_dir = config['storage']['notes_dir']
         
         # Get theme from request body (default to light)
         theme = "light"
+        slug = None
         if data and isinstance(data, dict):
             theme = data.get('theme', 'light')
+            # Absent and blank both mean "generate one", so the UI can send the field
+            # unconditionally.
+            if data.get('slug') not in (None, ''):
+                slug = data.get('slug')
         
         # Add .md extension if not present
         if not note_path.endswith('.md'):
@@ -1818,7 +1829,14 @@ async def create_share(request: Request, note_path: str, data: dict = None):
             raise HTTPException(status_code=404, detail="Note not found")
         
         # Create or get existing token (with theme)
-        token = create_share_token(notes_dir, note_path, theme)
+        try:
+            token = create_share_token(notes_dir, note_path, theme, slug)
+        except ShareSlugError as e:
+            # 409 for a name someone else holds, 400 for a name that could never work.
+            raise HTTPException(
+                status_code=409 if e.reason == 'taken' else 400,
+                detail={"reason": e.reason, "message": f"Share slug rejected: {e.reason}"},
+            )
         if not token:
             raise HTTPException(status_code=500, detail="Failed to create share token")
         
@@ -1863,6 +1881,33 @@ async def get_share_status(request: Request, note_path: str):
         return info
     except Exception as e:
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to get share status"))
+
+
+@api_router.get("/share-slug", tags=["Sharing"])
+@limiter.limit("120/minute")
+async def check_share_slug(request: Request, slug: str, note_path: str = ""):
+    """
+    Report whether a custom share slug is usable, so the share dialog can say so
+    before the user commits to it. Advisory: the POST validates again, since another
+    request can claim the same name in between.
+
+    The limit is generous because the UI calls this while the user types.
+    """
+    try:
+        candidate = validate_slug(slug)
+    except ShareSlugError as e:
+        return {"available": False, "reason": e.reason}
+
+    # A note's own current token is not a conflict, so editing a link and saving it
+    # unchanged is not reported as taken.
+    owner_path = note_path or None
+    if owner_path and not owner_path.endswith('.md'):
+        owner_path = f"{owner_path}.md"
+
+    notes_dir = config['storage']['notes_dir']
+    if not is_slug_available(notes_dir, candidate, owner_path):
+        return {"available": False, "reason": "taken"}
+    return {"available": True, "reason": None}
 
 
 @api_router.get("/shared-notes", tags=["Sharing"])

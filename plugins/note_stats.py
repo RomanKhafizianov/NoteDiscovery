@@ -18,6 +18,18 @@ logger = logging.getLogger("uvicorn.error")
 
 WORDS_PER_MINUTE = 200
 
+# A task item on any marker GitHub-flavoured markdown renders a checkbox for: the
+# three bullets or a number closed by "." or ")", optionally nested inside other
+# markers or a blockquote. Group 1 is the state, " ", "x" or "X". Kept in step with
+# TASK_ITEM_RE in frontend/app.js, which decides which boxes are clickable.
+TASK_ITEM_PATTERN = re.compile(
+    r'^\s*(?:(?:[-*+]|\d{1,9}[.)]) +|>\s*)*(?:[-*+]|\d{1,9}[.)]) +\[([ xX])(?=\] )'
+)
+
+# A CommonMark fence opener, indented ones included: a fence nested in a list item
+# hides tasks just as well as one at the margin.
+FENCE_PATTERN = re.compile(r'^\s*(`{3,}|~{3,})')
+
 
 class Plugin:
     def __init__(self):
@@ -75,10 +87,7 @@ class Plugin:
         h2_count = len(re.findall(r'^## ', content, re.MULTILINE))
         h3_count = len(re.findall(r'^### ', content, re.MULTILINE))
 
-        # Both must agree on case: a case-sensitive total against a
-        # case-insensitive completed count makes "- [X]" produce pending = -1.
-        total_tasks = len(re.findall(r'- \[[ x]\]', content, re.IGNORECASE))
-        completed_tasks = len(re.findall(r'- \[x\]', content, re.IGNORECASE))
+        total_tasks, completed_tasks = self._count_tasks(content)
 
         images = len(re.findall(r'!\[([^\]]*)\]\(([^\)]+)\)', content))
         blockquotes = len(re.findall(r'^> ', content, re.MULTILINE))
@@ -114,6 +123,48 @@ class Plugin:
             'images': images,
             'blockquotes': blockquotes,
         }
+
+    def _count_tasks(self, content: str) -> tuple[int, int]:
+        """Task items and how many are done, as the browser counts them.
+
+        Frontmatter and fenced code are skipped: neither renders a checkbox, so
+        list-shaped metadata and the "- [ ]" in a markdown example are not work
+        anyone owes. Counting both states in one pass keeps them on the same rule,
+        so pending can never come out negative.
+        """
+        lines = content.split('\n')
+        start = 0
+
+        # Frontmatter counts only when the first line opens it and a closing ---
+        # follows, matching core's tag parser: an unterminated block is body text.
+        if lines and lines[0].strip() == '---':
+            for i in range(1, len(lines)):
+                if lines[i].strip() == '---':
+                    start = i + 1
+                    break
+
+        total = 0
+        completed = 0
+        open_fence = None
+
+        for line in lines[start:]:
+            fence = FENCE_PATTERN.match(line)
+            if open_fence:
+                # A fence closes on the same character, repeated at least as often.
+                if fence and fence.group(1)[0] == open_fence[0] and len(fence.group(1)) >= len(open_fence):
+                    open_fence = None
+                continue
+            if fence:
+                open_fence = fence.group(1)
+                continue
+
+            task = TASK_ITEM_PATTERN.match(line)
+            if task:
+                total += 1
+                if task.group(1) != ' ':
+                    completed += 1
+
+        return total, completed
 
     def on_note_save(self, note_path: str, content: str) -> str | None:
         """Emit a one-line summary on save. Doesn't modify content."""
